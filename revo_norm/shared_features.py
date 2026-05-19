@@ -76,7 +76,7 @@ def normalize_fraction(match: re.Match, language: str = "en") -> str:
 
     Args:
         match: Regex match object with numerator and denominator groups
-        language: Language code ('en' for English, 'ms' for Malay)
+        language: Language code ('en' for English, 'ms' for Malay, 'zh' for Chinese, 'zh_my' for Malaysian-Chinese)
 
     Returns:
         Spoken form of the fraction
@@ -89,11 +89,16 @@ def normalize_fraction(match: re.Match, language: str = "en") -> str:
     """
     from revo_norm.normalizer_en import text_normalize as normalize_en
     from revo_norm.normalizer_ms import normalize_malay as normalize_ms
-
+    
     numerator = match.group(1)
     denominator = match.group(2)
 
-    if language == "en":
+    if language in ("zh", "zh_my"):
+        from revo_norm.num2word_zh import to_cardinal
+        numerator_spoken = to_cardinal(int(numerator))
+        denominator_spoken = to_cardinal(int(denominator))
+        return f"{denominator_spoken}分之{numerator_spoken}"
+    elif language == "en":
         numerator_spoken = normalize_en(numerator)
         denominator_spoken = normalize_en(denominator)
         return f"{numerator_spoken} over {denominator_spoken}"
@@ -109,7 +114,7 @@ def normalize_fractions(text: str, language: str = "en") -> str:
 
     Args:
         text: Input text containing fractions
-        language: Language code ('en' or 'ms')
+        language: Language code ('en', 'ms', 'zh', 'zh_my')
 
     Returns:
         Text with fractions normalized
@@ -177,9 +182,9 @@ def normalize_x_kali_text(text: str, language: str = "en") -> str:
 _TEMPERATURE_PATTERN = re.compile(r"\b(-?\d+(?:[\.,]\d+)?)\s*([CFK])\b", re.IGNORECASE)
 
 _TEMPERATURE_UNITS = {
-    "c": {"en": "celsius", "ms": "celcius"},
-    "f": {"en": "fahrenheit", "ms": "fahrenheit"},
-    "k": {"en": "kelvin", "ms": "kelvin"},
+    "c": {"en": "celsius", "ms": "celcius", "zh": "摄氏度", "zh_my": "摄氏度"},
+    "f": {"en": "fahrenheit", "ms": "fahrenheit", "zh": "华氏度", "zh_my": "华氏度"},
+    "k": {"en": "kelvin", "ms": "kelvin", "zh": "开尔文", "zh_my": "开尔文"},
 }
 
 
@@ -189,7 +194,7 @@ def normalize_temperature(match: re.Match, language: str = "en") -> str:
 
     Args:
         match: Regex match object with value and unit groups
-        language: Language code ('en' for English, 'ms' for Malay)
+        language: Language code ('en' for English, 'ms' for Malay, 'zh' for Chinese, 'zh_my' for Malaysian-Chinese)
 
     Returns:
         Spoken form of the temperature
@@ -208,11 +213,11 @@ def normalize_temperature(match: re.Match, language: str = "en") -> str:
 
     if language in ("zh", "zh_my"):
         from revo_norm.num2word_zh import to_cardinal
-        unit_map = {"c": "摄氏度", "f": "华氏度", "k": "开尔文"}
+        unit_spoken = _TEMPERATURE_UNITS[unit][language]
         num_val = float(value)
         num_int = int(num_val)
         cardinal = to_cardinal(num_int) if num_val == num_int else to_cardinal(num_val)
-        return f"{cardinal}{unit_map.get(unit, unit)}"
+        return f"{cardinal}{unit_spoken}"
     elif language == "en":
         value_spoken = normalize_en(value)
         unit_spoken = _TEMPERATURE_UNITS[unit]["en"]
@@ -229,7 +234,7 @@ def normalize_temperatures(text: str, language: str = "en") -> str:
 
     Args:
         text: Input text containing temperatures
-        language: Language code ('en' or 'ms')
+        language: Language code ('en', 'ms', 'zh', 'zh_my')
 
     Returns:
         Text with temperatures normalized
@@ -251,7 +256,7 @@ def normalize_ic(match: re.Match, language: str = "en") -> str:
 
     Args:
         match: Regex match object with 3 groups (birth, place, code)
-        language: Language code ('en' for English, 'ms' for Malay)
+        language: Language code ('en' for English, 'ms' for Malay, 'zh' for Chinese, 'zh_my' for Malaysian-Chinese)
 
     Returns:
         Spoken form of the IC number
@@ -269,7 +274,15 @@ def normalize_ic(match: re.Match, language: str = "en") -> str:
     part2 = match.group(2)
     part3 = match.group(3)
 
-    if language == "en":
+    if language in ("zh", "zh_my"):
+        from revo_norm.num2word_zh import to_cardinal
+        # Speak each digit individually
+        spoken = []
+        for part in [part1, part2, part3]:
+            for digit in part:
+                spoken.append(to_cardinal(int(digit)))
+        return " ".join(spoken)
+    elif language == "en":
         # Speak each digit individually
         spoken = []
         for part in [part1, part2, part3]:
@@ -291,7 +304,7 @@ def normalize_ic_numbers(text: str, language: str = "en") -> str:
 
     Args:
         text: Input text containing IC numbers
-        language: Language code ('en' or 'ms')
+        language: Language code ('en', 'ms', 'zh', 'zh_my')
 
     Returns:
         Text with IC numbers normalized

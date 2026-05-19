@@ -273,19 +273,29 @@ normalize_text("2025", language="zh")  # "二零二五"
 normalize_text("1999", language="zh")  # "一九九九"
 ```
 
-### Currency
-
-| Symbol | zh | zh_my |
-|--------|----|-------|
-| `RM` | 令吉 | 令吉 |
-| `$` | 美元 | 块 (colloquial) |
-| `USD` | 美元 | 美元 |
+### Decimals, Percentages and Fraction
 
 ```python
-normalize_text("RM100.50", language="zh")    # "一百令吉五十分"
-normalize_text("$100", language="zh")         # "一百美元"
-normalize_text("$100", language="zh_my")      # "一百块"
-normalize_text("USD50", language="zh_my")     # "五十美元"
+normalize_text("一年3.3%的利率。", language="zh") # "一年百分之三点三的利率。"
+normalize_text("一年3.3%的利率。", language="zh_my") # "一年三点三巴仙的利率。"
+normalize_text("一年1/4的收益。", language="zh") # "一年四分之一的收益。"
+```
+
+### Currency
+
+| Symbol | zh (main unit) | zh (sub unit) | zh_my (main unit) | zh_my (sub unit)
+|--------|----|-------|
+| `RM, MYR` | 令吉 | 仙 | 令吉 | 仙 |
+| `$` | 美元 | 分 | 块 | 仙 |
+| `USD` | 美元 | 分 | 美元 | 仙 |
+| `£, GBP` | 英镑 | 便士 | 英镑 | 仙 |
+| `€, EUR` | 欧元 | 分 | 欧元 | 仙 |
+
+```python
+normalize_text("RM100.50", language="zh")    # "一百令吉五十仙"
+normalize_text("$100.50", language="zh")         # "一百美元五十分"
+normalize_text("$50.20", language="zh_my")      # "一百块二十仙"
+normalize_text("USD50.20", language="zh_my")     # "五十美元二十仙"
 ```
 
 ### Dates
@@ -302,9 +312,10 @@ normalize_text("2025-12-25", language="zh")    # "二零二五年十二月二十
 Time expressions use 上午/下午 (AM/PM) with 点 and 分:
 
 ```python
-normalize_text("3:30 pm", language="zh")  # "下午三点三十分"
-normalize_text("9:00 am", language="zh")   # "上午九点"
-normalize_text("14:30", language="zh")     # "十四点三十分"
+normalize_text("3:30 pm", language="zh")    # "下午三点三十分"
+normalize_text("9:00 am", language="zh")    # "上午九点"
+normalize_text("14:30", language="zh")      # "十四点三十分"
+normalize_text("早上13:15", language="zh")   # "早上十三点十五分" 
 ```
 
 ### Temperature and Measurements
@@ -317,23 +328,12 @@ normalize_text("10kg", language="zh")     # "十公斤"
 normalize_text("200ml", language="zh")    # "二百毫升"
 ```
 
-### Percentages and Decimals
+### Malaysian Identity Card Numbers (IC)
+
+Malaysian IC numbers (12 digits in `YYMMDD-SS-XXXX` format) are normalized to spoken form:
 
 ```python
-normalize_text("50%", language="zh")      # "百分之五十"
-normalize_text("3.14", language="zh")     # "三点一四"
-```
-
-### Code-Mixing (zh_my)
-
-Malaysian Chinese text frequently mixes CJK characters with Latin script. The `zh_my` normalizer handles this naturally:
-
-```python
-normalize_text("今天花了 RM100 买了 3 件东西", language="zh_my")
-# "今天花了 一百令吉 买了 三 件东西"
-
-normalize_text("距离 5km，温度 30C", language="zh_my")
-# "距离 五公里，温度 三十摄氏度"
+normalize_text("No IC: 901231-10-5678", language="zh")  # 九 零 一 二 三 一 一 零 五 六 七 八
 ```
 
 ### Feature Toggles

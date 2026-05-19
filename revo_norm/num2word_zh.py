@@ -121,14 +121,3 @@ def to_year(year: int) -> str:
     """Convert a year to Chinese spoken form (digit by digit)."""
     return "".join(_DIGITS[int(d)] for d in str(abs(year)))
 
-
-def to_currency(value: int | float, currency: str = "ringgit") -> str:
-    """Convert a number to Chinese currency spoken form."""
-    if isinstance(value, float):
-        int_part = int(value)
-        dec_str = f"{value:.2f}".split(".", 1)[1]
-        cents = int(dec_str)
-        if cents > 0:
-            return f"{to_cardinal(int_part)}{currency}{to_cardinal(cents)}分"
-        return f"{to_cardinal(int_part)}{currency}"
-    return f"{to_cardinal(value)}{currency}"
