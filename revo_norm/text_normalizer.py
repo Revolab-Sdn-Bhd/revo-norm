@@ -245,10 +245,14 @@ def split_into_sentences(text: str) -> list[str]:
 
 
 def insert_comma_after_repeated_words(text: str, min_repeat: int = 3) -> str:
-    """Insert comma after repeated words."""
+    """Insert comma after repeated words, but not within digit-word sequences."""
+    from revo_norm.tts_utils import _is_digit_word
+
     pattern = re.compile(r"\b(?P<word>\w+)\b(?: \1){" + str(min_repeat) + r",}", re.IGNORECASE)
 
     def _replacer(m: re.Match) -> str:
+        if _is_digit_word(m.group("word")):
+            return m.group(0)
         words = m.group(0).split()
         return " ".join(words[:-1]) + ", " + words[-1]
 

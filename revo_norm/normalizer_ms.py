@@ -56,6 +56,7 @@ _dashed_digit_re = re.compile(r"(?<![A-Za-z])([+\d]+(?:-[\d]+)+)(?![A-Za-z])")
 _alnum_re = re.compile(r"\b[\w\-]+\b")
 _number_re = re.compile(r"\b\d+\b")
 _number_with_commas_re = re.compile(r"\b\d{1,3}(?:,\d{3})+\b")
+_adjacent_digit_groups_re = re.compile(r"(?<!\S)(\d+(?:\s+\d+)+)(?=[\s.,!?]|$)")
 _percentage_re = re.compile(r"\b(\d+(?:\.\d+)?)%")
 _time_re = re.compile(
     r"\b(\d{1,2})[:\.](\d{2})\s*(?:(am|pm|a\.m\.|p\.m\.|malam|petang))",
@@ -263,6 +264,8 @@ def normalize_malay(text: str) -> str:
     text = re.sub(_decimal_re, normalize_decimal, text)
     text = re.sub(_dashed_digit_re, normalize_dashed_digits, text)
     text = re.sub(_number_with_commas_re, normalize_number_with_commas, text)
+    # Combine adjacent digit groups (e.g. "1111 222222 5555555" → "11112222225555555")
+    text = re.sub(_adjacent_digit_groups_re, lambda m: m.group(0).replace(" ", ""), text)
     text = re.sub(_number_re, normalize_number, text)
     text = re.sub(_alnum_re, normalize_mixed_alnum, text)
     return text

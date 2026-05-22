@@ -151,7 +151,7 @@ def _is_digit_word(word: str) -> bool:
     return word.strip(",.;:!?").lower() in _DIGIT_WORDS
 
 
-def add_random_commas(text: str, min_words: int = 8, max_words: int = 15) -> str:
+def add_random_commas(text: str, min_words: int = 8, max_words: int = 15, digit_group_size: int = 4) -> str:
     """
     Add random commas for pauses in TTS output.
 
@@ -159,13 +159,14 @@ def add_random_commas(text: str, min_words: int = 8, max_words: int = 15) -> str
     - Only add commas after many words (min_words=8, not 2-5)
     - Don't add comma if there's already punctuation within 8 words
     - Don't add comma if near end of sentence
-    - Never insert commas inside digit-word runs (e.g. "satu enam empat kosong")
+    - Insert commas between digit-word groups (every digit_group_size words)
     - Deterministic: same input always produces same output (seeded by text hash)
 
     Args:
         text: Input text
         min_words: Minimum words before considering a comma (default=8)
         max_words: Maximum words before forcing a comma (default=15)
+        digit_group_size: Insert comma every N digit words (default=4)
     """
     words = text.split()
     if len(words) < min_words:
@@ -190,6 +191,7 @@ def add_random_commas(text: str, min_words: int = 8, max_words: int = 15) -> str
 
     new_words = []
     word_count = 0
+    digit_count = 0  # Track consecutive digit words within a run
 
     for i, word in enumerate(words):
         new_words.append(word)
@@ -200,10 +202,15 @@ def add_random_commas(text: str, min_words: int = 8, max_words: int = 15) -> str
 
         if ends_sentence or has_comma:
             word_count = 0
+            digit_count = 0
             continue
 
-        # Skip digit-word runs entirely — never break up number expansions
+        # Within digit-word runs: insert comma every digit_group_size words
         if in_digit_run[i]:
+            digit_count += 1
+            if digit_count >= digit_group_size and i + 1 < len(words) and in_digit_run[i + 1]:
+                new_words.append(",")
+                digit_count = 0
             continue
 
         word_count += 1
