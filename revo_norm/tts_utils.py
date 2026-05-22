@@ -192,13 +192,6 @@ def add_random_commas(text: str, min_words: int = 8, max_words: int = 15) -> str
 
         ends_sentence = re.search(r"[.!?]$", word)
         has_comma = "," in word
-        near_digit_boundary = (
-            in_digit_run[i]
-            and (
-                (i + 1 < len(words) and not in_digit_run[i + 1])
-                or (i > 0 and not in_digit_run[i - 1])
-            )
-        )
 
         if ends_sentence or has_comma:
             word_count = 0
