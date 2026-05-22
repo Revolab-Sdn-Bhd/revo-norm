@@ -155,8 +155,12 @@ def add_random_commas(text: str, min_words: int = 8, max_words: int = 15) -> str
     """
     Add random commas for pauses in TTS output.
 
-    Digit-safe: never inserts commas inside digit-word runs.
-    Deterministic: same input always produces same output.
+    Rules:
+    - Only add commas after many words (min_words=8, not 2-5)
+    - Don't add comma if there's already punctuation within 8 words
+    - Don't add comma if near end of sentence
+    - Never insert commas inside digit-word runs (e.g. "satu enam empat kosong")
+    - Deterministic: same input always produces same output (seeded by text hash)
 
     Args:
         text: Input text
@@ -169,7 +173,7 @@ def add_random_commas(text: str, min_words: int = 8, max_words: int = 15) -> str
 
     rng = random.Random(hash(text))
 
-    # Pre-compute digit-word runs: consecutive words that are digit words
+    # Pre-compute digit-word runs: 2+ consecutive digit words (e.g. number expansions)
     in_digit_run = [False] * len(words)
     i = 0
     while i < len(words):
@@ -190,6 +194,7 @@ def add_random_commas(text: str, min_words: int = 8, max_words: int = 15) -> str
     for i, word in enumerate(words):
         new_words.append(word)
 
+        # Reset counter on any existing punctuation (sentence end or comma)
         ends_sentence = re.search(r"[.!?]$", word)
         has_comma = "," in word
 
@@ -197,24 +202,30 @@ def add_random_commas(text: str, min_words: int = 8, max_words: int = 15) -> str
             word_count = 0
             continue
 
+        # Skip digit-word runs entirely — never break up number expansions
         if in_digit_run[i]:
             continue
 
         word_count += 1
 
+        # Only consider adding comma if enough words have passed
         if word_count >= min_words and i < len(words) - 1:
+            # Check if there's punctuation coming up soon (within 8 words)
             upcoming_punctuation = False
             for j in range(i + 1, min(i + 9, len(words))):
                 if re.search(r"[.!?,:;]", words[j]):
                     upcoming_punctuation = True
                     break
 
+            # Add comma with probability proportional to word count
             if not upcoming_punctuation and word_count <= max_words:
+                # Higher chance as word count increases
                 chance = word_count / max_words
                 if rng.random() < chance:
                     new_words.append(",")
                     word_count = 0
             elif word_count >= max_words:
+                # Force comma if max words reached (but still check for upcoming punctuation)
                 if not upcoming_punctuation and i < len(words) - 3:
                     new_words.append(",")
                     word_count = 0
