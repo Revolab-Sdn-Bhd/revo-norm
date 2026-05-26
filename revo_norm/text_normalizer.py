@@ -54,11 +54,18 @@ normalize_whitespace = _normalize_whitespace
 
 def email_to_spoken(email: str, language: str = "en") -> str:
     """Convert an email address to spoken-friendly form for TTS."""
-    spoken = email.replace("@", " at ")
-    spoken = spoken.replace(".", " dot ")
-    spoken = spoken.replace("_", " underscore ")
-    spoken = spoken.replace("+", " plus ")
-    spoken = spoken.replace("-", " dash ")
+    if language == "zh":
+        spoken = email.replace("@", "艾特")
+        spoken = spoken.replace(".", "点")
+        spoken = spoken.replace("_", "下划线")
+        spoken = spoken.replace("+", "加")
+        spoken = spoken.replace("-", "杠")
+    else:
+        spoken = email.replace("@", " at ")
+        spoken = spoken.replace(".", " dot ")
+        spoken = spoken.replace("_", " underscore ")
+        spoken = spoken.replace("+", " plus ")
+        spoken = spoken.replace("-", " dash ")
     return re.sub(r"\s+", " ", spoken).strip()
 
 
@@ -85,23 +92,53 @@ _DIGIT_WORDS = {
 }
 
 
-def url_to_spoken(url: str) -> str:
+def url_to_spoken(url: str, language: str = "en") -> str:
     """Convert a URL into spoken-friendly form for TTS."""
     spoken = url
     if "://" in spoken:
         protocol, _ = spoken.split("://", 1)
         protocol_spoken = " ".join(list(protocol))
-        spoken = spoken.replace(f"{protocol}://", f"{protocol_spoken} colon slash slash ")
-    spoken = re.sub(r"www\.?", "w w w dot ", spoken)
+        if language == "zh":
+            spoken = spoken.replace(f"{protocol}://", f"{protocol_spoken} 冒号斜杠斜杠")
+        elif language == "zh_my":
+            spoken = spoken.replace(f"{protocol}://", f"{protocol_spoken} 冒号 slash slash ")
+        else:
+            spoken = spoken.replace(f"{protocol}://", f"{protocol_spoken} colon slash slash ")
+    if language == "zh":
+        spoken = re.sub(r"www\.?", "w w w 点 ", spoken)
+    else:
+        spoken = re.sub(r"www\.?", "w w w dot ", spoken)
 
-    def _replace_port(m: re.Match) -> str:
-        return " colon " + " ".join(_DIGIT_WORDS.get(c, c) for c in m.group(1))
+    def _replace_port(m: re.Match, language: str) -> str:
+        if language in ("zh", "zh_my"):
+            from revo_norm.num2word_zh import to_cardinal
+            return "冒号" + " ".join(to_cardinal(int(c)) for c in m.group(1))
+        else:
+            return " colon " + " ".join(_DIGIT_WORDS.get(c, c) for c in m.group(1))
 
-    spoken = re.sub(r":(\d+)", _replace_port, spoken)
-    spoken = spoken.replace(".", " dot ")
-    spoken = spoken.replace("/", " slash ")
-    spoken = re.sub(r"\d+", lambda m: " ".join(_DIGIT_WORDS.get(c, c) for c in m.group(0)), spoken)
-    spoken = spoken.replace("-", " dash ")
+    spoken = re.sub(r":(\d+)", lambda m: _replace_port(m, language), spoken)
+
+    if language in ("zh", "zh_my"):
+        spoken = spoken.replace(".", "点")
+    else:
+        spoken = spoken.replace(".", " dot ")
+
+    if language == "zh":
+        spoken = spoken.replace("/", "斜杠")
+    else:
+        spoken = spoken.replace("/", " slash ")
+
+    if language == "zh":
+        spoken = spoken.replace("-", "杠")
+    else:
+        spoken = spoken.replace("-", " dash ")
+
+    if language in ("zh", "zh_my"):
+        from revo_norm.num2word_zh import to_cardinal
+        spoken = re.sub(r"\d+", lambda m: " ".join(to_cardinal(int(c)) for c in m.group(0)), spoken)
+    else:
+        spoken = re.sub(r"\d+", lambda m: " ".join(_DIGIT_WORDS.get(c, c) for c in m.group(0)), spoken)
+
     return re.sub(r"\s+", " ", spoken).strip()
 
 
@@ -113,9 +150,9 @@ _URL_RE = re.compile(
 )
 
 
-def convert_urls_to_spoken(text: str) -> str:
+def convert_urls_to_spoken(text: str, language: str = "en") -> str:
     """Replace all URLs in *text* with spoken form."""
-    return _URL_RE.sub(lambda m: url_to_spoken(m.group(0)), text)
+    return _URL_RE.sub(lambda m: url_to_spoken(m.group(0), language), text)
 
 
 def replace_letter_period_sequences(text: str, process_acronyms: bool = True) -> str:
@@ -348,8 +385,36 @@ def special_replace(text: str, language: str = "en") -> str:
         "~": "tilde",
         "^": "caret",
     }
-    for char, replacement in replacements.items():
-        text = text.replace(char, f" {replacement} ")
+
+    at_word = "艾特" if language == "zh" else "at"
+    hash_word = "井" if language == "zh" else "hash"
+    money_word = "美元" if language == "zh" else "块"
+    replacements_zh: dict[str, str] = {
+        "&": "和",
+        "+": "加",
+        "=": "等于",
+        "@": at_word,
+        "#": hash_word,
+        "*": "星号",
+        "%": "巴仙",
+        "$": money_word,
+        "EUR": "欧元",
+        "GBP": "英镑",
+        "©": "版权",
+        "®": "注册",
+        "™": "商标",
+        "<": "小与",
+        ">": "大于",
+        "|": "竖线",
+        "~": "波浪号",
+        "^": "插入符",
+    }
+    if language in ("zh", "zh_my"):
+        for char, replacement in replacements_zh.items():
+            text = text.replace(char, f" {replacement} ")
+    else:
+        for char, replacement in replacements.items():
+            text = text.replace(char, f" {replacement} ")
     text = re.sub(r"\s+", " ", text).strip()
 
     # Restore placeholders

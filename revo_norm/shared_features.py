@@ -89,7 +89,7 @@ def normalize_fraction(match: re.Match, language: str = "en") -> str:
     """
     from revo_norm.normalizer_en import text_normalize as normalize_en
     from revo_norm.normalizer_ms import normalize_malay as normalize_ms
-    
+
     numerator = match.group(1)
     denominator = match.group(2)
 
@@ -136,7 +136,7 @@ def normalize_x_kali(match: re.Match, language: str = "en") -> str:
 
     Args:
         match: Regex match object with number group
-        language: Language code ('en' for English, 'ms' for Malay)
+        language: Language code ('en' for English, 'ms' for Malay, 'zh' for Chinese, 'zh_my' for Malaysian-Chinese)
 
     Returns:
         Spoken form of the multiplier
@@ -152,7 +152,13 @@ def normalize_x_kali(match: re.Match, language: str = "en") -> str:
 
     number = match.group(1)
 
-    if language == "en":
+    if language in ("zh", "zh_my"):
+        from revo_norm.num2word_zh import to_cardinal
+        number_spoken = to_cardinal(int(number))
+        if number_spoken == "二":
+            return "两次"
+        return f"{number_spoken}次"
+    elif language == "en":
         number_spoken = normalize_en(number)
         return f"{number_spoken} times"
     else:
@@ -166,7 +172,7 @@ def normalize_x_kali_text(text: str, language: str = "en") -> str:
 
     Args:
         text: Input text containing x multipliers
-        language: Language code ('en' or 'ms')
+        language: Language code ('en', 'ms', 'zh', 'zh_my')
 
     Returns:
         Text with x multipliers normalized
@@ -390,6 +396,7 @@ _WEIGHT_UNITS_MS: dict[str, str] = {
     "oz": "auns",
 }
 
+# Duration unit mapping
 _DURATION_UNITS_EN: dict[str, str] = {
     "jam": "hours",
     "minit": "minutes",
@@ -400,17 +407,6 @@ _DURATION_UNITS_EN: dict[str, str] = {
     "minutes": "minutes",
     "second": "second",
     "seconds": "seconds",
-}
-
-# Area unit mappings (e.g., "sq ft" → "square feet")
-_AREA_UNITS_EN: dict[str, str] = {
-    "sq ft": "square feet",
-    "sqft": "square feet",
-}
-
-_AREA_UNITS_MS: dict[str, str] = {
-    "sq ft": "kaki persegi",
-    "sqft": "kaki persegi",
 }
 
 _DURATION_UNITS_MS: dict[str, str] = {
@@ -424,6 +420,18 @@ _DURATION_UNITS_MS: dict[str, str] = {
     "second": "saat",
     "seconds": "saat",
 }
+
+# Area unit mappings (e.g., "sq ft" → "square feet")
+_AREA_UNITS_EN: dict[str, str] = {
+    "sq ft": "square feet",
+    "sqft": "square feet",
+}
+
+_AREA_UNITS_MS: dict[str, str] = {
+    "sq ft": "kaki persegi",
+    "sqft": "kaki persegi",
+}
+
 
 
 def normalize_distance(match: re.Match, language: str = "en") -> str:
@@ -593,6 +601,8 @@ def normalize_hari_bulan_text(text: str, language: str = "en") -> str:
         >>> normalize_hari_bulan_text("10HB every year", language="ms")
         'sepuluh hari bulan every year'
     """
+    if language in ("zh", "zh_my"):
+        return text
 
     # Use a unique placeholder that cannot appear in normal text
     # This prevents interference from other normalizers (e.g., contraction handling)
@@ -672,4 +682,7 @@ def normalize_hijri_years(text: str, language: str = "en") -> str:
         >>> normalize_hijri_years("Year 1433H", language="en")
         'Year one four three three Hijri'
     """
+    if language in ("zh", "zh_my"):
+        return text
+
     return _HIJRI_YEAR_PATTERN.sub(lambda m: normalize_hijri_year(m, language), text)
