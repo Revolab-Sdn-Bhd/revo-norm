@@ -84,7 +84,7 @@ def normalize_currency(m: re.Match) -> str:
             return f"{to_cardinal(int(whole))}{magnitude}{unit_main}{to_cardinal(int(frac))}{unit_sub}"
         else:
             return f"{to_cardinal(int(whole))}{magnitude}{unit_main}"
-        
+
     return f"{to_cardinal(int(amount))}{magnitude}{unit_main}"
 
 

@@ -305,7 +305,7 @@ class EntityExtractor:
         from revo_norm.text_normalizer import email_to_spoken, url_to_spoken
 
         if entity.type == EntityType.URL:
-            return url_to_spoken(entity.text)
+            return url_to_spoken(entity.text, language)
 
         if entity.type == EntityType.EMAIL:
             return email_to_spoken(entity.text, language)
@@ -350,55 +350,41 @@ class EntityExtractor:
     def _is_chinese(language: str) -> bool:
         return language in ("zh", "zh_my")
 
-    @staticmethod
-    def _date_to_chinese(year: str, month: str, day: str) -> str:
-        from revo_norm.normalizer_zh import _num_to_day, _num_to_month
-        from revo_norm.num2word_zh import to_year
-        return f"{to_year(int(year))}年{_num_to_month(int(month))}{_num_to_day(int(day))}日"
+    def _date_to_chinese(self, m: re.Match, type: str) -> str:
+        from revo_norm.normalizer_zh import normalize_date_DMY, normalize_date_YMD
+        if type == "DMY":
+            return normalize_date_DMY(m)
+        elif type == "YMD":
+            return normalize_date_YMD(m)
 
-    @staticmethod
-    def _time_to_chinese(hour: str, minute: str, second: str | None, ampm: str | None) -> str:
+    def _time_to_chinese(self, language: str, hour: str, minute: str, second: str | None, ampm: str | None) -> str:
         from revo_norm.num2word_zh import to_cardinal
         h, m = int(hour), int(minute)
         meridian = ""
         if ampm:
             clean = ampm.replace(".", "").lower()
-            if clean in ("pm", "p.m.") or ampm == "下午":
-                meridian = "下午"
-            elif clean in ("am", "a.m.") or ampm == "上午":
-                meridian = "上午"
+            if clean in ("pm", "p.m.") or ampm in ["下午", "傍晚", "晚上"]:
+                meridian = "下午" if language == "zh" else "晚上"
+            elif clean in ("am", "a.m.") or ampm in ["上午", "早上"]:
+                meridian = "上午" if language == "zh" else "早上"
         time_str = f"{to_cardinal(h)}点" if m == 0 else f"{to_cardinal(h)}点{to_cardinal(m)}分"
         if second:
             time_str += f"{to_cardinal(int(second))}秒"
         return f"{meridian}{time_str}"
 
-    @staticmethod
-    def _currency_to_chinese(symbol: str, amount_str: str, zh_my: bool = False) -> str:
-        from revo_norm.num2word_zh import to_cardinal
-        units = {
-            "RM": "令吉", "MYR": "令吉",
-            "$": "块" if zh_my else "美元",
-            "USD": "美元", "EUR": "欧元", "€": "欧元",
-            "GBP": "英镑", "£": "英镑",
-            "JPY": "日元", "CNY": "元", "RMB": "元",
-        }
-        unit = units.get(symbol, symbol)
-        if "." in amount_str:
-            whole, frac = amount_str.split(".", 1)
-            frac = frac[:2]
-            cents = int(frac)
-            if whole == "0":
-                return f"{to_cardinal(cents)}分"
-            if cents > 0:
-                return f"{to_cardinal(int(whole))}{unit}{to_cardinal(cents)}分"
-            return f"{to_cardinal(int(whole))}{unit}"
-        return f"{to_cardinal(int(amount_str))}{unit}"
+    def _get_ordinal_suffix(self, day: int) -> str:
+        """Get ordinal suffix for a number (1st, 2nd, 3rd, 4th, etc.)."""
+        if 11 <= day <= 13:
+            return "th"
+        return {1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th")
 
     def _convert_date_to_spoken(self, date_text: str, language: str) -> str:
         """Convert a date to spoken form."""
         # Import number normalizers
         from revo_norm.normalizer_en import text_normalize as normalize_en
         from revo_norm.normalizer_ms import normalize_malay as normalize_ms
+        from revo_norm.normalizer_zh import text_normalize_zh as normalize_zh
+        from revo_norm.normalizer_zh_my import text_normalize_zh_my as normalize_zh_my
 
         # Detect date format and extract components
         # Format 1: DD/MM/YYYY or MM/DD/YYYY
@@ -406,7 +392,7 @@ class EntityExtractor:
         if slash_match:
             day, month, year = slash_match.groups()
             if self._is_chinese(language):
-                return self._date_to_chinese(year, month, day)
+                return self._date_to_chinese(slash_match, type="DMY")
             # Try to determine if DD/MM or MM/DD (assume DD/MM if day > 12)
             if int(day) > 12:
                 # DD/MM format
@@ -495,7 +481,7 @@ class EntityExtractor:
         if dash_match:
             year, month, day = dash_match.groups()
             if self._is_chinese(language):
-                return self._date_to_chinese(year, month, day)
+                return self._date_to_chinese(dash_match, type="YMD")
             if language == "en":
                 months = {
                     "01": "January",
@@ -544,8 +530,10 @@ class EntityExtractor:
         # Fallback: Let basic normalizer handle it
         if language == "en":
             return normalize_en(date_text)
-        elif self._is_chinese(language):
-            return date_text
+        elif language == "zh":
+            return normalize_zh(date_text)
+        elif language == "zh_my":
+            return normalize_zh_my(date_text)
         else:
             return normalize_ms(date_text)
 
@@ -553,6 +541,8 @@ class EntityExtractor:
         """Convert a time to spoken form."""
         from revo_norm.normalizer_en import text_normalize as normalize_en
         from revo_norm.normalizer_ms import normalize_malay as normalize_ms
+        from revo_norm.normalizer_zh import text_normalize_zh as normalize_zh
+        from revo_norm.normalizer_zh_my import text_normalize_zh_my as normalize_zh_my
 
         # Parse time format
         # HH:MM AM/PM or HH:MM:SS
@@ -568,7 +558,7 @@ class EntityExtractor:
             ampm = time_match.group(4)
 
             if self._is_chinese(language):
-                return self._time_to_chinese(hour, minute, second, ampm)
+                return self._time_to_chinese(language, hour, minute, second, ampm)
 
             if language == "en":
                 hour_spoken = normalize_en(hour)
@@ -608,16 +598,12 @@ class EntityExtractor:
         # Fallback: Let basic normalizer handle it
         if language == "en":
             return normalize_en(time_text)
-        elif self._is_chinese(language):
-            return time_text
+        elif language == "zh":
+            return normalize_zh(time_text)
+        elif language == "zh_my":
+            return normalize_zh_my(time_text)
         else:
             return normalize_ms(time_text)
-
-    def _get_ordinal_suffix(self, day: int) -> str:
-        """Get ordinal suffix for a number (1st, 2nd, 3rd, 4th, etc.)."""
-        if 11 <= day <= 13:
-            return "th"
-        return {1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th")
 
     def _convert_currency_to_spoken(self, currency_text: str, language: str) -> str:
         """Convert a currency amount to spoken form."""
@@ -679,7 +665,12 @@ class EntityExtractor:
 
         # Chinese: delegate to Chinese currency converter
         if self._is_chinese(language):
-            return self._currency_to_chinese(symbol, amount_str, zh_my=(language == "zh_my"))
+            if language == "zh":
+                from revo_norm.normalizer_zh import text_normalize_zh
+                return text_normalize_zh(expanded)
+            elif language == "zh_my":
+                from revo_norm.normalizer_zh_my import text_normalize_zh_my
+                return text_normalize_zh_my(expanded)
 
         # Handle decimal amounts
         if "." in amount_str:

@@ -18,7 +18,7 @@ _NUMBERS = {
     "2": "二",
     "3": "三",
     "4": "四",
-    "5": "无",
+    "5": "五",
     "6": "六",
     "7": "七",
     "8": "八",
@@ -44,7 +44,7 @@ _MONTHS = {
 # Times
 _TIMES = {
     "am": "上午",
-    "pm": "晚上"
+    "pm": "下午"
 }
 
 # Measurement unit → Chinese (used by shared_features for Chinese measurements)
@@ -66,7 +66,7 @@ _MEASUREMENT_UNITS = {
 _percentage_re = re.compile(r"(\d+(?:\.\d+)?)%")
 _decimal_re = re.compile(r"(\d+)\.(\d+)")
 _number_re = re.compile(r"\d+")
-_number_with_commas_re = re.compile(r"\d{1,3}(?:,\d{3})+")
+_number_with_commas_re = re.compile(r"\d{1,3}(?:,\d{3})+(?:\.\d+)?")
 _measurement_re = re.compile(
     r"(\d+(?:\.\d+)?)\s*(km|m|cm|mm|kg|g|mg|ml|l|litre|liter)(?![A-Za-z0-9])",
     re.IGNORECASE,
@@ -123,6 +123,8 @@ def normalize_number(m: re.Match) -> str:
 
 def normalize_number_with_commas(m: re.Match) -> str:
     num_str = m.group(0).replace(",", "")
+    if "." in num_str:
+        return normalize_decimal(re.match(r"(\d+)\.(\d+)", num_str))
     return to_cardinal(int(num_str))
 
 
@@ -133,11 +135,15 @@ def normalize_measurement(m: re.Match) -> str:
     if "." in value:
         dec_words = normalize_decimal(re.match(r"(\d+)\.(\d+)", value))
         return f"{dec_words}{unit_word}"
-    return f"{to_cardinal(int(float(value)))}{unit_word}"
+    return f"{to_cardinal(int(value))}{unit_word}"
 
 
 def normalize_date_DMY(m: re.Match) -> str:
     day, month, year = m.groups()
+
+    if int(month) > 12 and int(day) <= 12:
+        month, day = day, month
+
     month_str = _MONTHS.get(month, month)
     return f"{to_year(int(year))}年{month_str}月{to_cardinal(int(day))}日"
 
@@ -158,7 +164,7 @@ def normalize_currency(m: re.Match) -> str:
     elif symbol in ("$", "USD"):
         unit_main, unit_sub = "美元", "分"
     elif symbol in ("£", "GBP"):
-        unit_main, unit_sub = "英磅", "便士"
+        unit_main, unit_sub = "英镑", "便士"
     elif symbol in ("€", "EUR"):
         unit_main, unit_sub = "欧元", "分"
     else:
@@ -171,13 +177,12 @@ def normalize_currency(m: re.Match) -> str:
             return f"{to_cardinal(int(whole))}{magnitude}{unit_main}{to_cardinal(int(frac))}{unit_sub}"
         else:
             return f"{to_cardinal(int(whole))}{magnitude}{unit_main}"
-        
+
     return f"{to_cardinal(int(amount))}{magnitude}{unit_main}"
 
 
 def normalize_dashed_digits(m: re.Match) -> str:
     raw_str = m.group(1)
-    print(raw_str)
     return " ".join(_NUMBERS.get(ch, ch) for ch in raw_str if ch in _NUMBERS)
 
 
@@ -198,7 +203,7 @@ def normalize_time(m):
 
     meridian_word = ""
     if meridian:
-        meridian_word = meridian if len(meridian) > 2 else f"{meridian[0]}m"
+        meridian_word = f"{meridian[0]}m"
 
     if minute_word == "零":
         return f"{_TIMES[meridian_word.lower()]}{hour_word}点"
