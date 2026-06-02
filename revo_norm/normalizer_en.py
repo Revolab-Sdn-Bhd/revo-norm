@@ -175,7 +175,7 @@ _time_re = re.compile(
     re.IGNORECASE,
 )
 _time_no_meridian_re = re.compile(
-    r"\b(\d{1,2})[:\.](\d{2})\b(?!\s*(?:am|pm|a\.m\.|p\.m\.))(?!.*%)",
+    r"\b(\d{1,2}):(\d{2})\b(?!\s*(?:am|pm|a\.m\.|p\.m\.))(?!.*%)",
     re.IGNORECASE,
 )
 
