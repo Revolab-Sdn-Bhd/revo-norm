@@ -125,6 +125,9 @@ abbreviations_en = [
         ("col", "colonel"),
         ("ft", "fort"),
     ]
+] + [
+    # Malaysian company suffixes — pair pattern with optional dots
+    (re.compile(r"\bsdn\.?\s+bhd\b\.?", re.IGNORECASE), "sendirian berhad"),
 ]
 months_en = {
     "01": "January",
