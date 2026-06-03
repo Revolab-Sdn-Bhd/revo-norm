@@ -12,6 +12,10 @@ _DIGITS = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九"]
 _LARGE_UNITS = ["", "万", "亿", "兆"]
 
 
+def to_currency(value: int | float, currency: str = "ringgit") -> str:
+    return f"{value}{currency}"
+
+
 def to_cardinal(number: int | float) -> str:
     """Convert a number to Chinese cardinal words."""
     if number < 0:
