@@ -13,17 +13,24 @@ import re
 
 from revo_norm.normalizer_zh import (
     _MONTHS,
-    _percentage_re,
-    _decimal_re, normalize_decimal,
-    _number_re, normalize_number,
-    _number_with_commas_re, normalize_number_with_commas,
-    _measurement_re, normalize_measurement,
+    _alnum_re,
+    _currency_re,
+    _dashed_alnum_re,
+    _dashed_digit_re,
     _date_dmy_re,
     _date_ymd_re,
-    _currency_re,
-    _dashed_digit_re, normalize_dashed_digits,
-    _dashed_alnum_re, normalize_dashed_alnum,
-    _alnum_re, normalize_alnum
+    _decimal_re,
+    _measurement_re,
+    _number_re,
+    _number_with_commas_re,
+    _percentage_re,
+    normalize_alnum,
+    normalize_dashed_alnum,
+    normalize_dashed_digits,
+    normalize_decimal,
+    normalize_measurement,
+    normalize_number,
+    normalize_number_with_commas,
 )
 from revo_norm.num2word_zh import to_cardinal, to_year
 

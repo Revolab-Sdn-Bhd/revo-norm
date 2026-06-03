@@ -10,7 +10,6 @@ import re
 
 from revo_norm.num2word_zh import to_cardinal, to_year
 
-
 # Numbers
 _NUMBERS = {
     "0": "零",
