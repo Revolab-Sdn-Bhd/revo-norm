@@ -402,11 +402,11 @@ class EntityExtractor:
         return language in ("zh", "zh_my")
 
     def _date_to_chinese(self, m: re.Match, type: str) -> str:
-        from revo_norm.normalizer_zh import normalize_date_DMY, normalize_date_YMD
+        from revo_norm.normalizer_zh import normalize_date_dmy, normalize_date_ymd
         if type == "DMY":
-            return normalize_date_DMY(m)
+            return normalize_date_dmy(m)
         elif type == "YMD":
-            return normalize_date_YMD(m)
+            return normalize_date_ymd(m)
 
     def _time_to_chinese(self, language: str, hour: str, minute: str, second: str | None, ampm: str | None) -> str:
         from revo_norm.num2word_zh import to_cardinal

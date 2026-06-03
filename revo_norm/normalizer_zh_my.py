@@ -18,8 +18,8 @@ from revo_norm.normalizer_zh import (
     _number_re, normalize_number,
     _number_with_commas_re, normalize_number_with_commas,
     _measurement_re, normalize_measurement,
-    _date_DMY_re,
-    _date_YMD_re,
+    _date_dmy_re,
+    _date_ymd_re,
     _currency_re,
     _dashed_digit_re, normalize_dashed_digits,
     _dashed_alnum_re, normalize_dashed_alnum,
@@ -49,13 +49,16 @@ def normalize_percentage(m: re.Match) -> str:
     return f"{to_cardinal(int(float(number)))}巴仙"
 
 
-def normalize_date_DMY(m: re.Match) -> str:
+def normalize_date_dmy(m: re.Match) -> str:
     day, month, year = m.groups()
+    if int(month) > 12 and int(day) <= 12:
+        month, day = day, month
+
     month_str = _MONTHS.get(month, month)
     return f"{to_year(int(year))}年{month_str}月{to_cardinal(int(day))}号"
 
 
-def normalize_date_YMD(m: re.Match) -> str:
+def normalize_date_ymd(m: re.Match) -> str:
     year, month, day = m.groups()
     month_str = _MONTHS.get(month, month)
     return f"{to_year(int(year))}年{month_str}月{to_cardinal(int(day))}号"
@@ -91,8 +94,8 @@ def normalize_currency(m: re.Match) -> str:
 def text_normalize_zh_my(text: str) -> str:
     """Main Malaysian Chinese text normalization function."""
     text = re.sub(_percentage_re, normalize_percentage, text)
-    text = re.sub(_date_DMY_re, normalize_date_DMY, text)
-    text = re.sub(_date_YMD_re, normalize_date_YMD, text)
+    text = re.sub(_date_dmy_re, normalize_date_dmy, text)
+    text = re.sub(_date_ymd_re, normalize_date_ymd, text)
     text = re.sub(_measurement_re, normalize_measurement, text)
     text = re.sub(_currency_re, normalize_currency, text)
 

@@ -71,8 +71,8 @@ _measurement_re = re.compile(
     r"(\d+(?:\.\d+)?)\s*(km|m|cm|mm|kg|g|mg|ml|l|litre|liter)(?![A-Za-z0-9])",
     re.IGNORECASE,
 )
-_date_DMY_re = re.compile(r"(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})")
-_date_YMD_re = re.compile(r"(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})")
+_date_dmy_re = re.compile(r"(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})")
+_date_ymd_re = re.compile(r"(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})")
 _currency_re = re.compile(
     r"(?<!\w)(\$|£|€|RM|MYR|USD|EUR|GBP)(?:\s?)([\d,]+(?:[\.,]\d{1,2})?)(?:\s?(千|万|百万|千万|亿|百亿|千亿|万亿|兆))?",
     re.IGNORECASE,
@@ -138,9 +138,8 @@ def normalize_measurement(m: re.Match) -> str:
     return f"{to_cardinal(int(value))}{unit_word}"
 
 
-def normalize_date_DMY(m: re.Match) -> str:
+def normalize_date_dmy(m: re.Match) -> str:
     day, month, year = m.groups()
-
     if int(month) > 12 and int(day) <= 12:
         month, day = day, month
 
@@ -148,7 +147,7 @@ def normalize_date_DMY(m: re.Match) -> str:
     return f"{to_year(int(year))}年{month_str}月{to_cardinal(int(day))}日"
 
 
-def normalize_date_YMD(m: re.Match) -> str:
+def normalize_date_ymd(m: re.Match) -> str:
     year, month, day = m.groups()
     month_str = _MONTHS.get(month, month)
     return f"{to_year(int(year))}年{month_str}月{to_cardinal(int(day))}日"
@@ -246,8 +245,8 @@ def normalize_time_no_meridian(m):
 def text_normalize_zh(text: str) -> str:
     """Main Chinese text normalization function."""
     text = re.sub(_percentage_re, normalize_percentage, text)
-    text = re.sub(_date_DMY_re, normalize_date_DMY, text)
-    text = re.sub(_date_YMD_re, normalize_date_YMD, text)
+    text = re.sub(_date_dmy_re, normalize_date_dmy, text)
+    text = re.sub(_date_ymd_re, normalize_date_ymd, text)
     text = re.sub(_measurement_re, normalize_measurement, text)
     text = re.sub(_currency_re, normalize_currency, text)
     text = re.sub(_time_no_meridian_re, normalize_time_no_meridian, text)
