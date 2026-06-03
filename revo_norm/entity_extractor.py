@@ -33,6 +33,9 @@ class EntityType(str, Enum):
     HARI_BULAN = "hari_bulan"
     HIJRI = "hijri"
     X_KALI = "x_kali"
+    ADDRESS_SLASH = "address_slash"
+    PHONE = "phone"
+    VERSION = "version"
 
 
 @dataclass
@@ -74,6 +77,10 @@ class EntityExtractor:
             # URLs and emails (must be first to prevent IP/decimal issues)
             EntityType.URL: self._compile_url_patterns(),
             EntityType.EMAIL: self._compile_email_patterns(),
+            # Phone numbers (must be before numbers get normalized)
+            EntityType.PHONE: self._compile_phone_patterns(),
+            # Version numbers (must be before dates/ordinals)
+            EntityType.VERSION: self._compile_version_patterns(),
             # Currency (must be early to protect from acronym/abbreviation expansion)
             EntityType.CURRENCY: self._compile_currency_patterns(),
             # Date and time patterns
@@ -81,6 +88,7 @@ class EntityExtractor:
             EntityType.TIME: self._compile_time_patterns(),
             # Existing Malaya features
             EntityType.TEMPERATURE: self._compile_temperature_patterns(),
+            EntityType.ADDRESS_SLASH: self._compile_address_slash_patterns(),
             EntityType.FRACTION: self._compile_fraction_patterns(),
             EntityType.X_KALI: self._compile_x_kali_patterns(),
             EntityType.IC: self._compile_ic_patterns(),
@@ -102,6 +110,23 @@ class EntityExtractor:
         return re.compile(
             r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
             re.IGNORECASE,
+        )
+
+    def _compile_version_patterns(self) -> re.Pattern:
+        """Compile version number patterns (e.g., 3.14.159, 1.0.0)."""
+        return re.compile(r"\b(?!\d{4}\.\d{1,2}\.\d{1,2}\b)(\d+)(?:\.\d+){2,}\b")
+
+    def _compile_phone_patterns(self) -> re.Pattern:
+        """Compile phone number patterns (Malaysian formats)."""
+        return re.compile(
+            r"(?<!\w)"
+            r"(?:"
+            r"\+?6?01\d[-\s]?\d{3,4}[-\s]?\d{4}"  # mobile: 012-345 6789
+            r"|\+?6?0\d[-\s]?\d{4}[-\s]?\d{4}"     # landline: 03-8888 9999
+            r"|1[-\s]?[348]00[-\s]?\d{2}[-\s]?\d{4}" # toll-free: 1-300-88-6688
+            r"|154\d{2}"                              # hotline: 15454
+            r")"
+            r"(?!\w)",
         )
 
     def _compile_currency_patterns(self) -> re.Pattern:
@@ -157,9 +182,12 @@ class EntityExtractor:
         Matches:
         - HH:MM: 3:30, 14:45
         - HH:MM AM/PM: 3:30 pm, 11:59 AM
+        - HH:MM Malay meridian: 7:30 pagi, 2:45 petang, 12:00 malam
         - HH:MM:SS: 14:30:45
         """
         patterns = [
+            # HH:MM with Malay meridian (pagi/petang/malam/tengah hari) — must be before generic
+            r"\b\d{1,2}:\d{2}\s*(?:pagi|petang|malam|tengah\s+hari)\b",
             # HH:MM AM/PM format
             r"\b\d{1,2}:\d{2}\s*(?:am|pm|a\.m\.|p\.m\.)?\b",
             # HH:MM:SS format
@@ -180,6 +208,20 @@ class EntityExtractor:
         Matches: 10/4, 3/4 but NOT 15/08/2025
         """
         return re.compile(r"(?<![\d/])(\d+)\s*/\s*(\d+)(?![/\d])")
+
+    def _compile_address_slash_patterns(self) -> re.Pattern:
+        """Compile address slash patterns (e.g., Jalan Setia 3/4, Jalan SS2/72)."""
+        return re.compile(
+            r"\b(?:Jalan|Lorong|Taman|Bukit|Kampung|Tingkat|Lintang|"
+            r"Pesisir|Persiaran|Lebuh|Medan|Lengkung|Halaman)\s+"
+            r"(?:\S+\s+)?"
+            r"(\d+)\s*/\s*(\d+)\b"
+            r"|"
+            r"\b(?:Jalan|Lorong|Taman|Bukit|Kampung|Tingkat|Lintang|"
+            r"Pesisir|Persiaran|Lebuh|Medan|Lengkung|Halaman)\s+"
+            r"([A-Za-z]*\d+)\s*/\s*(\d+)\b",
+            re.IGNORECASE,
+        )
 
     def _compile_x_kali_patterns(self) -> re.Pattern:
         """Compile x-kali multiplier patterns."""
@@ -323,9 +365,18 @@ class EntityExtractor:
             # Call the normalize_temperatures function with the entity text
             return normalize_temperatures(entity.text, language)
 
+        if entity.type == EntityType.PHONE:
+            return self._convert_phone_to_spoken(entity.text, language)
+
+        if entity.type == EntityType.VERSION:
+            return self._convert_version_to_spoken(entity.text, language)
+
         if entity.type == EntityType.FRACTION:
             # Call the normalize_fractions function with the entity text
             return normalize_fractions(entity.text, language)
+
+        if entity.type == EntityType.ADDRESS_SLASH:
+            return self._convert_address_slash_to_spoken(entity.text, language)
 
         if entity.type == EntityType.X_KALI:
             # Call the normalize_x_kali_text function with the entity text
@@ -377,6 +428,43 @@ class EntityExtractor:
         if 11 <= day <= 13:
             return "th"
         return {1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th")
+
+    def _convert_version_to_spoken(self, version_text: str, language: str) -> str:
+        """Convert version number (e.g., '3.14.159') to spoken form."""
+        from revo_norm.normalizer_en import text_normalize as normalize_en
+        from revo_norm.normalizer_ms import normalize_malay as normalize_ms
+
+        if language in ("zh", "zh_my"):
+            from num2word_zh import _DIGITS as _DIGITS_ZH
+            parts = version_text.split(".")
+            spoken_parts = [" ".join(_DIGITS_ZH.get(c, c) for c in p) for p in parts]
+            return " 点 ".join(spoken_parts)
+        else:
+            normalize = normalize_ms if language == "ms" else normalize_en
+            parts = version_text.split(".")
+            spoken_parts = [normalize(p) for p in parts]
+            return " point ".join(spoken_parts)
+
+    def _convert_phone_to_spoken(self, phone_text: str, language: str) -> str:
+        """Convert phone number to digit-by-digit spoken form."""
+        from revo_norm.text_normalizer import _digit_word
+
+        digits = re.sub(r"[\s\-+]", "", phone_text)
+        return " ".join(_digit_word(d, language) for d in digits)
+
+    def _convert_address_slash_to_spoken(self, address_text: str, language: str) -> str:
+        """Convert address slash pattern to spoken form with digit-by-digit expansion."""
+        from revo_norm.text_normalizer import _digit_word
+
+        match = re.search(r"([A-Za-z]*)(\d+)\s*/\s*(\d+)", address_text)
+        if match:
+            prefix = match.group(1)
+            left_digits = " ".join(_digit_word(d, language) for d in match.group(2))
+            right_digits = " ".join(_digit_word(d, language) for d in match.group(3))
+            prefix_spoken = " ".join(prefix) + " " if prefix else ""
+            slash_spoken = f"{prefix_spoken}{left_digits} slash {right_digits}"
+            return re.sub(r"[A-Za-z]*\d+\s*/\s*\d+", slash_spoken, address_text)
+        return address_text
 
     def _convert_date_to_spoken(self, date_text: str, language: str) -> str:
         """Convert a date to spoken form."""
@@ -528,14 +616,15 @@ class EntityExtractor:
         # The normalizer will handle them in the basic phase
 
         # Fallback: Let basic normalizer handle it
-        if language == "en":
-            return normalize_en(date_text)
-        elif language == "zh":
-            return normalize_zh(date_text)
-        elif language == "zh_my":
-            return normalize_zh_my(date_text)
-        else:
-            return normalize_ms(date_text)
+        match language:
+            case "en":
+                return normalize_en(date_text)
+            case "zh":
+                return normalize_zh(date_text)
+            case "zh_my":
+                return normalize_zh_my(date_text)
+            case _:
+                return normalize_ms(date_text)
 
     def _convert_time_to_spoken(self, time_text: str, language: str) -> str:
         """Convert a time to spoken form."""
@@ -547,7 +636,7 @@ class EntityExtractor:
         # Parse time format
         # HH:MM AM/PM or HH:MM:SS
         time_match = re.match(
-            r"\b(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)?",
+            r"\b(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.|pagi|petang|malam|tengah\s+hari)?",
             time_text,
             re.IGNORECASE,
         )
@@ -587,23 +676,28 @@ class EntityExtractor:
                     result += f" {second_spoken}"
 
                 if ampm:
-                    ampm_clean = ampm.replace(".", "").lower()
-                    if ampm_clean == "am":
+                    ampm_clean = ampm.replace(".", "").lower().strip()
+                    if ampm_clean in ("am", "pagi"):
                         result += " pagi"
-                    elif ampm_clean == "pm":
+                    elif ampm_clean in ("pm", "petang"):
                         result += " petang"
+                    elif ampm_clean == "malam":
+                        result += " malam"
+                    elif ampm_clean.startswith("tengah"):
+                        result += " tengah hari"
 
                 return result
 
         # Fallback: Let basic normalizer handle it
-        if language == "en":
-            return normalize_en(time_text)
-        elif language == "zh":
-            return normalize_zh(time_text)
-        elif language == "zh_my":
-            return normalize_zh_my(time_text)
-        else:
-            return normalize_ms(time_text)
+        match language:
+            case "en":
+                return normalize_en(time_text)
+            case "zh":
+                return normalize_zh(time_text)
+            case "zh_my":
+                return normalize_zh_my(time_text)
+            case _:
+                return normalize_ms(time_text)
 
     def _convert_currency_to_spoken(self, currency_text: str, language: str) -> str:
         """Convert a currency amount to spoken form."""

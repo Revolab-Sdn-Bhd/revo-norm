@@ -101,3 +101,17 @@ CURRENCY_B_SUFFIX_PATTERN = re.compile(
 CURRENCY_T_SUFFIX_PATTERN = re.compile(
     r"(?<!\w)(RM|\$|£|€|USD|EUR|GBP|MYR)(?:\s?)(\d+(?:\.\d+)?)T\b", re.IGNORECASE
 )
+
+# Malay currency word suffixes
+CURRENCY_RIBU_PATTERN = re.compile(
+    r"(?<!\w)(RM|\$|£|€|USD|EUR|GBP|MYR)(?:\s?)(\d+(?:\.\d+)?)\s+ribu\b", re.IGNORECASE
+)
+CURRENCY_JUTA_PATTERN = re.compile(
+    r"(?<!\w)(RM|\$|£|€|USD|EUR|GBP|MYR)(?:\s?)(\d+(?:\.\d+)?)\s+juta\b", re.IGNORECASE
+)
+CURRENCY_MILIAR_PATTERN = re.compile(
+    r"(?<!\w)(RM|\$|£|€|USD|EUR|GBP|MYR)(?:\s?)(\d+(?:\.\d+)?)\s+miliar\b", re.IGNORECASE
+)
+CURRENCY_TRILION_PATTERN = re.compile(
+    r"(?<!\w)(RM|\$|£|€|USD|EUR|GBP|MYR)(?:\s?)(\d+(?:\.\d+)?)\s+trilion\b", re.IGNORECASE
+)

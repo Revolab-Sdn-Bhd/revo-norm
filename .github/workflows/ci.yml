@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Lint
+        run: uv run ruff check revo_norm/
+
+      - name: Checkout private test repo
+        uses: actions/checkout@v4
+        with:
+          repository: khursanirevo/revo-norm-tests
+          path: revo-norm-tests
+          token: ${{ secrets.PRIVATE_TESTS_TOKEN }}
+
+      - name: Run tests
+        run: uv run pytest revo-norm-tests/ -q --tb=short

@@ -17,11 +17,11 @@
 
 Tests are maintained in a separate repository.
 
-- Run all tests: `uv run pytest ../tests/revo-norm/ -v --tb=short`
-- Run with coverage: `uv run pytest ../tests/revo-norm/ --cov --cov-report=term-missing`
-- Run a single test class: `uv run pytest ../tests/revo-norm/<test_file>.py::TestClass -v`
-- Run a single test: `uv run pytest ../tests/revo-norm/<test_file>.py::TestClass::test_method -v`
-- Always run `uv run ruff check revo_norm/` and `uv run pytest ../tests/revo-norm/ -q` before committing.
+- Run all tests: `uv run pytest ../revo-norm-tests/ -v --tb=short`
+- Run with coverage: `uv run pytest ../revo-norm-tests/ --cov --cov-report=term-missing`
+- Run a single test class: `uv run pytest ../revo-norm-tests/<test_file>.py::TestClass -v`
+- Run a single test: `uv run pytest ../revo-norm-tests/<test_file>.py::TestClass::test_method -v`
+- Always run `uv run ruff check revo_norm/` and `uv run pytest ../revo-norm-tests/ -q` before committing.
 
 ## Code Architecture
 

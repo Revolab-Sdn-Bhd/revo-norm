@@ -15,9 +15,13 @@ from typing import TYPE_CHECKING, Optional
 from revo_norm.config import Config
 from revo_norm.currency_utils import (
     CURRENCY_B_SUFFIX_PATTERN,
+    CURRENCY_JUTA_PATTERN,
     CURRENCY_K_SUFFIX_PATTERN,
     CURRENCY_M_SUFFIX_PATTERN,
+    CURRENCY_MILIAR_PATTERN,
+    CURRENCY_RIBU_PATTERN,
     CURRENCY_T_SUFFIX_PATTERN,
+    CURRENCY_TRILION_PATTERN,
     expand_currency_b_suffix,
     expand_currency_k_suffix,
     expand_currency_m_suffix,
@@ -52,6 +56,58 @@ def _normalize_whitespace(text: str) -> str:
 normalize_whitespace = _normalize_whitespace
 
 
+# Digit-to-word mapping
+_DIGIT_WORDS = {
+    "0": "zero",
+    "1": "one",
+    "2": "two",
+    "3": "three",
+    "4": "four",
+    "5": "five",
+    "6": "six",
+    "7": "seven",
+    "8": "eight",
+    "9": "nine",
+}
+
+_DIGIT_WORDS_MS = {
+    "0": "kosong",
+    "1": "satu",
+    "2": "dua",
+    "3": "tiga",
+    "4": "empat",
+    "5": "lima",
+    "6": "enam",
+    "7": "tujuh",
+    "8": "lapan",
+    "9": "sembilan",
+}
+
+_DIGIT_WORDS_ZH = {
+    "0": "零",
+    "1": "一",
+    "2": "二",
+    "3": "三",
+    "4": "四",
+    "5": "五",
+    "6": "六",
+    "7": "七",
+    "8": "八",
+    "9": "九",
+}
+
+
+def _digit_word(digit: str, language: str) -> str:
+    """Convert a single digit to its spoken word."""
+    if language in ("zh", "zh_my"):
+        return _DIGIT_WORDS_ZH.get(digit, digit)
+
+    if language == "ms":
+        return _DIGIT_WORDS_MS.get(digit, digit)
+
+    return _DIGIT_WORDS.get(digit, digit)
+
+
 def email_to_spoken(email: str, language: str = "en") -> str:
     """Convert an email address to spoken-friendly form for TTS."""
     if language == "zh":
@@ -66,6 +122,12 @@ def email_to_spoken(email: str, language: str = "en") -> str:
         spoken = spoken.replace("_", " underscore ")
         spoken = spoken.replace("+", " plus ")
         spoken = spoken.replace("-", " dash ")
+
+    spoken = re.sub(r"(?<=[a-zA-Z])(?=\d)|(?<=\d)(?=[a-zA-Z])", " ", spoken)
+    spoken = re.sub(
+        r"\d+", lambda m: " ".join(_digit_word(c, language) for c in m.group(0)), spoken
+    )
+
     return re.sub(r"\s+", " ", spoken).strip()
 
 
@@ -77,19 +139,41 @@ def convert_emails_to_spoken(text: str, language: str = "en") -> str:
     return _EMAIL_RE.sub(lambda m: email_to_spoken(m.group(0), language), text)
 
 
-# Digit-to-word mapping for URL speaking
-_DIGIT_WORDS = {
-    "0": "zero",
-    "1": "one",
-    "2": "two",
-    "3": "three",
-    "4": "four",
-    "5": "five",
-    "6": "six",
-    "7": "seven",
-    "8": "eight",
-    "9": "nine",
-}
+_USSD_RE = re.compile(r"\*(\d+)#")
+
+
+def _expand_ussd_codes(text: str, language: str) -> str:
+    """Expand USSD codes (*120#) to digit-by-digit spoken form."""
+    def _replace(m: re.Match) -> str:
+        digits = " ".join(_digit_word(d, language) for d in m.group(1))
+        return f"star {digits} hash"
+    return _USSD_RE.sub(_replace, text)
+
+
+# Numbers after these words should be read digit-by-digit
+_DIGIT_BY_DIGIT_CTX_RE = re.compile(
+    r"\b(exit|gate|lot|platform|bus\s+no|flight|stand|bay|block|blok)"
+    r"\s+(\d+)\b",
+    re.IGNORECASE,
+)
+
+# Product/model names with 3+ digit numbers read digit-by-digit
+_PRODUCT_DIGIT_CTX_RE = re.compile(
+    r"\b(Office|Windows|PlayStation|PS|Xbox|iPhone|iPad|Galaxy|Pixel|Model|MacBook|AirPods)"
+    r"\s+(\d{3,})\b",
+    re.IGNORECASE,
+)
+
+
+def _expand_digit_by_digit_context(text: str, language: str) -> str:
+    """Expand numbers in specific contexts (exit, gate, lot, etc.) digit-by-digit."""
+    def _replace(m: re.Match) -> str:
+        prefix = m.group(1)
+        digits = " ".join(_digit_word(d, language) for d in m.group(2))
+        return f"{prefix} {digits}"
+    text = _DIGIT_BY_DIGIT_CTX_RE.sub(_replace, text)
+    text = _PRODUCT_DIGIT_CTX_RE.sub(_replace, text)
+    return text
 
 
 def url_to_spoken(url: str, language: str = "en") -> str:
@@ -104,6 +188,7 @@ def url_to_spoken(url: str, language: str = "en") -> str:
             spoken = spoken.replace(f"{protocol}://", f"{protocol_spoken} 冒号 slash slash ")
         else:
             spoken = spoken.replace(f"{protocol}://", f"{protocol_spoken} colon slash slash ")
+    
     if language == "zh":
         spoken = re.sub(r"www\.?", "w w w 点 ", spoken)
     else:
@@ -111,33 +196,25 @@ def url_to_spoken(url: str, language: str = "en") -> str:
 
     def _replace_port(m: re.Match, language: str) -> str:
         if language in ("zh", "zh_my"):
-            from revo_norm.num2word_zh import to_cardinal
-            return "冒号" + " ".join(to_cardinal(int(c)) for c in m.group(1))
+            return "冒号" + " ".join(_digit_word(c, language) for c in m.group(1))
         else:
-            return " colon " + " ".join(_DIGIT_WORDS.get(c, c) for c in m.group(1))
+            return " colon " + " ".join(_digit_word(c, language) for c in m.group(1))
 
     spoken = re.sub(r":(\d+)", lambda m: _replace_port(m, language), spoken)
 
-    if language in ("zh", "zh_my"):
+    if language == "zh":
         spoken = spoken.replace(".", "点")
-    else:
-        spoken = spoken.replace(".", " dot ")
-
-    if language == "zh":
         spoken = spoken.replace("/", "斜杠")
-    else:
-        spoken = spoken.replace("/", " slash ")
-
-    if language == "zh":
         spoken = spoken.replace("-", "杠")
     else:
+        spoken = spoken.replace(".", " dot ")
+        spoken = spoken.replace("/", " slash ")
         spoken = spoken.replace("-", " dash ")
 
     if language in ("zh", "zh_my"):
-        from revo_norm.num2word_zh import to_cardinal
-        spoken = re.sub(r"\d+", lambda m: " ".join(to_cardinal(int(c)) for c in m.group(0)), spoken)
+        spoken = re.sub(r"\d+", lambda m: " ".join(_digit_word(c, language) for c in m.group(0)), spoken)
     else:
-        spoken = re.sub(r"\d+", lambda m: " ".join(_DIGIT_WORDS.get(c, c) for c in m.group(0)), spoken)
+        spoken = re.sub(r"\d+", lambda m: " ".join(_digit_word(c, language) for c in m.group(0)), spoken)
 
     return re.sub(r"\s+", " ", spoken).strip()
 
@@ -192,7 +269,7 @@ def expand_acronym(acronym: str) -> str:
     """
     vowels = set("aeiou")
 
-    PRESERVE_THESE = {"NASA"}  # noqa: N806
+    PRESERVE_THESE = {"NASA", "PLUS"}  # noqa: N806
     if acronym in PRESERVE_THESE:
         return acronym
 
@@ -229,10 +306,14 @@ def split_into_sentences(text: str) -> list[str]:
 
 
 def insert_comma_after_repeated_words(text: str, min_repeat: int = 3) -> str:
-    """Insert comma after repeated words."""
+    """Insert comma after repeated words, but not within digit-word sequences."""
+    from revo_norm.tts_utils import _is_digit_word
+
     pattern = re.compile(r"\b(?P<word>\w+)\b(?: \1){" + str(min_repeat) + r",}", re.IGNORECASE)
 
     def _replacer(m: re.Match) -> str:
+        if _is_digit_word(m.group("word")):
+            return m.group(0)
         words = m.group(0).split()
         return " ".join(words[:-1]) + ", " + words[-1]
 
@@ -250,7 +331,6 @@ _PRONUNCIATION_OVERRIDE_PATTERNS = [
     (re.compile(r"\ba/l\b", re.IGNORECASE), "anak lelaki"),
     (re.compile(r"\ba/p\b", re.IGNORECASE), "anak perempuan"),
     (re.compile(r"\b1Malaysia\b", re.IGNORECASE), "satu malaysia"),
-    (re.compile(r"\bNo\.\b", re.IGNORECASE), "number"),
 ]
 
 _PRONUNCIATION_UNIT_MAP = {
@@ -267,6 +347,10 @@ def apply_pronunciation_overrides(text: str, language: str = "en") -> str:
     if language not in ("zh", "zh_my"):
         for _unit, (pattern, spoken) in _PRONUNCIATION_UNIT_MAP.items():
             text = pattern.sub(rf"\1 {spoken}", text)
+
+    no_word = "nombor" if language == "ms" else "number"
+    text = re.sub(r"\bNo\.\s", f"{no_word} ", text, flags=re.IGNORECASE)
+
     return text
 
 
@@ -403,12 +487,13 @@ def special_replace(text: str, language: str = "en") -> str:
         "©": "版权",
         "®": "注册",
         "™": "商标",
-        "<": "小与",
+        "<": "小于",
         ">": "大于",
         "|": "竖线",
         "~": "波浪号",
         "^": "插入符",
     }
+
     if language in ("zh", "zh_my"):
         for char, replacement in replacements_zh.items():
             text = text.replace(char, f" {replacement} ")
@@ -474,8 +559,9 @@ def normalize_text(
     language: str = "en",
     profile: Optional[str] = None,
     disable: Optional[list[str]] = None,
+    verbose: bool = False,
     **kwargs: object,
-) -> str:
+) -> str | dict:
     """Normalize *text* for TTS in the given *language*.
 
     Parameters
@@ -490,6 +576,9 @@ def normalize_text(
         If *None* the standard profile (all features on) is used.
     disable : list[str] or None
         Feature names to turn off, e.g. ``["acronyms", "measurements"]``.
+    verbose : bool
+        If *True*, return a dict with mappings and triggered rules instead of
+        just the normalized text string.
     **kwargs
         Legacy boolean flags — accepted for backward compatibility but emit
         a ``DeprecationWarning``.  Supported names:
@@ -503,24 +592,48 @@ def normalize_text(
 
     Returns
     -------
-    str
-        Normalized text.
+    str or dict
+        Normalized text, or a dict with ``text``, ``original``, ``mappings``,
+        and ``rules`` keys when *verbose* is *True*.
     """
     # --- Build config ------------------------------------------------
     cfg = _build_config(profile, disable, kwargs)
 
     text = text.strip()
     if not text:
-        return ""
+        return "" if not verbose else {"text": "", "original": "", "mappings": [], "rules": []}
 
-    # --- Step 1: Currency K/M/B/T suffix expansion (always runs) -----
+    original_text = text
+    _rules: list[str] = []
+    _mappings: list[dict] = []
+
+    def _track(step: str, before: str, after: str) -> None:
+        if after != before:
+            _rules.append(step)
+
+    # --- Step 1: Currency suffix expansion (always runs) -----
+    before = text
     text = CURRENCY_T_SUFFIX_PATTERN.sub(expand_currency_t_suffix, text)
+    text = CURRENCY_TRILION_PATTERN.sub(expand_currency_t_suffix, text)
     text = CURRENCY_B_SUFFIX_PATTERN.sub(expand_currency_b_suffix, text)
+    text = CURRENCY_MILIAR_PATTERN.sub(expand_currency_b_suffix, text)
     text = CURRENCY_M_SUFFIX_PATTERN.sub(expand_currency_m_suffix, text)
+    text = CURRENCY_JUTA_PATTERN.sub(expand_currency_m_suffix, text)
     text = CURRENCY_K_SUFFIX_PATTERN.sub(expand_currency_k_suffix, text)
+    text = CURRENCY_RIBU_PATTERN.sub(expand_currency_k_suffix, text)
+    _track("currency_suffix", before, text)
+
+    # --- Step 1b: USSD code expansion (before number normalization) ---
+    before = text
+    text = _expand_ussd_codes(text, language)
+    _track("ussd_codes", before, text)
+
+    # --- Step 1c: Digit-by-digit context (exit, gate, lot, etc.) ---
+    before = text
+    text = _expand_digit_by_digit_context(text, language)
+    _track("digit_by_digit_context", before, text)
 
     # --- Step 2: Entity extraction handles all entity patterns -----------
-    # No need for Malay preprocessor — entity extraction runs before
     # any URL/email regex processing, preventing pattern conflicts.
 
     # --- Step 3: Entity extraction → placeholders --------------------
@@ -530,6 +643,8 @@ def normalize_text(
     always_extract = [
         EntityType.EMAIL,
         EntityType.URL,
+        EntityType.PHONE,
+        EntityType.VERSION,
         EntityType.CURRENCY,
         # DATE and TIME always extracted to protect from language normalizer
         # (EN normalizer has its own date/time regexes)
@@ -540,6 +655,7 @@ def normalize_text(
     if cfg.temperature:
         always_extract.append(EntityType.TEMPERATURE)
     if cfg.fractions:
+        always_extract.append(EntityType.ADDRESS_SLASH)
         always_extract.append(EntityType.FRACTION)
     if cfg.x_kali:
         always_extract.append(EntityType.X_KALI)
@@ -554,11 +670,14 @@ def normalize_text(
     speak_entities: set[object] = {
         EntityType.EMAIL,
         EntityType.URL,
+        EntityType.PHONE,
+        EntityType.VERSION,
         EntityType.CURRENCY,
     }
     if cfg.temperature:
         speak_entities.add(EntityType.TEMPERATURE)
     if cfg.fractions:
+        speak_entities.add(EntityType.ADDRESS_SLASH)
         speak_entities.add(EntityType.FRACTION)
     if cfg.x_kali:
         speak_entities.add(EntityType.X_KALI)
@@ -576,8 +695,24 @@ def normalize_text(
     extractor = EntityExtractor()
     protected_text, _entities = extractor.extract(text, always_extract)
 
+    if verbose:
+        for entity in extractor.entities:
+            if entity.type in speak_entities:
+                spoken = extractor._convert_entity_to_spoken(entity, language)
+                if spoken != entity.text:
+                    rule_name = entity.type.value
+                    _mappings.append({
+                        "original": entity.text,
+                        "normalized": spoken,
+                        "rule": rule_name,
+                    })
+                    if rule_name not in _rules:
+                        _rules.append(rule_name)
+
     # --- Step 4: Pronunciation mappings (always, on protected text) --
+    before = protected_text
     protected_text = apply_pronunciation_mappings(protected_text, language)
+    _track("pronunciation_mappings", before, protected_text)
 
     # --- Step 5: Stash placeholders to protect from downstream processing --
     protected_text, ph_stash = _stash_placeholders(protected_text)
@@ -585,64 +720,97 @@ def normalize_text(
     # --- Step 6: Feature-gated processing on non-entity text ---------
     # Pronunciation overrides
     if cfg.pronunciation_overrides:
+        before = protected_text
         protected_text = apply_pronunciation_overrides(protected_text, language)
+        _track("pronunciation_overrides", before, protected_text)
 
     # Elongated words
     if cfg.elongated:
+        before = protected_text
         protected_text = normalize_elongated_text(protected_text)
+        _track("elongated_words", before, protected_text)
 
     # Measurements — MUST run before language normalizer and acronym expansion
     # to prevent "5km" → "five K M" (acronym split) instead of "five kilometers"
     if cfg.measurements:
+        before = protected_text
         protected_text = normalize_measurements(protected_text, language)
+        _track("measurements", before, protected_text)
 
     # X-kali — run before language normalizer for the same reason
     if cfg.x_kali:
+        before = protected_text
         protected_text = normalize_x_kali_text(protected_text, language)
+        _track("x_kali", before, protected_text)
 
     # Language-specific normalizer (always runs for contractions, numbers, etc.)
-    if language == "en":
-        protected_text = text_normalizer_en(protected_text)
-    elif language == "ms":
-        protected_text = text_normalizer_ms(protected_text)
-    elif language == "zh":
-        protected_text = text_normalizer_zh(protected_text)
-    elif language == "zh_my":
-        protected_text = text_normalizer_zh_my(protected_text)
+    before = protected_text
+    match language:
+        case "en":
+            protected_text = text_normalizer_en(protected_text)
+        case "ms":
+            protected_text = text_normalizer_ms(protected_text)
+        case "zh":
+            protected_text = text_normalizer_zh(protected_text)
+        case "zh_my":
+            protected_text = text_normalizer_zh_my(protected_text)
+
+    _track(f"language_normalizer_{language}", before, protected_text)
 
     # Spacing normalization
     if cfg.spacing:
+        before = protected_text
         protected_text = _normalize_whitespace(protected_text)
+        _track("spacing", before, protected_text)
 
     # Sound word removal
     if cfg.sound_words:
         sound_word_tuples = parse_sound_word_field("\n".join(cfg.sound_words))
         if sound_word_tuples:
+            before = protected_text
             protected_text = smart_remove_sound_words(protected_text, sound_word_tuples)
+            _track("sound_words", before, protected_text)
 
     # Strip all bracketed content like [laughter], [music], etc. (aggressive profile)
     if cfg.strip_bracketed:
+        before = protected_text
         protected_text = re.sub(r"\[[^\]]*\]\s*", "", protected_text)
+        _track("strip_bracketed", before, protected_text)
 
     # Abbreviation expansion (currently no-op)
     if cfg.abbreviations:
+        before = protected_text
         protected_text = expand_abbreviations(protected_text, language)
+        _track("abbreviations", before, protected_text)
 
     # Acronym expansion
     if cfg.acronyms:
+        before = protected_text
         protected_text = replace_letter_period_sequences(protected_text, process_acronyms=True)
+        _track("acronyms", before, protected_text)
 
     # Comma insertion for repeated words (always)
+    before = protected_text
     protected_text = insert_comma_after_repeated_words(protected_text, min_repeat=3)
+    _track("comma_insertion", before, protected_text)
 
     # Special character replacement
     if cfg.special_chars:
+        before = protected_text
         protected_text = special_replace(protected_text, language)
+        _track("special_chars", before, protected_text)
 
     # --- Step 7: Restore placeholders then entities as spoken form ---
     protected_text = _unstash_placeholders(protected_text, ph_stash)
     result = _restore_entities(protected_text, extractor, speak_entities, language)
 
+    if verbose:
+        return {
+            "text": result,
+            "original": original_text,
+            "mappings": _mappings,
+            "rules": _rules,
+        }
     return result
 
 
