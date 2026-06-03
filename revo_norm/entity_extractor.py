@@ -616,15 +616,14 @@ class EntityExtractor:
         # The normalizer will handle them in the basic phase
 
         # Fallback: Let basic normalizer handle it
-        match language:
-            case "en":
-                return normalize_en(date_text)
-            case "zh":
-                return normalize_zh(date_text)
-            case "zh_my":
-                return normalize_zh_my(date_text)
-            case _:
-                return normalize_ms(date_text)
+        if language =="en":
+            return normalize_en(date_text)
+        elif language =="zh":
+            return normalize_zh(date_text)
+        elif language == "zh_my":
+            return normalize_zh_my(date_text)
+        else:
+            return normalize_ms(date_text)
 
     def _convert_time_to_spoken(self, time_text: str, language: str) -> str:
         """Convert a time to spoken form."""
@@ -689,15 +688,14 @@ class EntityExtractor:
                 return result
 
         # Fallback: Let basic normalizer handle it
-        match language:
-            case "en":
-                return normalize_en(time_text)
-            case "zh":
-                return normalize_zh(time_text)
-            case "zh_my":
-                return normalize_zh_my(time_text)
-            case _:
-                return normalize_ms(time_text)
+        if language == "en":
+            return normalize_en(time_text)
+        elif language == "zh":
+            return normalize_zh(time_text)
+        elif language == "zh_my":
+            return normalize_zh_my(time_text)
+        else:
+            return normalize_ms(time_text)
 
     def _convert_currency_to_spoken(self, currency_text: str, language: str) -> str:
         """Convert a currency amount to spoken form."""

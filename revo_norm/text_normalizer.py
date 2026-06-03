@@ -188,7 +188,7 @@ def url_to_spoken(url: str, language: str = "en") -> str:
             spoken = spoken.replace(f"{protocol}://", f"{protocol_spoken} 冒号 slash slash ")
         else:
             spoken = spoken.replace(f"{protocol}://", f"{protocol_spoken} colon slash slash ")
-    
+
     if language == "zh":
         spoken = re.sub(r"www\.?", "w w w 点 ", spoken)
     else:
@@ -745,16 +745,14 @@ def normalize_text(
 
     # Language-specific normalizer (always runs for contractions, numbers, etc.)
     before = protected_text
-    match language:
-        case "en":
-            protected_text = text_normalizer_en(protected_text)
-        case "ms":
-            protected_text = text_normalizer_ms(protected_text)
-        case "zh":
-            protected_text = text_normalizer_zh(protected_text)
-        case "zh_my":
-            protected_text = text_normalizer_zh_my(protected_text)
-
+    if language == "en":
+        protected_text = text_normalizer_en(protected_text)
+    elif language == "zh":
+        protected_text = text_normalizer_zh(protected_text)
+    elif language == "zh_my":
+        protected_text = text_normalizer_zh_my(protected_text)
+    else:
+        protected_text = text_normalizer_ms(protected_text)
     _track(f"language_normalizer_{language}", before, protected_text)
 
     # Spacing normalization
