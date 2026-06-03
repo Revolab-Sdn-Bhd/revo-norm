@@ -208,6 +208,11 @@ def expand_acronym(acronym: str) -> str:
     """
     vowels = set("aeiou")
 
+    # Explicit word expansions — checked before any heuristic
+    EXPAND_AS = {"SDN": "sendirian", "BHD": "berhad"}  # noqa: N806
+    if acronym in EXPAND_AS:
+        return EXPAND_AS[acronym]
+
     PRESERVE_THESE = {"NASA", "PLUS"}  # noqa: N806
     if acronym in PRESERVE_THESE:
         return acronym
@@ -221,8 +226,11 @@ def expand_acronym(acronym: str) -> str:
         return " ".join(list(acronym))
 
     vowel_count = sum(1 for ch in acronym if ch.lower() in vowels)
+    # Y acts as a vowel when it ends the word (e.g. CENTURY, ARMY, DUTY)
+    if len(acronym) > 1 and acronym[-1].lower() == "y":
+        vowel_count += 1
     vowel_ratio = vowel_count / len(acronym) if acronym else 0
-    has_consonants = any(ch.lower() not in vowels for ch in acronym)
+    has_consonants = any(ch.lower() not in vowels and ch.lower() != "y" for ch in acronym)
 
     if len(acronym) >= 4 and 0.3 <= vowel_ratio <= 0.6 and has_consonants:
         return acronym.lower()
@@ -270,6 +278,9 @@ _PRONUNCIATION_OVERRIDE_PATTERNS = [
     (re.compile(r"\ba/l\b", re.IGNORECASE), "anak lelaki"),
     (re.compile(r"\ba/p\b", re.IGNORECASE), "anak perempuan"),
     (re.compile(r"\b1Malaysia\b", re.IGNORECASE), "satu malaysia"),
+    # Malaysian company suffixes — must be matched as a pair to avoid
+    # "SDN" or "BHD" expanding in unrelated contexts
+    (re.compile(r"\bsdn\.?\s+bhd\b\.?", re.IGNORECASE), "sendirian berhad"),
 ]
 
 _PRONUNCIATION_UNIT_MAP = {

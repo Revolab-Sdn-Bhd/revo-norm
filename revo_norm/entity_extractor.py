@@ -210,7 +210,7 @@ class EntityExtractor:
         return re.compile(r"(?<![\d/])(\d+)\s*/\s*(\d+)(?![/\d])")
 
     def _compile_address_slash_patterns(self) -> re.Pattern:
-        """Compile address slash patterns (e.g., Jalan Setia 3/4, Jalan SS2/72)."""
+        """Compile address slash patterns (e.g., Jalan Setia 3/4, Jalan SS2/72, 5/6A)."""
         return re.compile(
             r"\b(?:Jalan|Lorong|Taman|Bukit|Kampung|Tingkat|Lintang|"
             r"Pesisir|Persiaran|Lebuh|Medan|Lengkung|Halaman)\s+"
@@ -219,7 +219,9 @@ class EntityExtractor:
             r"|"
             r"\b(?:Jalan|Lorong|Taman|Bukit|Kampung|Tingkat|Lintang|"
             r"Pesisir|Persiaran|Lebuh|Medan|Lengkung|Halaman)\s+"
-            r"([A-Za-z]*\d+)\s*/\s*(\d+)\b",
+            r"([A-Za-z]*\d+)\s*/\s*(\d+)\b"
+            r"|"
+            r"\b(\d+)\s*/\s*(\d+[A-Za-z]*)\b",
             re.IGNORECASE,
         )
 
@@ -418,14 +420,18 @@ class EntityExtractor:
         """Convert address slash pattern to spoken form with digit-by-digit expansion."""
         from revo_norm.text_normalizer import _digit_word
 
-        match = re.search(r"([A-Za-z]*)(\d+)\s*/\s*(\d+)", address_text)
+        match = re.search(r"([A-Za-z]*)(\d+)\s*/\s*(\d+)([A-Za-z]+)?", address_text)
         if match:
             prefix = match.group(1)
             left_digits = " ".join(_digit_word(d, language) for d in match.group(2))
             right_digits = " ".join(_digit_word(d, language) for d in match.group(3))
+            right_suffix = match.group(4) or ""
             prefix_spoken = " ".join(prefix) + " " if prefix else ""
-            slash_spoken = f"{prefix_spoken}{left_digits} slash {right_digits}"
-            return re.sub(r"[A-Za-z]*\d+\s*/\s*\d+", slash_spoken, address_text)
+            suffix_spoken = " ".join(right_suffix) + " " if right_suffix else ""
+            # Use "per" for Malay addresses, "slash" for English
+            separator = "per" if language == "ms" else "slash"
+            slash_spoken = f"{prefix_spoken}{left_digits} {separator} {right_digits} {suffix_spoken}".strip()
+            return re.sub(r"[A-Za-z]*\d+\s*/\s*\d+[A-Za-z]*", slash_spoken, address_text)
         return address_text
 
     def _convert_date_to_spoken(self, date_text: str, language: str) -> str:
