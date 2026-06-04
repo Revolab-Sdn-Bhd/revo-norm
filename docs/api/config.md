@@ -116,7 +116,7 @@ cfg.is_enabled("temperature") # True
 cfg.is_enabled("unknown")     # True (safe default)
 ```
 
-### `should_run_malay_features(language)` {: #should-run-malay }
+### `should_run_shared_features(language)` {: #should-run-malay }
 
 Returns `True` if Malay-local features should run for the given language. This is `True` only when `malay_local` is enabled **and** `language == "ms"`.
 

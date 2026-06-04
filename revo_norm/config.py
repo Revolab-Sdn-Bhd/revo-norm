@@ -215,7 +215,7 @@ class Config:
         """
         return getattr(self, feature, True)
 
-    def should_run_malay_features(self, language: str) -> bool:
+    def should_run_shared_features(self, language: str) -> bool:
         """Return True if Malay-local features should run for the given language."""
         return self.malay_local and language == "ms"
 

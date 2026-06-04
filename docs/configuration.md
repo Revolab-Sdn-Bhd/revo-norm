@@ -186,7 +186,7 @@ cfg.fractions = False    # Turn off fraction normalization
 cfg.dates = True         # Explicitly enable (already default)
 
 # Check before running
-if cfg.should_run_malay_features("ms"):
+if cfg.should_run_shared_features("ms"):
     # Malay-specific features will run
     pass
 ```

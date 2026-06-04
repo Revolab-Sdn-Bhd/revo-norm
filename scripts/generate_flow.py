@@ -8,7 +8,7 @@ Reads:
   - revo_norm/entity_extractor.py   (EntityType enum, entity patterns)
   - revo_norm/normalizer_en.py      (text_normalize steps)
   - revo_norm/normalizer_ms.py      (normalize_malay steps)
-  - revo_norm/malay_features.py     (feature functions)
+  - revo_norm/shared_features.py     (feature functions)
 
 Usage:
     uv run python scripts/generate_flow.py
@@ -342,7 +342,7 @@ def _identify_step(source_line: str) -> dict | None:
             "phase": 5,
             "label": "Elongated word normalization",
             "description": "betuiii → 'betui', celakaaa → 'celaka'",
-            "module": "malay_features.py",
+            "module": "shared_features.py",
         }
 
     # Measurements
@@ -351,7 +351,7 @@ def _identify_step(source_line: str) -> dict | None:
             "phase": 5,
             "label": "Measurement normalization",
             "description": "5km → 'five kilometers', 2kg → 'two kilograms'",
-            "module": "malay_features.py",
+            "module": "shared_features.py",
         }
 
     # X-kali
@@ -360,7 +360,7 @@ def _identify_step(source_line: str) -> dict | None:
             "phase": 5,
             "label": "X-kali (multiplier) normalization",
             "description": "10x → 'ten times', 3x → 'tiga kali'",
-            "module": "malay_features.py",
+            "module": "shared_features.py",
         }
 
     # Language-specific normalization

@@ -27,14 +27,16 @@ from revo_norm.currency_utils import (
     expand_currency_m_suffix,
     expand_currency_t_suffix,
 )
-from revo_norm.malay_features import (
+from revo_norm.normalizer_en import text_normalize as text_normalizer_en
+from revo_norm.normalizer_ms import normalize_malay as text_normalizer_ms
+from revo_norm.normalizer_zh import text_normalize_zh as text_normalizer_zh
+from revo_norm.normalizer_zh_my import text_normalize_zh_my as text_normalizer_zh_my
+from revo_norm.pronunciation_mappings import apply_pronunciation_mappings
+from revo_norm.shared_features import (
     normalize_elongated_text,
     normalize_measurements,
     normalize_x_kali_text,
 )
-from revo_norm.normalizer_en import text_normalize as text_normalizer_en
-from revo_norm.normalizer_ms import normalize_malay as text_normalizer_ms
-from revo_norm.pronunciation_mappings import apply_pronunciation_mappings
 from revo_norm.tts_utils import parse_sound_word_field, smart_remove_sound_words
 
 if TYPE_CHECKING:
@@ -54,27 +56,78 @@ def _normalize_whitespace(text: str) -> str:
 normalize_whitespace = _normalize_whitespace
 
 
+# Digit-to-word mapping
+_DIGIT_WORDS = {
+    "0": "zero",
+    "1": "one",
+    "2": "two",
+    "3": "three",
+    "4": "four",
+    "5": "five",
+    "6": "six",
+    "7": "seven",
+    "8": "eight",
+    "9": "nine",
+}
+
+_DIGIT_WORDS_MS = {
+    "0": "kosong",
+    "1": "satu",
+    "2": "dua",
+    "3": "tiga",
+    "4": "empat",
+    "5": "lima",
+    "6": "enam",
+    "7": "tujuh",
+    "8": "lapan",
+    "9": "sembilan",
+}
+
+_DIGIT_WORDS_ZH = {
+    "0": "零",
+    "1": "一",
+    "2": "二",
+    "3": "三",
+    "4": "四",
+    "5": "五",
+    "6": "六",
+    "7": "七",
+    "8": "八",
+    "9": "九",
+}
+
+
 def _digit_word(digit: str, language: str) -> str:
     """Convert a single digit to its spoken word."""
+    if language in ("zh", "zh_my"):
+        return _DIGIT_WORDS_ZH.get(digit, digit)
+
     if language == "ms":
-        return {
-            "0": "kosong", "1": "satu", "2": "dua", "3": "tiga", "4": "empat",
-            "5": "lima", "6": "enam", "7": "tujuh", "8": "lapan", "9": "sembilan",
-        }.get(digit, digit)
+        return _DIGIT_WORDS_MS.get(digit, digit)
+
     return _DIGIT_WORDS.get(digit, digit)
 
 
 def email_to_spoken(email: str, language: str = "en") -> str:
     """Convert an email address to spoken-friendly form for TTS."""
-    spoken = email.replace("@", " at ")
-    spoken = spoken.replace(".", " dot ")
-    spoken = spoken.replace("_", " underscore ")
-    spoken = spoken.replace("+", " plus ")
-    spoken = spoken.replace("-", " dash ")
+    if language == "zh":
+        spoken = email.replace("@", "艾特")
+        spoken = spoken.replace(".", "点")
+        spoken = spoken.replace("_", "下划线")
+        spoken = spoken.replace("+", "加")
+        spoken = spoken.replace("-", "杠")
+    else:
+        spoken = email.replace("@", " at ")
+        spoken = spoken.replace(".", " dot ")
+        spoken = spoken.replace("_", " underscore ")
+        spoken = spoken.replace("+", " plus ")
+        spoken = spoken.replace("-", " dash ")
+
     spoken = re.sub(r"(?<=[a-zA-Z])(?=\d)|(?<=\d)(?=[a-zA-Z])", " ", spoken)
     spoken = re.sub(
         r"\d+", lambda m: " ".join(_digit_word(c, language) for c in m.group(0)), spoken
     )
+
     return re.sub(r"\s+", " ", spoken).strip()
 
 
@@ -123,38 +176,46 @@ def _expand_digit_by_digit_context(text: str, language: str) -> str:
     return text
 
 
-# Digit-to-word mapping for URL speaking
-_DIGIT_WORDS = {
-    "0": "zero",
-    "1": "one",
-    "2": "two",
-    "3": "three",
-    "4": "four",
-    "5": "five",
-    "6": "six",
-    "7": "seven",
-    "8": "eight",
-    "9": "nine",
-}
-
-
-def url_to_spoken(url: str) -> str:
+def url_to_spoken(url: str, language: str = "en") -> str:
     """Convert a URL into spoken-friendly form for TTS."""
     spoken = url
     if "://" in spoken:
         protocol, _ = spoken.split("://", 1)
         protocol_spoken = " ".join(list(protocol))
-        spoken = spoken.replace(f"{protocol}://", f"{protocol_spoken} colon slash slash ")
-    spoken = re.sub(r"www\.?", "w w w dot ", spoken)
+        if language == "zh":
+            spoken = spoken.replace(f"{protocol}://", f"{protocol_spoken} 冒号斜杠斜杠")
+        elif language == "zh_my":
+            spoken = spoken.replace(f"{protocol}://", f"{protocol_spoken} 冒号 slash slash ")
+        else:
+            spoken = spoken.replace(f"{protocol}://", f"{protocol_spoken} colon slash slash ")
 
-    def _replace_port(m: re.Match) -> str:
-        return " colon " + " ".join(_DIGIT_WORDS.get(c, c) for c in m.group(1))
+    if language == "zh":
+        spoken = re.sub(r"www\.?", "w w w 点 ", spoken)
+    else:
+        spoken = re.sub(r"www\.?", "w w w dot ", spoken)
 
-    spoken = re.sub(r":(\d+)", _replace_port, spoken)
-    spoken = spoken.replace(".", " dot ")
-    spoken = spoken.replace("/", " slash ")
-    spoken = re.sub(r"\d+", lambda m: " ".join(_DIGIT_WORDS.get(c, c) for c in m.group(0)), spoken)
-    spoken = spoken.replace("-", " dash ")
+    def _replace_port(m: re.Match, language: str) -> str:
+        if language in ("zh", "zh_my"):
+            return "冒号" + " ".join(_digit_word(c, language) for c in m.group(1))
+        else:
+            return " colon " + " ".join(_digit_word(c, language) for c in m.group(1))
+
+    spoken = re.sub(r":(\d+)", lambda m: _replace_port(m, language), spoken)
+
+    if language == "zh":
+        spoken = spoken.replace(".", "点")
+        spoken = spoken.replace("/", "斜杠")
+        spoken = spoken.replace("-", "杠")
+    else:
+        spoken = spoken.replace(".", " dot ")
+        spoken = spoken.replace("/", " slash ")
+        spoken = spoken.replace("-", " dash ")
+
+    if language in ("zh", "zh_my"):
+        spoken = re.sub(r"\d+", lambda m: " ".join(_digit_word(c, language) for c in m.group(0)), spoken)
+    else:
+        spoken = re.sub(r"\d+", lambda m: " ".join(_digit_word(c, language) for c in m.group(0)), spoken)
+
     return re.sub(r"\s+", " ", spoken).strip()
 
 
@@ -166,9 +227,9 @@ _URL_RE = re.compile(
 )
 
 
-def convert_urls_to_spoken(text: str) -> str:
+def convert_urls_to_spoken(text: str, language: str = "en") -> str:
     """Replace all URLs in *text* with spoken form."""
-    return _URL_RE.sub(lambda m: url_to_spoken(m.group(0)), text)
+    return _URL_RE.sub(lambda m: url_to_spoken(m.group(0), language), text)
 
 
 def replace_letter_period_sequences(text: str, process_acronyms: bool = True) -> str:
@@ -297,8 +358,10 @@ def apply_pronunciation_overrides(text: str, language: str = "en") -> str:
     if language not in ("zh", "zh_my"):
         for _unit, (pattern, spoken) in _PRONUNCIATION_UNIT_MAP.items():
             text = pattern.sub(rf"\1 {spoken}", text)
+
     no_word = "nombor" if language == "ms" else "number"
     text = re.sub(r"\bNo\.\s", f"{no_word} ", text, flags=re.IGNORECASE)
+
     return text
 
 
@@ -417,8 +480,37 @@ def special_replace(text: str, language: str = "en") -> str:
         "~": "tilde",
         "^": "caret",
     }
-    for char, replacement in replacements.items():
-        text = text.replace(char, f" {replacement} ")
+
+    at_word = "艾特" if language == "zh" else "at"
+    hash_word = "井" if language == "zh" else "hash"
+    money_word = "美元" if language == "zh" else "块"
+    replacements_zh: dict[str, str] = {
+        "&": "和",
+        "+": "加",
+        "=": "等于",
+        "@": at_word,
+        "#": hash_word,
+        "*": "星号",
+        "%": "巴仙",
+        "$": money_word,
+        "EUR": "欧元",
+        "GBP": "英镑",
+        "©": "版权",
+        "®": "注册",
+        "™": "商标",
+        "<": "小于",
+        ">": "大于",
+        "|": "竖线",
+        "~": "波浪号",
+        "^": "插入符",
+    }
+
+    if language in ("zh", "zh_my"):
+        for char, replacement in replacements_zh.items():
+            text = text.replace(char, f" {replacement} ")
+    else:
+        for char, replacement in replacements.items():
+            text = text.replace(char, f" {replacement} ")
     text = re.sub(r"\s+", " ", text).strip()
 
     # Restore placeholders
@@ -488,7 +580,8 @@ def normalize_text(
     text : str
         Input text to normalize.
     language : str
-        ``"en"`` for English, ``"ms"`` for Malay.
+        ``"en"`` for English, ``"ms"`` for Malay, ``"zh"`` for Chinese,
+        ``"zh_my"`` for Malaysian Chinese.
     profile : str or None
         One of ``"minimal"``, ``"basic"``, ``"standard"``, ``"aggressive"``.
         If *None* the standard profile (all features on) is used.
@@ -665,7 +758,11 @@ def normalize_text(
     before = protected_text
     if language == "en":
         protected_text = text_normalizer_en(protected_text)
-    elif language == "ms":
+    elif language == "zh":
+        protected_text = text_normalizer_zh(protected_text)
+    elif language == "zh_my":
+        protected_text = text_normalizer_zh_my(protected_text)
+    else:
         protected_text = text_normalizer_ms(protected_text)
     _track(f"language_normalizer_{language}", before, protected_text)
 

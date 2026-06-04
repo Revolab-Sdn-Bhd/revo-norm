@@ -34,9 +34,12 @@ Tests are maintained in a separate repository.
 | `pronunciation_mappings.py` | Explicit pronunciation overrides (JSON→"jay son", GUI→"gooey") |
 | `normalizer_en.py` | English normalization (contractions, abbreviations, numbers) |
 | `normalizer_ms.py` | Malay normalization (grammar, vocabulary, number-to-words) |
-| `malay_features.py` | Malaysian/SE-Asian features (fractions, temperature, IC numbers, measurements, hijri) |
+| `normalizer_zh.py` | Chinese normalization (numbers, percentages, decimals, measurement helpers) |
+| `normalizer_zh_my.py` | Malaysian Chinese normalization (code-mixing, colloquial currency) |
+| `shared_features.py` | Shared feature normalizers (temperature, measurements, fractions, hijri, etc.) |
 | `currency_utils.py` | Currency K/M/B/T suffix expansion (RM50K → RM50000) |
 | `num2word_ms.py` | Malay number-to-words conversion (zero through decillions) |
+| `num2word_zh.py` | Chinese number-to-words conversion (零 through 兆) |
 | `tts_utils.py` | TTS post-processing (sound words, chunking, random commas) |
 | `config.py` | Configuration profiles (minimal/basic/standard/aggressive) and feature groups |
 
@@ -66,7 +69,7 @@ This file is auto-generated. **When you modify the pipeline** (add/remove steps,
 ```bash
 uv run python scripts/generate_flow.py
 ```
-Always regenerate the flow after changing `text_normalizer.py`, `entity_extractor.py`, `normalizer_en.py`, `normalizer_ms.py`, or `malay_features.py`.
+Always regenerate the flow after changing `text_normalizer.py`, `entity_extractor.py`, `normalizer_en.py`, `normalizer_ms.py`, or `shared_features.py`.
 
 ## Code Style
 
