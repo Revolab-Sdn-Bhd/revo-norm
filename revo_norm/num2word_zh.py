@@ -13,7 +13,15 @@ _LARGE_UNITS = ["", "万", "亿", "兆"]
 
 
 def to_currency(value: int | float, currency: str = "ringgit") -> str:
-    return f"{value}{currency}"
+    """Convert a number to Chinese currency spoken form."""
+    if isinstance(value, float):
+        int_part = int(value)
+        dec_str = f"{value:.2f}".split(".", 1)[1]
+        cents = int(dec_str)
+        if cents > 0:
+            return f"{to_cardinal(int_part)}{currency}{to_cardinal(cents)}分"
+        return f"{to_cardinal(int_part)}{currency}"
+    return f"{to_cardinal(value)}{currency}"
 
 
 def to_cardinal(number: int | float) -> str:

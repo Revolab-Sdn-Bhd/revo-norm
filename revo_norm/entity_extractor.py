@@ -189,7 +189,7 @@ class EntityExtractor:
             # HH:MM with Malay meridian (pagi/petang/malam/tengah hari) — must be before generic
             r"\b\d{1,2}:\d{2}\s*(?:pagi|petang|malam|tengah\s+hari)\b",
             # HH:MM AM/PM format
-            r"\b\d{1,2}:\d{2}\s*(?:am|pm|a\.m\.|p\.m\.)?\b",
+            r"\b\d{1,2}:\d{2}\s*(?:am|pm|a\.m\.|p\.m\.)?(?![A-Za-z0-9_])",
             # HH:MM:SS format
             r"\b\d{1,2}:\d{2}:\d{2}\b",
         ]
