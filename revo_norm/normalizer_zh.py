@@ -93,7 +93,7 @@ _time_zh_re = re.compile(
 _time_no_meridian_re = re.compile(
     r"(?<!凌晨)(?<!早上)(?<!中午)(?<!下午)(?<!傍晚)(?<!晚上)"
     r"(?<!\d)"
-    r"(\d{1,2})[:\.](\d{2})(?!\s*(?:am|pm|a\.m\.|p\.m\.))"
+    r"(\d{1,2}):(\d{2})(?!\s*(?:am|pm|a\.m\.|p\.m\.))"
     r"(?!\s*%)",
     re.IGNORECASE,
 )
@@ -277,7 +277,6 @@ def text_normalize_zh(text: str) -> str:
     text = re.sub(_time_zh_re, normalize_time_zh, text)
     text = re.sub(_time_shortform_re, normalize_time_shortform, text)
     text = re.sub(_temperature_re, normalize_temperature_zh, text)
-    text = re.sub(_leftover_dot_re, normalize_leftover_dot, text)
 
     text = re.sub(_number_with_commas_re, normalize_number_with_commas, text)
     text = re.sub(_decimal_re, normalize_decimal, text)
@@ -285,5 +284,6 @@ def text_normalize_zh(text: str) -> str:
     text = re.sub(_dashed_alnum_re, normalize_dashed_alnum, text)
     text = re.sub(_alnum_re, normalize_alnum, text)
     text = re.sub(_number_re, normalize_number, text)
+    text = re.sub(_leftover_dot_re, normalize_leftover_dot, text)
 
     return text.strip()

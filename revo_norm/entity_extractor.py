@@ -417,7 +417,7 @@ class EntityExtractor:
         if ampm:
             clean = ampm.replace(".", "").lower()
             if clean in ("pm", "p.m.") or ampm in ["下午", "傍晚", "晚上"]:
-                meridian = "下午" if language == "zh" else "晚上"
+                meridian = "下午" if h <= 6 else "晚上"
             elif clean in ("am", "a.m.") or ampm in ["上午", "早上"]:
                 meridian = "上午" if language == "zh" else "早上"
         time_str = f"{to_cardinal(h)}点" if m == 0 else f"{to_cardinal(h)}点{to_cardinal(m)}分"

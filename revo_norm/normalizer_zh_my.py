@@ -93,7 +93,7 @@ def normalize_currency(m: re.Match) -> str:
     if symbol.upper() in ("RM", "MYR"):
         unit_main, unit_sub = "令吉", "仙"
     elif symbol in ("$", "USD"):
-        unit_main, unit_sub = "块", "仙"
+        unit_main, unit_sub = "美金", "仙"
     elif symbol in ("£", "GBP"):
         unit_main, unit_sub = "英磅", "仙"
     elif symbol in ("€", "EUR"):
@@ -180,7 +180,6 @@ def text_normalize_zh_my(text: str) -> str:
     text = re.sub(_time_zh_re, normalize_time_zh, text)
     text = re.sub(_time_shortform_re, normalize_time_shortform, text)
     text = re.sub(_temperature_re, normalize_temperature_zh, text)
-    text = re.sub(_leftover_dot_re, normalize_leftover_dot, text)
 
     text = re.sub(_number_with_commas_re, normalize_number_with_commas, text)
     text = re.sub(_decimal_re, normalize_decimal, text)
@@ -188,5 +187,6 @@ def text_normalize_zh_my(text: str) -> str:
     text = re.sub(_dashed_alnum_re, normalize_dashed_alnum, text)
     text = re.sub(_alnum_re, normalize_alnum, text)
     text = re.sub(_number_re, normalize_number, text)
+    text = re.sub(_leftover_dot_re, normalize_leftover_dot, text)
 
     return text.strip()
