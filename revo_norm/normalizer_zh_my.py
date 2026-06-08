@@ -24,6 +24,12 @@ from revo_norm.normalizer_zh import (
     _number_re,
     _number_with_commas_re,
     _percentage_re,
+    _time_re,
+    _time_zh_re,
+    _time_no_meridian_re,
+    _time_shortform_re,
+    _temperature_re,
+    _leftover_dot_re,
     normalize_alnum,
     normalize_dashed_alnum,
     normalize_dashed_digits,
@@ -31,8 +37,16 @@ from revo_norm.normalizer_zh import (
     normalize_measurement,
     normalize_number,
     normalize_number_with_commas,
+    normalize_temperature_zh,
+    normalize_leftover_dot,
 )
 from revo_norm.num2word_zh import to_cardinal, to_year
+
+# Times
+_TIMES = {
+    "am": "早上",
+    "pm": "下午"
+}
 
 # CJK unified ideographs range — used for code-mixing detection
 _CJK_RE = re.compile(r"[一-鿿㐀-䶿]")
@@ -98,6 +112,62 @@ def normalize_currency(m: re.Match) -> str:
     return f"{to_cardinal(int(amount))}{magnitude}{unit_main}"
 
 
+def normalize_time(m):
+    hour, minute, meridian = m.groups()
+    hour_word = to_cardinal(int(hour))
+    minute_word = to_cardinal(int(minute))
+
+    meridian_word = ""
+    if meridian:
+        meridian_word = f"{meridian[0]}m"
+
+    if minute_word == "零":
+        return f"{_TIMES[meridian_word.lower()]}{hour_word}点"
+    else:
+        return f"{_TIMES[meridian_word.lower()]}{hour_word}点{minute_word}分"
+
+
+def normalize_time_zh(m):
+    meridian, hour, minute = m.groups()
+    hour_word = to_cardinal(int(hour))
+    minute_word = to_cardinal(int(minute))
+
+    if minute_word == "零":
+        return f"{meridian}{hour_word}点"
+    else:
+        return f"{meridian}{hour_word}点{minute_word}分"
+
+
+def normalize_time_no_meridian(m):
+    hour, minute = m.groups()
+    hour_int = int(hour)
+    minute_int = int(minute)
+
+    # Special case for midnight (00:00)
+    if hour_int == 0 and minute_int == 0:
+        return "半夜十二点"
+    # Special case for noon (12:00)
+    if hour_int == 12 and minute_int == 0:
+        return "中午十二点"
+
+    hour_word = to_cardinal(hour_int)
+    minute_word = to_cardinal(minute_int)
+
+    if minute_word == "零":
+        return f"{hour_word}点"
+    else:
+        return f"{hour_word}点{minute_word}分"
+
+
+def normalize_time_shortform(m):
+    hour, meridian = m.groups()
+    hour_word = to_cardinal(int(hour))
+    meridian_word = ""
+    if meridian:
+        meridian_word = f"{meridian[0]}m"
+        return f"{_TIMES[meridian_word.lower()]}{hour_word}点"
+
+
 def text_normalize_zh_my(text: str) -> str:
     """Main Malaysian Chinese text normalization function."""
     text = re.sub(_percentage_re, normalize_percentage, text)
@@ -105,6 +175,12 @@ def text_normalize_zh_my(text: str) -> str:
     text = re.sub(_date_ymd_re, normalize_date_ymd, text)
     text = re.sub(_measurement_re, normalize_measurement, text)
     text = re.sub(_currency_re, normalize_currency, text)
+    text = re.sub(_time_no_meridian_re, normalize_time_no_meridian, text)
+    text = re.sub(_time_re, normalize_time, text)
+    text = re.sub(_time_zh_re, normalize_time_zh, text)
+    text = re.sub(_time_shortform_re, normalize_time_shortform, text)
+    text = re.sub(_temperature_re, normalize_temperature_zh, text)
+    text = re.sub(_leftover_dot_re, normalize_leftover_dot, text)
 
     text = re.sub(_number_with_commas_re, normalize_number_with_commas, text)
     text = re.sub(_decimal_re, normalize_decimal, text)
