@@ -9,6 +9,7 @@ entity extraction and shared_features (which respect config flags).
 import re
 
 from revo_norm.num2word_zh import to_cardinal, to_year
+from revo_norm.shared_features import normalize_temperature
 
 # Numbers
 _NUMBERS = {
@@ -70,10 +71,10 @@ _measurement_re = re.compile(
     r"(\d+(?:\.\d+)?)\s*(km|m|cm|mm|kg|g|mg|ml|l|litre|liter)(?![A-Za-z0-9])",
     re.IGNORECASE,
 )
-_date_dmy_re = re.compile(r"(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})")
-_date_ymd_re = re.compile(r"(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})")
+_date_dmy_re = re.compile(r"(?<!\d)(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})")
+_date_ymd_re = re.compile(r"(?<!\d)(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})")
 _currency_re = re.compile(
-    r"(?<!\w)(\$|£|€|RM|MYR|USD|EUR|GBP)(?:\s?)([\d,]+(?:[\.,]\d{1,2})?)(?:\s?(千|万|百万|千万|亿|百亿|千亿|万亿|兆))?",
+    r"(?<![A-Za-z0-9_])(\$|£|€|RM|MYR|USD|EUR|GBP)(?:\s?)([\d,]+(?:[\.,]\d{1,2})?)(?:\s?(千|万|百万|千万|亿|百亿|千亿|万亿|兆))?",
     re.IGNORECASE,
 )
 _dashed_digit_re = re.compile(r"(?<![A-Za-z])([+\d]+(?:-[\d]+)+)(?![A-Za-z])")
@@ -85,17 +86,23 @@ _time_re = re.compile(
     r"(\d{1,2})[:\.](\d{2})\s*(?:(am|pm|a\.m\.|p\.m\.))",
     re.IGNORECASE,
 )
-_time_re_zh = re.compile(
+_time_zh_re = re.compile(
     r"(?:(凌晨|早上|中午|下午|傍晚|晚上))\s*(\d{1,2})[:\.](\d{2})",
     re.IGNORECASE,
 )
 _time_no_meridian_re = re.compile(
     r"(?<!凌晨)(?<!早上)(?<!中午)(?<!下午)(?<!傍晚)(?<!晚上)"
-    r"\b(\d{1,2})[:\.](\d{2})(?!\s*(?:am|pm|a\.m\.|p\.m\.))"
-    r"(?!.*%)",
+    r"(?<!\d)"
+    r"(\d{1,2}):(\d{2})(?!\s*(?:am|pm|a\.m\.|p\.m\.))"
+    r"(?!\s*%)",
     re.IGNORECASE,
 )
-
+_time_shortform_re = re.compile(
+    r'(?<!\d)([1-9]|1[0-2])\s*(am|pm|a\.m\.|p\.m\.)(?![A-Za-z0-9])',
+    re.IGNORECASE
+)
+_temperature_re = re.compile(r"(?<![A-Za-z0-9_])(-?\d+(?:[\.,]\d+)?)\s*(?:°)?([CFK])(?![A-Za-z0-9_])", re.IGNORECASE)
+_leftover_dot_re = re.compile(r"(?<=\w)\.(?=\w)")
 
 def normalize_percentage(m: re.Match) -> str:
     number = m.group(1)
@@ -241,6 +248,23 @@ def normalize_time_no_meridian(m):
         return f"{hour_word}点{minute_word}分"
 
 
+def normalize_time_shortform(m):
+    hour, meridian = m.groups()
+    hour_word = to_cardinal(int(hour))
+    meridian_word = ""
+    if meridian:
+        meridian_word = f"{meridian[0]}m"
+        return f"{_TIMES[meridian_word.lower()]}{hour_word}点"
+
+
+def normalize_temperature_zh(m):
+    return normalize_temperature(m, "zh")
+
+
+def normalize_leftover_dot(m):
+    return "点"
+
+
 def text_normalize_zh(text: str) -> str:
     """Main Chinese text normalization function."""
     text = re.sub(_percentage_re, normalize_percentage, text)
@@ -250,7 +274,9 @@ def text_normalize_zh(text: str) -> str:
     text = re.sub(_currency_re, normalize_currency, text)
     text = re.sub(_time_no_meridian_re, normalize_time_no_meridian, text)
     text = re.sub(_time_re, normalize_time, text)
-    text = re.sub(_time_re_zh, normalize_time_zh, text)
+    text = re.sub(_time_zh_re, normalize_time_zh, text)
+    text = re.sub(_time_shortform_re, normalize_time_shortform, text)
+    text = re.sub(_temperature_re, normalize_temperature_zh, text)
 
     text = re.sub(_number_with_commas_re, normalize_number_with_commas, text)
     text = re.sub(_decimal_re, normalize_decimal, text)
@@ -258,5 +284,6 @@ def text_normalize_zh(text: str) -> str:
     text = re.sub(_dashed_alnum_re, normalize_dashed_alnum, text)
     text = re.sub(_alnum_re, normalize_alnum, text)
     text = re.sub(_number_re, normalize_number, text)
+    text = re.sub(_leftover_dot_re, normalize_leftover_dot, text)
 
     return text.strip()
