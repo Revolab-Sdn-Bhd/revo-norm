@@ -35,6 +35,7 @@ from revo_norm.normalizer_zh import (
     normalize_leftover_dot,
     normalize_number,
     normalize_number_with_commas,
+    normalize_temperature_zh,
 )
 from revo_norm.num2word_zh import to_cardinal, to_year
 

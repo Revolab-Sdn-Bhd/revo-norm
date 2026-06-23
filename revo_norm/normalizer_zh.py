@@ -9,6 +9,7 @@ entity extraction and shared_features (which respect config flags).
 import re
 
 from revo_norm.num2word_zh import to_cardinal, to_year
+from revo_norm.shared_features import normalize_temperature
 
 # Numbers
 _NUMBERS = {
