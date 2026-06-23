@@ -432,6 +432,20 @@ _AREA_UNITS_MS: dict[str, str] = {
     "sqft": "kaki persegi",
 }
 
+# Chinese Measurement unit mappings
+_MEASUREMENT_ZH_UNITS = {
+    "km": "公里",
+    "m": "米",
+    "cm": "厘米",
+    "mm": "毫米",
+    "kg": "公斤",
+    "g": "克",
+    "mg": "毫克",
+    "ml": "毫升",
+    "l": "升",
+    "litre": "升",
+    "liter": "升",
+}
 
 
 def normalize_distance(match: re.Match, language: str = "en") -> str:
@@ -540,11 +554,23 @@ def normalize_measurements(text: str, language: str = "en") -> str:
         'five kilometers two kilograms one thousand square feet'
     """
     if language in ("zh", "zh_my"):
-        from revo_norm.normalizer_zh import (
-            _measurement_re,
-            normalize_measurement,
+        from revo_norm.normalizer_zh import normalize_decimal
+        from num2word_zh import to_cardinal
+
+        _measurement_zh_re = re.compile(
+            r"(\d+(?:\.\d+)?)\s*(km|m|cm|mm|kg|g|mg|ml|l|litre|liter)(?![A-Za-z0-9])",
+            re.IGNORECASE,
         )
-        return _measurement_re.sub(normalize_measurement, text)
+        def _normalize_measurement_zh(m: re.Match) -> str:
+            value = m.group(1)
+            unit = m.group(2).lower()
+            unit_word = _MEASUREMENT_ZH_UNITS.get(unit, unit)
+            if "." in value:
+                dec_words = normalize_decimal(re.match(r"(\d+)\.(\d+)", value))
+                return f"{dec_words}{unit_word}"
+            return f"{to_cardinal(int(value))}{unit_word}"
+        
+        return _measurement_zh_re.sub(_normalize_measurement_zh, text)
 
     text = _DISTANCE_PATTERN.sub(lambda m: normalize_distance(m, language), text)
     text = _VOLUME_PATTERN.sub(lambda m: normalize_volume(m, language), text)

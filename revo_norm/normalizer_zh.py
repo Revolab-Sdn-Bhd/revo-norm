@@ -9,7 +9,6 @@ entity extraction and shared_features (which respect config flags).
 import re
 
 from revo_norm.num2word_zh import to_cardinal, to_year
-from revo_norm.shared_features import normalize_temperature
 
 # Numbers
 _NUMBERS = {
@@ -47,30 +46,12 @@ _TIMES = {
     "pm": "下午"
 }
 
-# Measurement unit → Chinese (used by shared_features for Chinese measurements)
-_MEASUREMENT_UNITS = {
-    "km": "公里",
-    "m": "米",
-    "cm": "厘米",
-    "mm": "毫米",
-    "kg": "公斤",
-    "g": "克",
-    "mg": "毫克",
-    "ml": "毫升",
-    "l": "升",
-    "litre": "升",
-    "liter": "升",
-}
 
 # Regex
 _percentage_re = re.compile(r"(\d+(?:\.\d+)?)%")
 _decimal_re = re.compile(r"(\d+)\.(\d+)")
 _number_re = re.compile(r"\d+")
 _number_with_commas_re = re.compile(r"\d{1,3}(?:,\d{3})+(?:\.\d+)?")
-_measurement_re = re.compile(
-    r"(\d+(?:\.\d+)?)\s*(km|m|cm|mm|kg|g|mg|ml|l|litre|liter)(?![A-Za-z0-9])",
-    re.IGNORECASE,
-)
 _date_dmy_re = re.compile(r"(?<!\d)(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})")
 _date_ymd_re = re.compile(r"(?<!\d)(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})")
 _currency_re = re.compile(
@@ -101,7 +82,6 @@ _time_shortform_re = re.compile(
     r'(?<!\d)([1-9]|1[0-2])\s*(am|pm|a\.m\.|p\.m\.)(?![A-Za-z0-9])',
     re.IGNORECASE
 )
-_temperature_re = re.compile(r"(?<![A-Za-z0-9_])(-?\d+(?:[\.,]\d+)?)\s*(?:°)?([CFK])(?![A-Za-z0-9_])", re.IGNORECASE)
 _leftover_dot_re = re.compile(r"(?<=\w)\.(?=\w)")
 
 def normalize_percentage(m: re.Match) -> str:
@@ -132,16 +112,6 @@ def normalize_number_with_commas(m: re.Match) -> str:
     if "." in num_str:
         return normalize_decimal(re.match(r"(\d+)\.(\d+)", num_str))
     return to_cardinal(int(num_str))
-
-
-def normalize_measurement(m: re.Match) -> str:
-    value = m.group(1)
-    unit = m.group(2).lower()
-    unit_word = _MEASUREMENT_UNITS.get(unit, unit)
-    if "." in value:
-        dec_words = normalize_decimal(re.match(r"(\d+)\.(\d+)", value))
-        return f"{dec_words}{unit_word}"
-    return f"{to_cardinal(int(value))}{unit_word}"
 
 
 def normalize_date_dmy(m: re.Match) -> str:
@@ -257,10 +227,6 @@ def normalize_time_shortform(m):
         return f"{_TIMES[meridian_word.lower()]}{hour_word}点"
 
 
-def normalize_temperature_zh(m):
-    return normalize_temperature(m, "zh")
-
-
 def normalize_leftover_dot(m):
     return "点"
 
@@ -270,13 +236,11 @@ def text_normalize_zh(text: str) -> str:
     text = re.sub(_percentage_re, normalize_percentage, text)
     text = re.sub(_date_dmy_re, normalize_date_dmy, text)
     text = re.sub(_date_ymd_re, normalize_date_ymd, text)
-    text = re.sub(_measurement_re, normalize_measurement, text)
     text = re.sub(_currency_re, normalize_currency, text)
     text = re.sub(_time_no_meridian_re, normalize_time_no_meridian, text)
     text = re.sub(_time_re, normalize_time, text)
     text = re.sub(_time_zh_re, normalize_time_zh, text)
     text = re.sub(_time_shortform_re, normalize_time_shortform, text)
-    text = re.sub(_temperature_re, normalize_temperature_zh, text)
 
     text = re.sub(_number_with_commas_re, normalize_number_with_commas, text)
     text = re.sub(_decimal_re, normalize_decimal, text)
