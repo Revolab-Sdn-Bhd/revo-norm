@@ -554,7 +554,7 @@ def normalize_measurements(text: str, language: str = "en") -> str:
         'five kilometers two kilograms one thousand square feet'
     """
     if language in ("zh", "zh_my"):
-        from num2word_zh import to_cardinal
+        from revo_norm.num2word_zh import to_cardinal
         from revo_norm.normalizer_zh import normalize_decimal
 
         _measurement_zh_re = re.compile(

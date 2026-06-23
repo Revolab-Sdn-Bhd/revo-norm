@@ -435,7 +435,7 @@ class EntityExtractor:
         from revo_norm.normalizer_ms import normalize_malay as normalize_ms
 
         if language in ("zh", "zh_my"):
-            from num2word_zh import _DIGITS as _DIGITS_ZH
+            from revo_norm.num2word_zh import _DIGITS as _DIGITS_ZH
             parts = version_text.split(".")
             spoken_parts = [" ".join(_DIGITS_ZH.get(c, c) for c in p) for p in parts]
             return " 点 ".join(spoken_parts)
