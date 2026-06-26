@@ -198,7 +198,7 @@ class EntityExtractor:
     def _compile_temperature_patterns(self) -> re.Pattern:
         """Compile temperature detection patterns."""
         # This matches: 25C, 25°C, 25F, -5C, etc.
-        return re.compile(r"\b(-?\d+(?:[\.,]\d+)?)\s*(?:°)?([CFK])\b", re.IGNORECASE)
+        return re.compile(r"(?<![A-Za-z0-9_])(-?\d+(?:[\.,]\d+)?)\s*(?:°)?([CFK])(?![A-Za-z0-9_])", re.IGNORECASE)
 
     def _compile_fraction_patterns(self) -> re.Pattern:
         """
