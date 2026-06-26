@@ -161,9 +161,9 @@ class EntityExtractor:
         """
         patterns = [
             # Slash format: DD/MM/YYYY or MM/DD/YYYY
-            r"\b\d{1,2}/\d{1,2}/\d{4}\b",
+            r"(?<![A-Za-z0-9_])\d{1,2}/\d{1,2}/\d{4}(?![A-Za-z0-9_])",
             # Dash format: YYYY-MM-DD or YYYY-M-D
-            r"\b\d{4}-\d{1,2}-\d{1,2}\b",
+            r"(?<![A-Za-z0-9_])\d{4}-\d{1,2}-\d{1,2}(?![A-Za-z0-9_])",
             # Month name format: 15 August 2025
             r"\b\d{1,2}\s+(?:January|February|March|April|May|June|July|August|"
             r"September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|"
@@ -219,9 +219,7 @@ class EntityExtractor:
             r"|"
             r"\b(?:Jalan|Lorong|Taman|Bukit|Kampung|Tingkat|Lintang|"
             r"Pesisir|Persiaran|Lebuh|Medan|Lengkung|Halaman)\s+"
-            r"([A-Za-z]*\d+)\s*/\s*(\d+)\b"
-            r"|"
-            r"\b(\d+)\s*/\s*(\d+[A-Za-z]*)\b",
+            r"([A-Za-z]*\d+)\s*/\s*(\d+)\b",
             re.IGNORECASE,
         )
 
@@ -437,7 +435,7 @@ class EntityExtractor:
         from revo_norm.normalizer_ms import normalize_malay as normalize_ms
 
         if language in ("zh", "zh_my"):
-            from num2word_zh import _DIGITS as _DIGITS_ZH
+            from revo_norm.num2word_zh import _DIGITS as _DIGITS_ZH
             parts = version_text.split(".")
             spoken_parts = [" ".join(_DIGITS_ZH.get(c, c) for c in p) for p in parts]
             return " 点 ".join(spoken_parts)
@@ -466,8 +464,7 @@ class EntityExtractor:
             right_suffix = match.group(4) or ""
             prefix_spoken = " ".join(prefix) + " " if prefix else ""
             suffix_spoken = " ".join(right_suffix) + " " if right_suffix else ""
-            # Use "per" for Malay addresses, "slash" for English
-            separator = "per" if language == "ms" else "slash"
+            separator = "slash"
             slash_spoken = f"{prefix_spoken}{left_digits} {separator} {right_digits} {suffix_spoken}".strip()
             return re.sub(r"[A-Za-z]*\d+\s*/\s*\d+[A-Za-z]*", slash_spoken, address_text)
         return address_text
