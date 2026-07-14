@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**Revo Norm** is a Python library for text normalization designed for Text-to-Speech (TTS) applications. It converts written text (numbers, currency, dates, abbreviations, etc.) into spoken form for **English** and **Malay** (Bahasa Melayu).
+**Revo Norm** is a Python library for text normalization designed for Text-to-Speech (TTS) applications. It converts written text (numbers, currency, dates, abbreviations, etc.) into spoken form for **English**, **Malay** (Bahasa Melayu), **Indonesian** (Bahasa Indonesia), and **Chinese**.
 
 ## Setup Commands
 
@@ -34,11 +34,13 @@ Tests are maintained in a separate repository.
 | `pronunciation_mappings.py` | Explicit pronunciation overrides (JSON→"jay son", GUI→"gooey") |
 | `normalizer_en.py` | English normalization (contractions, abbreviations, numbers) |
 | `normalizer_ms.py` | Malay normalization (grammar, vocabulary, number-to-words) |
+| `normalizer_id.py` | Indonesian normalization — standalone sibling of `normalizer_ms.py`, plus Indonesian number formats (dotted thousands, comma decimals, Rp suffixes) |
 | `normalizer_zh.py` | Chinese normalization (numbers, percentages, decimals, measurement helpers) |
 | `normalizer_zh_my.py` | Malaysian Chinese normalization (code-mixing, colloquial currency) |
 | `shared_features.py` | Shared feature normalizers (temperature, measurements, fractions, hijri, etc.) |
 | `currency_utils.py` | Currency K/M/B/T suffix expansion (RM50K → RM50000) |
 | `num2word_ms.py` | Malay number-to-words conversion (zero through decillions) |
+| `num2word_id.py` | Indonesian number-to-words conversion — standalone sibling of `num2word_ms.py`; do NOT couple them, changes to one must never silently alter the other |
 | `num2word_zh.py` | Chinese number-to-words conversion (零 through 兆) |
 | `tts_utils.py` | TTS post-processing (sound words, chunking, random commas) |
 | `config.py` | Configuration profiles (minimal/basic/standard/aggressive) and feature groups |
@@ -171,8 +173,9 @@ Add to `.vscode/settings.json`:
 - **Code-mixing** is common: English terms in Malay sentences are normal, don't strip them
 - **Date formats**: DD/MM/YYYY, YYYY-MM-DD, DD Month YYYY (Malay month names too)
 - **Hijri calendar**: Islamic year conversion exists, test both Arabic numerals and Malay text
-- **Currency**: RM (Ringgit Malaysia) is the primary currency, also USD/EUR/GBP/JPY
+- **Currency**: RM (Ringgit Malaysia) is the primary currency, also USD/EUR/GBP/JPY; Rp/IDR (Rupiah) for Indonesian
 - **IC numbers**: Malaysian identity card format (12 digits), specific spoken form
+- **Indonesian (`id`)**: dots are thousands separators (1.000.000), comma is the decimal separator (3,5), and money slang uses rb = ribu, jt = juta, M = **miliar** (1e9, not million), T = triliun. Language dispatch is explicit — unknown language codes raise `ValueError`, never fall back to another language
 
 ## When Adding New Features
 

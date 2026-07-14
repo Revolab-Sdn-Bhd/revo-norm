@@ -135,10 +135,11 @@ def split_repetitive_sequences(
     return [s.strip() for s in segments if s.strip()]
 
 
-# Malay and English digit words produced by num2word expansion
+# Malay, Indonesian and English digit words produced by num2word expansion
 _DIGIT_WORDS = frozenset({
     "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "lapan", "sembilan", "kosong",
     "puluh", "ratus", "ribu", "juta", "belas", "perpuluhan",
+    "delapan", "nol", "koma", "miliar", "triliun",
     "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "zero",
     "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen",
     "seventeen", "eighteen", "nineteen", "twenty", "thirty", "forty", "fifty",
