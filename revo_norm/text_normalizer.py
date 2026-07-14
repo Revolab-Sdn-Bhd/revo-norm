@@ -21,7 +21,7 @@ from revo_norm.currency_utils import (
     CURRENCY_MILIAR_PATTERN,
     CURRENCY_RIBU_PATTERN,
     CURRENCY_T_SUFFIX_PATTERN,
-    CURRENCY_TRILION_PATTERN,
+    CURRENCY_TRILIUN_PATTERN,
     expand_currency_b_suffix,
     expand_currency_k_suffix,
     expand_currency_m_suffix,
@@ -666,7 +666,7 @@ def normalize_text(
         # so the en-semantics M suffix (million) must not run for id.
         text = _preparse_id_number_formats(text)
     text = CURRENCY_T_SUFFIX_PATTERN.sub(expand_currency_t_suffix, text)
-    text = CURRENCY_TRILION_PATTERN.sub(expand_currency_t_suffix, text)
+    text = CURRENCY_TRILIUN_PATTERN.sub(expand_currency_t_suffix, text)
     text = CURRENCY_B_SUFFIX_PATTERN.sub(expand_currency_b_suffix, text)
     text = CURRENCY_MILIAR_PATTERN.sub(expand_currency_b_suffix, text)
     if language != "id":

@@ -404,7 +404,7 @@ class EntityExtractor:
         return language in ("zh", "zh_my")
 
     @staticmethod
-    def _malayic(language: str):
+    def _ms_or_id_normalizer_and_months(language: str):
         """Return (normalizer, months) for the Malay/Indonesian branches."""
         if language == "ms":
             from revo_norm.normalizer_ms import _months, normalize_malay
@@ -462,8 +462,10 @@ class EntityExtractor:
         else:
             if language == "id":
                 from revo_norm.normalizer_id import normalize_indonesian as normalize
-            else:
-                normalize = normalize_ms if language == "ms" else normalize_en
+            elif language == "ms":
+                normalize = normalize_ms
+            else:  # default to English
+                normalize = normalize_en
             parts = version_text.split(".")
             spoken_parts = [normalize(p) for p in parts]
             return " point ".join(spoken_parts)
@@ -532,7 +534,7 @@ class EntityExtractor:
                     year_spoken = normalize_en(year)
                     return f"{day_spoken} of {month_spoken} {year_spoken}"
                 else:
-                    normalize_local, months_local = self._malayic(language)
+                    normalize_local, months_local = self._ms_or_id_normalizer_and_months(language)
                     day_spoken = normalize_local(day)
                     month_spoken = months_local.get(month.zfill(2), normalize_local(month))
                     year_spoken = normalize_local(year)
@@ -559,7 +561,7 @@ class EntityExtractor:
                     year_spoken = normalize_en(year)
                     return f"{month_spoken} {day_spoken}, {year_spoken}"
                 else:
-                    normalize_local, months_local = self._malayic(language)
+                    normalize_local, months_local = self._ms_or_id_normalizer_and_months(language)
                     month_spoken = months_local.get(month.zfill(2), normalize_local(month))
                     day_spoken = normalize_local(day)
                     year_spoken = normalize_local(year)
@@ -593,7 +595,7 @@ class EntityExtractor:
                 ordinal_suffix = self._get_ordinal_suffix(int(day))
                 return f"{month_spoken} the {day_spoken}{ordinal_suffix}, {year_spoken}"
             else:
-                normalize_local, months_local = self._malayic(language)
+                normalize_local, months_local = self._ms_or_id_normalizer_and_months(language)
                 month_spoken = months_local.get(month.zfill(2), normalize_local(month))
                 day_spoken = normalize_local(day)
                 year_spoken = normalize_local(year)
@@ -611,7 +613,7 @@ class EntityExtractor:
         elif language == "zh_my":
             return normalize_zh_my(date_text)
         else:
-            normalize_local, _ = self._malayic(language)
+            normalize_local, _ = self._ms_or_id_normalizer_and_months(language)
             return normalize_local(date_text)
 
     def _convert_time_to_spoken(self, time_text: str, language: str) -> str:
@@ -655,7 +657,7 @@ class EntityExtractor:
 
                 return result
             else:
-                normalize_local, _ = self._malayic(language)
+                normalize_local, _ = self._ms_or_id_normalizer_and_months(language)
                 hour_spoken = normalize_local(hour)
                 minute_spoken = normalize_local(minute)
                 result = f"{hour_spoken} {minute_spoken}"
@@ -685,7 +687,7 @@ class EntityExtractor:
         elif language == "zh_my":
             return normalize_zh_my(time_text)
         else:
-            normalize_local, _ = self._malayic(language)
+            normalize_local, _ = self._ms_or_id_normalizer_and_months(language)
             return normalize_local(time_text)
 
     def _convert_currency_to_spoken(self, currency_text: str, language: str) -> str:
@@ -720,12 +722,12 @@ class EntityExtractor:
                 CURRENCY_JUTA_PATTERN,
                 CURRENCY_MILIAR_PATTERN,
                 CURRENCY_RIBU_PATTERN,
-                CURRENCY_TRILION_PATTERN,
+                CURRENCY_TRILIUN_PATTERN,
             )
             from revo_norm.normalizer_id import preparse_number_formats
 
             currency_text = preparse_number_formats(currency_text)
-            currency_text = CURRENCY_TRILION_PATTERN.sub(expand_currency_t_suffix, currency_text)
+            currency_text = CURRENCY_TRILIUN_PATTERN.sub(expand_currency_t_suffix, currency_text)
             currency_text = CURRENCY_MILIAR_PATTERN.sub(expand_currency_b_suffix, currency_text)
             currency_text = CURRENCY_JUTA_PATTERN.sub(expand_currency_m_suffix, currency_text)
             currency_text = CURRENCY_RIBU_PATTERN.sub(expand_currency_k_suffix, currency_text)

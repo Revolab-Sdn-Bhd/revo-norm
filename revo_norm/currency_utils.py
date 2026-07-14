@@ -112,7 +112,7 @@ CURRENCY_JUTA_PATTERN = re.compile(
 CURRENCY_MILIAR_PATTERN = re.compile(
     r"(?<!\w)(RM|Rp|\$|£|€|USD|EUR|GBP|MYR|IDR)(?:\s?)(\d+(?:\.\d+)?)\s+miliar\b", re.IGNORECASE
 )
-CURRENCY_TRILION_PATTERN = re.compile(
+CURRENCY_TRILIUN_PATTERN = re.compile(
     r"(?<!\w)(RM|Rp|\$|£|€|USD|EUR|GBP|MYR|IDR)(?:\s?)(\d+(?:\.\d+)?)\s+(?:trilion|triliun)\b",
     re.IGNORECASE,
 )
