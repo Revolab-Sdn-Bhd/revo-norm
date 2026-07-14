@@ -1,9 +1,4 @@
-"""Indonesian number-to-words conversion (nol through desiliun).
-
-Standalone sibling of num2word_ms — same grammar, Indonesian vocabulary.
-Kept independent so changes to the Malay converter never silently alter
-Indonesian output.
-"""
+"""Indonesian number-to-words conversion (nol through desiliun)."""
 
 BASE = {
     0: [],

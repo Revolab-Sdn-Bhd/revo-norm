@@ -1,9 +1,7 @@
 """Indonesian text normalization for TTS.
 
-Standalone sibling of normalizer_ms (kept independent so Malay changes never
-silently alter Indonesian output) — same pipeline shape, Indonesian vocabulary
-(delapan/nol, koma, persen, Maret/Agustus, Rp/rupiah) plus handling of
-Indonesian written number conventions: dots as thousands separators
+Covers Indonesian vocabulary (delapan/nol, koma, persen, Maret/Agustus,
+Rp/rupiah) and written number conventions: dots as thousands separators
 (1.000.000), comma as decimal separator (10,5), and colloquial currency
 suffixes (Rp5rb, Rp5jt, Rp5M where M = miliar, not million).
 """
@@ -309,8 +307,9 @@ def normalize_indonesian(text: str) -> str:
     """
     Main Indonesian text normalization function.
 
-    Same entity-aware approach as normalize_malay, preceded by a rewrite of
-    Indonesian written number conventions (dotted thousands, comma decimals,
+    Entity-aware approach: detects and normalizes specific entities
+    (currency, dates, times, etc.), preceded by a rewrite of Indonesian
+    written number conventions (dotted thousands, comma decimals,
     rupiah suffixes) into plain digit forms.
     """
     # Step 0: Indonesian number-format conventions → plain digits

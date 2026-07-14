@@ -242,10 +242,24 @@ normalize_text("Tahun Hijri 1446", language="ms")
 
 ## Indonesian Specifics (`language="id"`)
 
-Indonesian shares its number grammar with Malay but uses its own vocabulary
-(`delapan`/`nol` instead of `lapan`/`kosong`, `koma` instead of `perpuluhan`,
-`persen` instead of `peratus`, `miliar`/`triliun` instead of `bilion`/`trilion`)
-and month names (`Maret`, `Juni`, `Juli`, `Agustus`, `Desember`).
+### Number Words
+
+Numbers are spoken with Indonesian number words, `koma` for decimal points,
+`persen` for percentages, and `miliar`/`triliun` for large magnitudes:
+
+```python
+normalize_text("Ada 8 orang, sisa 0", language="id")
+# "Ada delapan orang, sisa nol"
+```
+
+### Dates
+
+Dates are spoken with Indonesian month names:
+
+```python
+normalize_text("pada 15/08/2025", language="id")
+# "pada lima belas Agustus dua ribu dua puluh lima"
+```
 
 ### Written Number Conventions
 
