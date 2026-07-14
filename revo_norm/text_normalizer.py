@@ -21,13 +21,15 @@ from revo_norm.currency_utils import (
     CURRENCY_MILIAR_PATTERN,
     CURRENCY_RIBU_PATTERN,
     CURRENCY_T_SUFFIX_PATTERN,
-    CURRENCY_TRILION_PATTERN,
+    CURRENCY_TRILIUN_PATTERN,
     expand_currency_b_suffix,
     expand_currency_k_suffix,
     expand_currency_m_suffix,
     expand_currency_t_suffix,
 )
 from revo_norm.normalizer_en import text_normalize as text_normalizer_en
+from revo_norm.normalizer_id import normalize_indonesian as text_normalizer_id
+from revo_norm.normalizer_id import preparse_number_formats as _preparse_id_number_formats
 from revo_norm.normalizer_ms import normalize_malay as text_normalizer_ms
 from revo_norm.normalizer_zh import text_normalize_zh as text_normalizer_zh
 from revo_norm.normalizer_zh_my import text_normalize_zh_my as text_normalizer_zh_my
@@ -83,6 +85,19 @@ _DIGIT_WORDS_MS = {
     "9": "sembilan",
 }
 
+_DIGIT_WORDS_ID = {
+    "0": "nol",
+    "1": "satu",
+    "2": "dua",
+    "3": "tiga",
+    "4": "empat",
+    "5": "lima",
+    "6": "enam",
+    "7": "tujuh",
+    "8": "delapan",
+    "9": "sembilan",
+}
+
 _DIGIT_WORDS_ZH = {
     "0": "零",
     "1": "一",
@@ -104,6 +119,9 @@ def _digit_word(digit: str, language: str) -> str:
 
     if language == "ms":
         return _DIGIT_WORDS_MS.get(digit, digit)
+
+    if language == "id":
+        return _DIGIT_WORDS_ID.get(digit, digit)
 
     return _DIGIT_WORDS.get(digit, digit)
 
@@ -144,9 +162,11 @@ _USSD_RE = re.compile(r"\*(\d+)#")
 
 def _expand_ussd_codes(text: str, language: str) -> str:
     """Expand USSD codes (*120#) to digit-by-digit spoken form."""
+
     def _replace(m: re.Match) -> str:
         digits = " ".join(_digit_word(d, language) for d in m.group(1))
         return f"star {digits} hash"
+
     return _USSD_RE.sub(_replace, text)
 
 
@@ -167,10 +187,12 @@ _PRODUCT_DIGIT_CTX_RE = re.compile(
 
 def _expand_digit_by_digit_context(text: str, language: str) -> str:
     """Expand numbers in specific contexts (exit, gate, lot, etc.) digit-by-digit."""
+
     def _replace(m: re.Match) -> str:
         prefix = m.group(1)
         digits = " ".join(_digit_word(d, language) for d in m.group(2))
         return f"{prefix} {digits}"
+
     text = _DIGIT_BY_DIGIT_CTX_RE.sub(_replace, text)
     text = _PRODUCT_DIGIT_CTX_RE.sub(_replace, text)
     return text
@@ -212,9 +234,13 @@ def url_to_spoken(url: str, language: str = "en") -> str:
         spoken = spoken.replace("-", " dash ")
 
     if language in ("zh", "zh_my"):
-        spoken = re.sub(r"\d+", lambda m: " ".join(_digit_word(c, language) for c in m.group(0)), spoken)
+        spoken = re.sub(
+            r"\d+", lambda m: " ".join(_digit_word(c, language) for c in m.group(0)), spoken
+        )
     else:
-        spoken = re.sub(r"\d+", lambda m: " ".join(_digit_word(c, language) for c in m.group(0)), spoken)
+        spoken = re.sub(
+            r"\d+", lambda m: " ".join(_digit_word(c, language) for c in m.group(0)), spoken
+        )
 
     return re.sub(r"\s+", " ", spoken).strip()
 
@@ -359,7 +385,7 @@ def apply_pronunciation_overrides(text: str, language: str = "en") -> str:
         for _unit, (pattern, spoken) in _PRONUNCIATION_UNIT_MAP.items():
             text = pattern.sub(rf"\1 {spoken}", text)
 
-    no_word = "nombor" if language == "ms" else "number"
+    no_word = {"ms": "nombor", "id": "nomor"}.get(language, "number")
     text = re.sub(r"\bNo\.\s", f"{no_word} ", text, flags=re.IGNORECASE)
 
     return text
@@ -459,7 +485,12 @@ def special_replace(text: str, language: str = "en") -> str:
 
     text = placeholder_pattern.sub(_stash, text)
 
-    percent_word = "percent" if language == "en" else "peratus"
+    if language == "en":
+        percent_word = "percent"
+    elif language == "id":
+        percent_word = "persen"
+    else:
+        percent_word = "peratus"
     replacements: dict[str, str] = {
         "&": "and",
         "+": "plus",
@@ -607,6 +638,11 @@ def normalize_text(
         Normalized text, or a dict with ``text``, ``original``, ``mappings``,
         and ``rules`` keys when *verbose* is *True*.
     """
+    if language not in ("en", "ms", "id", "zh", "zh_my"):
+        raise ValueError(
+            f"Unsupported language: {language!r} (expected 'en', 'ms', 'id', 'zh' or 'zh_my')"
+        )
+
     # --- Build config ------------------------------------------------
     cfg = _build_config(profile, disable, kwargs)
 
@@ -624,11 +660,17 @@ def normalize_text(
 
     # --- Step 1: Currency suffix expansion (always runs) -----
     before = text
+    if language == "id":
+        # Indonesian written conventions (1.000.000, 10,5, Rp5M/Rp5jt where
+        # M = miliar) are rewritten to plain digits + magnitude words first,
+        # so the en-semantics M suffix (million) must not run for id.
+        text = _preparse_id_number_formats(text)
     text = CURRENCY_T_SUFFIX_PATTERN.sub(expand_currency_t_suffix, text)
-    text = CURRENCY_TRILION_PATTERN.sub(expand_currency_t_suffix, text)
+    text = CURRENCY_TRILIUN_PATTERN.sub(expand_currency_t_suffix, text)
     text = CURRENCY_B_SUFFIX_PATTERN.sub(expand_currency_b_suffix, text)
     text = CURRENCY_MILIAR_PATTERN.sub(expand_currency_b_suffix, text)
-    text = CURRENCY_M_SUFFIX_PATTERN.sub(expand_currency_m_suffix, text)
+    if language != "id":
+        text = CURRENCY_M_SUFFIX_PATTERN.sub(expand_currency_m_suffix, text)
     text = CURRENCY_JUTA_PATTERN.sub(expand_currency_m_suffix, text)
     text = CURRENCY_K_SUFFIX_PATTERN.sub(expand_currency_k_suffix, text)
     text = CURRENCY_RIBU_PATTERN.sub(expand_currency_k_suffix, text)
@@ -712,11 +754,13 @@ def normalize_text(
                 spoken = extractor._convert_entity_to_spoken(entity, language)
                 if spoken != entity.text:
                     rule_name = entity.type.value
-                    _mappings.append({
-                        "original": entity.text,
-                        "normalized": spoken,
-                        "rule": rule_name,
-                    })
+                    _mappings.append(
+                        {
+                            "original": entity.text,
+                            "normalized": spoken,
+                            "rule": rule_name,
+                        }
+                    )
                     if rule_name not in _rules:
                         _rules.append(rule_name)
 
@@ -758,12 +802,14 @@ def normalize_text(
     before = protected_text
     if language == "en":
         protected_text = text_normalizer_en(protected_text)
+    elif language == "ms":
+        protected_text = text_normalizer_ms(protected_text)
+    elif language == "id":
+        protected_text = text_normalizer_id(protected_text)
     elif language == "zh":
         protected_text = text_normalizer_zh(protected_text)
     elif language == "zh_my":
         protected_text = text_normalizer_zh_my(protected_text)
-    else:
-        protected_text = text_normalizer_ms(protected_text)
     _track(f"language_normalizer_{language}", before, protected_text)
 
     # Spacing normalization

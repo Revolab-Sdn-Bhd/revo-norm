@@ -122,9 +122,9 @@ class EntityExtractor:
             r"(?<!\w)"
             r"(?:"
             r"\+?6?01\d[-\s]?\d{3,4}[-\s]?\d{4}"  # mobile: 012-345 6789
-            r"|\+?6?0\d[-\s]?\d{4}[-\s]?\d{4}"     # landline: 03-8888 9999
-            r"|1[-\s]?[348]00[-\s]?\d{2}[-\s]?\d{4}" # toll-free: 1-300-88-6688
-            r"|154\d{2}"                              # hotline: 15454
+            r"|\+?6?0\d[-\s]?\d{4}[-\s]?\d{4}"  # landline: 03-8888 9999
+            r"|1[-\s]?[348]00[-\s]?\d{2}[-\s]?\d{4}"  # toll-free: 1-300-88-6688
+            r"|154\d{2}"  # hotline: 15454
             r")"
             r"(?!\w)",
         )
@@ -145,7 +145,7 @@ class EntityExtractor:
         # Amount can have commas and decimals: 1,000.50
         # Optional suffix: K (thousands), M (millions), B (billions), T (trillions)
         return re.compile(
-            r"(?<!\w)(RM|USD|EUR|GBP|MYR|\$|£|€)(?:\s?)([\d,]+(?:[\.,]\d{1,2})?)(?:[KMBT])?\b",
+            r"(?<!\w)(RM|Rp|USD|EUR|GBP|MYR|IDR|\$|£|€)(?:\s?)([\d,]+(?:[\.,]\d{1,2})?)(?:[KMBT])?\b",
             re.IGNORECASE,
         )
 
@@ -186,8 +186,8 @@ class EntityExtractor:
         - HH:MM:SS: 14:30:45
         """
         patterns = [
-            # HH:MM with Malay meridian (pagi/petang/malam/tengah hari) — must be before generic
-            r"\b\d{1,2}:\d{2}\s*(?:pagi|petang|malam|tengah\s+hari)\b",
+            # HH:MM with Malay/Indonesian meridian — must be before generic
+            r"\b\d{1,2}:\d{2}\s*(?:pagi|petang|siang|sore|malam|tengah\s+hari)\b",
             # HH:MM AM/PM format
             r"\b\d{1,2}:\d{2}\s*(?:am|pm|a\.m\.|p\.m\.)?(?![A-Za-z0-9_])",
             # HH:MM:SS format
@@ -198,7 +198,9 @@ class EntityExtractor:
     def _compile_temperature_patterns(self) -> re.Pattern:
         """Compile temperature detection patterns."""
         # This matches: 25C, 25°C, 25F, -5C, etc.
-        return re.compile(r"(?<![A-Za-z0-9_])(-?\d+(?:[\.,]\d+)?)\s*(?:°)?([CFK])(?![A-Za-z0-9_])", re.IGNORECASE)
+        return re.compile(
+            r"(?<![A-Za-z0-9_])(-?\d+(?:[\.,]\d+)?)\s*(?:°)?([CFK])(?![A-Za-z0-9_])", re.IGNORECASE
+        )
 
     def _compile_fraction_patterns(self) -> re.Pattern:
         """
@@ -401,15 +403,32 @@ class EntityExtractor:
     def _is_chinese(language: str) -> bool:
         return language in ("zh", "zh_my")
 
+    @staticmethod
+    def _ms_or_id_normalizer_and_months(language: str):
+        """Return (normalizer, months) for the Malay/Indonesian branches."""
+        if language == "ms":
+            from revo_norm.normalizer_ms import _months, normalize_malay
+
+            return normalize_malay, _months
+        if language == "id":
+            from revo_norm.normalizer_id import _months, normalize_indonesian
+
+            return normalize_indonesian, _months
+        raise ValueError(f"Unsupported language for Malay/Indonesian branch: {language!r}")
+
     def _date_to_chinese(self, m: re.Match, type: str) -> str:
         from revo_norm.normalizer_zh import normalize_date_dmy, normalize_date_ymd
+
         if type == "DMY":
             return normalize_date_dmy(m)
         elif type == "YMD":
             return normalize_date_ymd(m)
 
-    def _time_to_chinese(self, language: str, hour: str, minute: str, second: str | None, ampm: str | None) -> str:
+    def _time_to_chinese(
+        self, language: str, hour: str, minute: str, second: str | None, ampm: str | None
+    ) -> str:
         from revo_norm.num2word_zh import to_cardinal
+
         h, m = int(hour), int(minute)
         meridian = ""
         if ampm:
@@ -436,11 +455,17 @@ class EntityExtractor:
 
         if language in ("zh", "zh_my"):
             from revo_norm.num2word_zh import _DIGITS as _DIGITS_ZH
+
             parts = version_text.split(".")
             spoken_parts = [" ".join(_DIGITS_ZH.get(c, c) for c in p) for p in parts]
             return " 点 ".join(spoken_parts)
         else:
-            normalize = normalize_ms if language == "ms" else normalize_en
+            if language == "id":
+                from revo_norm.normalizer_id import normalize_indonesian as normalize
+            elif language == "ms":
+                normalize = normalize_ms
+            else:  # default to English
+                normalize = normalize_en
             parts = version_text.split(".")
             spoken_parts = [normalize(p) for p in parts]
             return " point ".join(spoken_parts)
@@ -465,7 +490,9 @@ class EntityExtractor:
             prefix_spoken = " ".join(prefix) + " " if prefix else ""
             suffix_spoken = " ".join(right_suffix) + " " if right_suffix else ""
             separator = "slash"
-            slash_spoken = f"{prefix_spoken}{left_digits} {separator} {right_digits} {suffix_spoken}".strip()
+            slash_spoken = (
+                f"{prefix_spoken}{left_digits} {separator} {right_digits} {suffix_spoken}".strip()
+            )
             return re.sub(r"[A-Za-z]*\d+\s*/\s*\d+[A-Za-z]*", slash_spoken, address_text)
         return address_text
 
@@ -473,7 +500,6 @@ class EntityExtractor:
         """Convert a date to spoken form."""
         # Import number normalizers
         from revo_norm.normalizer_en import text_normalize as normalize_en
-        from revo_norm.normalizer_ms import normalize_malay as normalize_ms
         from revo_norm.normalizer_zh import text_normalize_zh as normalize_zh
         from revo_norm.normalizer_zh_my import text_normalize_zh_my as normalize_zh_my
 
@@ -508,23 +534,10 @@ class EntityExtractor:
                     year_spoken = normalize_en(year)
                     return f"{day_spoken} of {month_spoken} {year_spoken}"
                 else:
-                    day_spoken = normalize_ms(day)
-                    months_ms = {
-                        "01": "Januari",
-                        "02": "Februari",
-                        "03": "Mac",
-                        "04": "April",
-                        "05": "Mei",
-                        "06": "Jun",
-                        "07": "Julai",
-                        "08": "Ogos",
-                        "09": "September",
-                        "10": "Oktober",
-                        "11": "November",
-                        "12": "Disember",
-                    }
-                    month_spoken = months_ms.get(month, normalize_ms(month))
-                    year_spoken = normalize_ms(year)
+                    normalize_local, months_local = self._ms_or_id_normalizer_and_months(language)
+                    day_spoken = normalize_local(day)
+                    month_spoken = months_local.get(month.zfill(2), normalize_local(month))
+                    year_spoken = normalize_local(year)
                     return f"{day_spoken} {month_spoken} {year_spoken}"
             else:
                 # MM/DD format (or ambiguous)
@@ -548,23 +561,10 @@ class EntityExtractor:
                     year_spoken = normalize_en(year)
                     return f"{month_spoken} {day_spoken}, {year_spoken}"
                 else:
-                    months_ms = {
-                        "01": "Januari",
-                        "02": "Februari",
-                        "03": "Mac",
-                        "04": "April",
-                        "05": "Mei",
-                        "06": "Jun",
-                        "07": "Julai",
-                        "08": "Ogos",
-                        "09": "September",
-                        "10": "Oktober",
-                        "11": "November",
-                        "12": "Disember",
-                    }
-                    month_spoken = months_ms.get(month, normalize_ms(month))
-                    day_spoken = normalize_ms(day)
-                    year_spoken = normalize_ms(year)
+                    normalize_local, months_local = self._ms_or_id_normalizer_and_months(language)
+                    month_spoken = months_local.get(month.zfill(2), normalize_local(month))
+                    day_spoken = normalize_local(day)
+                    year_spoken = normalize_local(year)
                     return f"{month_spoken} {day_spoken}, {year_spoken}"
 
         # Format 2: YYYY-MM-DD
@@ -595,23 +595,10 @@ class EntityExtractor:
                 ordinal_suffix = self._get_ordinal_suffix(int(day))
                 return f"{month_spoken} the {day_spoken}{ordinal_suffix}, {year_spoken}"
             else:
-                months_ms = {
-                    "01": "Januari",
-                    "02": "Februari",
-                    "03": "Mac",
-                    "04": "April",
-                    "05": "Mei",
-                    "06": "Jun",
-                    "07": "Julai",
-                    "08": "Ogos",
-                    "09": "September",
-                    "10": "Oktober",
-                    "11": "November",
-                    "12": "Disember",
-                }
-                month_spoken = months_ms.get(month.zfill(2), normalize_ms(month))
-                day_spoken = normalize_ms(day)
-                year_spoken = normalize_ms(year)
+                normalize_local, months_local = self._ms_or_id_normalizer_and_months(language)
+                month_spoken = months_local.get(month.zfill(2), normalize_local(month))
+                day_spoken = normalize_local(day)
+                year_spoken = normalize_local(year)
                 return f"{day_spoken} {month_spoken} {year_spoken}"
 
         # Format 3 & 4: Month name formats (handled by regex groups)
@@ -619,26 +606,27 @@ class EntityExtractor:
         # The normalizer will handle them in the basic phase
 
         # Fallback: Let basic normalizer handle it
-        if language =="en":
+        if language == "en":
             return normalize_en(date_text)
-        elif language =="zh":
+        elif language == "zh":
             return normalize_zh(date_text)
         elif language == "zh_my":
             return normalize_zh_my(date_text)
         else:
-            return normalize_ms(date_text)
+            normalize_local, _ = self._ms_or_id_normalizer_and_months(language)
+            return normalize_local(date_text)
 
     def _convert_time_to_spoken(self, time_text: str, language: str) -> str:
         """Convert a time to spoken form."""
         from revo_norm.normalizer_en import text_normalize as normalize_en
-        from revo_norm.normalizer_ms import normalize_malay as normalize_ms
         from revo_norm.normalizer_zh import text_normalize_zh as normalize_zh
         from revo_norm.normalizer_zh_my import text_normalize_zh_my as normalize_zh_my
 
         # Parse time format
         # HH:MM AM/PM or HH:MM:SS
         time_match = re.match(
-            r"\b(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.|pagi|petang|malam|tengah\s+hari)?",
+            r"\b(\d{1,2}):(\d{2})(?::(\d{2}))?\s*"
+            r"(am|pm|a\.m\.|p\.m\.|pagi|petang|siang|sore|malam|tengah\s+hari)?",
             time_text,
             re.IGNORECASE,
         )
@@ -669,12 +657,13 @@ class EntityExtractor:
 
                 return result
             else:
-                hour_spoken = normalize_ms(hour)
-                minute_spoken = normalize_ms(minute)
+                normalize_local, _ = self._ms_or_id_normalizer_and_months(language)
+                hour_spoken = normalize_local(hour)
+                minute_spoken = normalize_local(minute)
                 result = f"{hour_spoken} {minute_spoken}"
 
                 if second:
-                    second_spoken = normalize_ms(second)
+                    second_spoken = normalize_local(second)
                     result += f" {second_spoken}"
 
                 if ampm:
@@ -682,9 +671,9 @@ class EntityExtractor:
                     if ampm_clean in ("am", "pagi"):
                         result += " pagi"
                     elif ampm_clean in ("pm", "petang"):
-                        result += " petang"
-                    elif ampm_clean == "malam":
-                        result += " malam"
+                        result += " sore" if language == "id" else " petang"
+                    elif ampm_clean in ("siang", "sore", "malam"):
+                        result += f" {ampm_clean}"
                     elif ampm_clean.startswith("tengah"):
                         result += " tengah hari"
 
@@ -698,7 +687,8 @@ class EntityExtractor:
         elif language == "zh_my":
             return normalize_zh_my(time_text)
         else:
-            return normalize_ms(time_text)
+            normalize_local, _ = self._ms_or_id_normalizer_and_months(language)
+            return normalize_local(time_text)
 
     def _convert_currency_to_spoken(self, currency_text: str, language: str) -> str:
         """Convert a currency amount to spoken form."""
@@ -712,10 +702,35 @@ class EntityExtractor:
             expand_currency_m_suffix,
             expand_currency_t_suffix,
         )
-        from revo_norm.num2word_ms import to_cardinal as num2word
+
+        # num2word is only used on the Malay/Indonesian paths (en uses inflect,
+        # zh/zh_my delegate to the Chinese normalizers before it is referenced)
+        if language == "ms":
+            from revo_norm.num2word_ms import to_cardinal as num2word
+        elif language == "id":
+            from revo_norm.num2word_id import to_cardinal as num2word
+        elif language not in ("en", "zh", "zh_my"):
+            raise ValueError(f"Unsupported language: {language!r}")
 
         # Initialize inflect engine for English number-to-words conversion
         _inflect_engine = inflect.engine()
+
+        if language == "id":
+            # Indonesian written conventions: dotted thousands, comma decimals,
+            # Rp5M/Rp5jt slang (M = miliar) — rewritten before suffix expansion
+            from revo_norm.currency_utils import (
+                CURRENCY_JUTA_PATTERN,
+                CURRENCY_MILIAR_PATTERN,
+                CURRENCY_RIBU_PATTERN,
+                CURRENCY_TRILIUN_PATTERN,
+            )
+            from revo_norm.normalizer_id import preparse_number_formats
+
+            currency_text = preparse_number_formats(currency_text)
+            currency_text = CURRENCY_TRILIUN_PATTERN.sub(expand_currency_t_suffix, currency_text)
+            currency_text = CURRENCY_MILIAR_PATTERN.sub(expand_currency_b_suffix, currency_text)
+            currency_text = CURRENCY_JUTA_PATTERN.sub(expand_currency_m_suffix, currency_text)
+            currency_text = CURRENCY_RIBU_PATTERN.sub(expand_currency_k_suffix, currency_text)
 
         # First, expand suffixes if present (order matters: T → B → M → K)
         # RM1T → RM1000000000000
@@ -732,7 +747,7 @@ class EntityExtractor:
         # Parse the currency amount
         # Pattern: (RM|USD|EUR|GBP|MYR|$|£|€) + optional space + amount
         currency_match = re.match(
-            r"(?<!\w)(RM|USD|EUR|GBP|MYR|\$|£|€)(?:\s?)([\d,]+(?:[\.,]\d+)?)",
+            r"(?<!\w)(RM|Rp|USD|EUR|GBP|MYR|IDR|\$|£|€)(?:\s?)([\d,]+(?:[\.,]\d+)?)",
             expanded,
             re.IGNORECASE,
         )
@@ -748,6 +763,8 @@ class EntityExtractor:
         currency_names = {
             "RM": ("ringgit", "sen"),
             "MYR": ("ringgit", "sen"),
+            "RP": ("rupiah", "sen"),
+            "IDR": ("rupiah", "sen"),
             "USD": ("dollar", "cents"),
             "$": ("dollar", "cents"),
             "EUR": ("euro", "cents"),
@@ -755,6 +772,9 @@ class EntityExtractor:
             "GBP": ("pound", "pence"),
             "£": ("pound", "pence"),
         }
+        if language == "id":
+            currency_names["USD"] = ("dolar", "sen")
+            currency_names["$"] = ("dolar", "sen")
 
         unit_main, unit_sub = currency_names.get(symbol, (symbol.lower(), "cents"))
 
@@ -762,9 +782,11 @@ class EntityExtractor:
         if self._is_chinese(language):
             if language == "zh":
                 from revo_norm.normalizer_zh import text_normalize_zh
+
                 return text_normalize_zh(expanded)
             elif language == "zh_my":
                 from revo_norm.normalizer_zh_my import text_normalize_zh_my
+
                 return text_normalize_zh_my(expanded)
 
         # Handle decimal amounts

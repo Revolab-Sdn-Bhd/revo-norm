@@ -378,6 +378,13 @@ def _identify_step(source_line: str) -> dict | None:
             "description": "normalizer_ms.py → normalize_malay()",
             "module": "normalizer_ms.py",
         }
+    if "text_normalizer_id" in source_line and "preparse" not in source_line:
+        return {
+            "phase": 6,
+            "label": "Language-specific normalization (Indonesian)",
+            "description": "normalizer_id.py → normalize_indonesian()",
+            "module": "normalizer_id.py",
+        }
 
     # Spacing normalization
     if "_normalize_whitespace" in source_line and "cfg" in source_line:
@@ -456,6 +463,7 @@ def generate_markdown(
     pipeline_steps: list[dict],
     en_steps: list[str],
     ms_steps: list[str],
+    id_steps: list[str],
 ) -> str:
     """Generate the full flow markdown document."""
     sections = []
@@ -488,7 +496,7 @@ def generate_markdown(
     sections.append(pipeline_block)
 
     # --- Language-specific normalizers ---
-    lang_block = _build_language_normalizer_block(en_steps, ms_steps)
+    lang_block = _build_language_normalizer_block(en_steps, ms_steps, id_steps)
     sections.append(lang_block)
 
     # --- Example flows ---
@@ -570,7 +578,9 @@ def _build_pipeline_block(
     return "\n".join(lines)
 
 
-def _build_language_normalizer_block(en_steps: list[str], ms_steps: list[str]) -> str:
+def _build_language_normalizer_block(
+    en_steps: list[str], ms_steps: list[str], id_steps: list[str]
+) -> str:
     """Build the language-specific normalizer section."""
     lines = [
         "---",
@@ -597,6 +607,19 @@ def _build_language_normalizer_block(en_steps: list[str], ms_steps: list[str]) -
         "  |",
     ])
     for step in ms_steps:
+        lines.append(f"  |- {step}")
+    lines.append("OUTPUT")
+    lines.append("```")
+
+    lines.extend([
+        "",
+        "### Indonesian (`normalizer_id.py` -> `normalize_indonesian()`)",
+        "",
+        "```",
+        "INPUT",
+        "  |",
+    ])
+    for step in id_steps:
         lines.append(f"  |- {step}")
     lines.append("OUTPUT")
     lines.append("```")
@@ -730,6 +753,7 @@ def main() -> None:
     entity_extractor_src = _read_module("entity_extractor.py")
     normalizer_en_src = _read_module("normalizer_en.py")
     normalizer_ms_src = _read_module("normalizer_ms.py")
+    normalizer_id_src = _read_module("normalizer_id.py")
 
     print("Extracting entity types...")
     entity_types = extract_entity_types(entity_extractor_src)
@@ -744,6 +768,9 @@ def main() -> None:
     print("Extracting Malay normalizer steps...")
     ms_steps = extract_normalizer_steps(normalizer_ms_src, "normalize_malay")
 
+    print("Extracting Indonesian normalizer steps...")
+    id_steps = extract_normalizer_steps(normalizer_id_src, "normalize_indonesian")
+
     print("Generating markdown...")
     content = generate_markdown(
         entity_types=entity_types,
@@ -751,6 +778,7 @@ def main() -> None:
         pipeline_steps=pipeline_steps,
         en_steps=en_steps,
         ms_steps=ms_steps,
+        id_steps=id_steps,
     )
 
     output = HEADER + "\n" + content
@@ -764,6 +792,7 @@ def main() -> None:
     print(f"  Pipeline steps: {len(pipeline_steps)}")
     print(f"  English normalizer steps: {len(en_steps)}")
     print(f"  Malay normalizer steps: {len(ms_steps)}")
+    print(f"  Indonesian normalizer steps: {len(id_steps)}")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 # Language Support
 
-Revo-norm supports four language codes with awareness of code-mixing patterns common in Southeast Asian contexts.
+Revo-norm supports five language codes with awareness of code-mixing patterns common in Southeast Asian contexts.
 
 ## Supported Languages
 
@@ -8,6 +8,7 @@ Revo-norm supports four language codes with awareness of code-mixing patterns co
 |------|----------|-------|
 | `en` | English | Full normalization with contractions, ordinals, abbreviations |
 | `ms` | Malay (Bahasa Melayu) | Full normalization with Malay number words, currency, local features |
+| `id` | Indonesian (Bahasa Indonesia) | Indonesian number words, rupiah, and written number conventions (dotted thousands, comma decimals) |
 | `zh` | Chinese (Standard) | Numbers, dates, times, currency, measurements in 普通话 spoken form |
 | `zh_my` | Malaysian Chinese | Same as `zh` with colloquial currency (`$` → 块) and code-mixing support |
 
@@ -235,6 +236,71 @@ Islamic/Hijri year conversion is supported:
 ```python
 normalize_text("Tahun Hijri 1446", language="ms")
 # Hijri year converted to spoken form
+```
+
+---
+
+## Indonesian Specifics (`language="id"`)
+
+### Number Words
+
+Numbers are spoken with Indonesian number words, `koma` for decimal points,
+`persen` for percentages, and `miliar`/`triliun` for large magnitudes:
+
+```python
+normalize_text("Ada 8 orang, sisa 0", language="id")
+# "Ada delapan orang, sisa nol"
+```
+
+### Dates
+
+Dates are spoken with Indonesian month names:
+
+```python
+normalize_text("pada 15/08/2025", language="id")
+# "pada lima belas Agustus dua ribu dua puluh lima"
+```
+
+### Written Number Conventions
+
+Indonesian text uses dots as thousands separators and a comma as the decimal
+separator. Both are handled, including combined forms:
+
+```python
+normalize_text("1.000.000 pengguna", language="id")
+# "satu juta pengguna"
+
+normalize_text("naik 3,5%", language="id")
+# "naik tiga koma lima persen"
+
+normalize_text("berat 10.000,50 kg", language="id")
+# "berat sepuluh ribu koma lima nol kilogram"
+```
+
+### Rupiah Currency
+
+`Rp` and `IDR` amounts are spoken as rupiah, including Indonesian money
+shorthand where `rb` = ribu, `jt` = juta, and `M` = **miliar** (not million):
+
+```python
+normalize_text("Harga Rp1.500.000", language="id")
+# "Harga satu juta lima ratus ribu rupiah"
+
+normalize_text("Dana Rp5M", language="id")
+# "Dana lima miliar rupiah"
+
+normalize_text("Cuma Rp10rb", language="id")
+# "Cuma sepuluh ribu rupiah"
+```
+
+### Times
+
+Indonesian meridian words (`pagi`, `siang`, `sore`, `malam`) are recognised,
+and `pm` maps to `sore`:
+
+```python
+normalize_text("rapat 7:30 pagi, selesai 3:30 sore", language="id")
+# "rapat tujuh tiga puluh pagi, selesai tiga tiga puluh sore"
 ```
 
 ---

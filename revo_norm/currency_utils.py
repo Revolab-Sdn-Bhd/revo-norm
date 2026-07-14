@@ -84,34 +84,35 @@ def expand_currency_t_suffix(m):
 # Uses (?<!\w) instead of \b to handle symbols like $ that aren't word characters
 # This is a universal pattern that works across all languages
 CURRENCY_K_SUFFIX_PATTERN = re.compile(
-    r"(?<!\w)(RM|\$|£|€|USD|EUR|GBP|MYR)(?:\s?)(\d+(?:\.\d+)?)K\b", re.IGNORECASE
+    r"(?<!\w)(RM|Rp|\$|£|€|USD|EUR|GBP|MYR|IDR)(?:\s?)(\d+(?:\.\d+)?)K\b", re.IGNORECASE
 )
 
 # Regex pattern for currency with M suffix (millions)
 CURRENCY_M_SUFFIX_PATTERN = re.compile(
-    r"(?<!\w)(RM|\$|£|€|USD|EUR|GBP|MYR)(?:\s?)(\d+(?:\.\d+)?)M\b", re.IGNORECASE
+    r"(?<!\w)(RM|Rp|\$|£|€|USD|EUR|GBP|MYR|IDR)(?:\s?)(\d+(?:\.\d+)?)M\b", re.IGNORECASE
 )
 
 # Regex pattern for currency with B suffix (billions)
 CURRENCY_B_SUFFIX_PATTERN = re.compile(
-    r"(?<!\w)(RM|\$|£|€|USD|EUR|GBP|MYR)(?:\s?)(\d+(?:\.\d+)?)B\b", re.IGNORECASE
+    r"(?<!\w)(RM|Rp|\$|£|€|USD|EUR|GBP|MYR|IDR)(?:\s?)(\d+(?:\.\d+)?)B\b", re.IGNORECASE
 )
 
 # Regex pattern for currency with T suffix (trillions)
 CURRENCY_T_SUFFIX_PATTERN = re.compile(
-    r"(?<!\w)(RM|\$|£|€|USD|EUR|GBP|MYR)(?:\s?)(\d+(?:\.\d+)?)T\b", re.IGNORECASE
+    r"(?<!\w)(RM|Rp|\$|£|€|USD|EUR|GBP|MYR|IDR)(?:\s?)(\d+(?:\.\d+)?)T\b", re.IGNORECASE
 )
 
 # Malay currency word suffixes
 CURRENCY_RIBU_PATTERN = re.compile(
-    r"(?<!\w)(RM|\$|£|€|USD|EUR|GBP|MYR)(?:\s?)(\d+(?:\.\d+)?)\s+ribu\b", re.IGNORECASE
+    r"(?<!\w)(RM|Rp|\$|£|€|USD|EUR|GBP|MYR|IDR)(?:\s?)(\d+(?:\.\d+)?)\s+ribu\b", re.IGNORECASE
 )
 CURRENCY_JUTA_PATTERN = re.compile(
-    r"(?<!\w)(RM|\$|£|€|USD|EUR|GBP|MYR)(?:\s?)(\d+(?:\.\d+)?)\s+juta\b", re.IGNORECASE
+    r"(?<!\w)(RM|Rp|\$|£|€|USD|EUR|GBP|MYR|IDR)(?:\s?)(\d+(?:\.\d+)?)\s+juta\b", re.IGNORECASE
 )
 CURRENCY_MILIAR_PATTERN = re.compile(
-    r"(?<!\w)(RM|\$|£|€|USD|EUR|GBP|MYR)(?:\s?)(\d+(?:\.\d+)?)\s+miliar\b", re.IGNORECASE
+    r"(?<!\w)(RM|Rp|\$|£|€|USD|EUR|GBP|MYR|IDR)(?:\s?)(\d+(?:\.\d+)?)\s+miliar\b", re.IGNORECASE
 )
-CURRENCY_TRILION_PATTERN = re.compile(
-    r"(?<!\w)(RM|\$|£|€|USD|EUR|GBP|MYR)(?:\s?)(\d+(?:\.\d+)?)\s+trilion\b", re.IGNORECASE
+CURRENCY_TRILIUN_PATTERN = re.compile(
+    r"(?<!\w)(RM|Rp|\$|£|€|USD|EUR|GBP|MYR|IDR)(?:\s?)(\d+(?:\.\d+)?)\s+(?:trilion|triliun)\b",
+    re.IGNORECASE,
 )

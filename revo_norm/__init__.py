@@ -1,5 +1,5 @@
 """
-Revo Norm — text normalization for English and Malay TTS.
+Revo Norm — text normalization for English, Malay, Indonesian and Chinese TTS.
 
 Quick start::
 
@@ -7,6 +7,7 @@ Quick start::
 
     normalize_text("Hello RM50K", language="en")
     normalize_text("Suhu 25C", language="ms")
+    normalize_text("Harga Rp1.500.000", language="id")
     normalize_text("test", language="en", profile="minimal")
     normalize_text("test", language="en", disable=["acronyms"])
 """
