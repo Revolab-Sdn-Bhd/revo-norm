@@ -24,7 +24,7 @@ jobs:
       - name: Checkout private test repo
         uses: actions/checkout@v4
         with:
-          repository: khursanirevo/revo-norm-tests
+          repository: Revolab-Sdn-Bhd/revo-norm-tests
           path: revo-norm-tests
           token: ${{ secrets.PRIVATE_TESTS_TOKEN }}
 
