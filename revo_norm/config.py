@@ -13,6 +13,10 @@ Example:
 import warnings
 from dataclasses import dataclass, field
 
+# Single source of truth for language codes accepted by the pipeline.
+# Every language-dispatch point validates against this and fails fast.
+SUPPORTED_LANGUAGES = ("en", "ms", "id", "zh", "zh_my")
+
 # ---------------------------------------------------------------------------
 # Deprecated legacy aliases (kept for backward compatibility)
 # ---------------------------------------------------------------------------

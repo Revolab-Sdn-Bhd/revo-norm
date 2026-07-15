@@ -20,6 +20,7 @@ __version__ = "0.2.0-dev"
 # Deprecated backward-compat re-exports
 # ---------------------------------------------------------------------------
 from revo_norm.config import (
+    SUPPORTED_LANGUAGES,
     Config,
     FeatureGroup,
     FeatureLevel,
@@ -53,6 +54,7 @@ __all__ = [
     "normalize_text",
     # Configuration
     "Config",
+    "SUPPORTED_LANGUAGES",
     # Entity extraction
     "Entity",
     "EntityExtractor",

@@ -12,7 +12,7 @@ import re
 import warnings
 from typing import TYPE_CHECKING, Optional
 
-from revo_norm.config import Config
+from revo_norm.config import SUPPORTED_LANGUAGES, Config
 from revo_norm.currency_utils import (
     CURRENCY_B_SUFFIX_PATTERN,
     CURRENCY_JUTA_PATTERN,
@@ -123,7 +123,10 @@ def _digit_word(digit: str, language: str) -> str:
     if language == "id":
         return _DIGIT_WORDS_ID.get(digit, digit)
 
-    return _DIGIT_WORDS.get(digit, digit)
+    if language == "en":
+        return _DIGIT_WORDS.get(digit, digit)
+
+    raise ValueError(f"Unsupported language: {language!r} (expected one of {SUPPORTED_LANGUAGES})")
 
 
 def email_to_spoken(email: str, language: str = "en") -> str:
@@ -638,9 +641,11 @@ def normalize_text(
         Normalized text, or a dict with ``text``, ``original``, ``mappings``,
         and ``rules`` keys when *verbose* is *True*.
     """
-    if language not in ("en", "ms", "id", "zh", "zh_my"):
+    # Canonicalize before validating so "ID", " en ", "Zh_MY" just work
+    language = language.strip().lower()
+    if language not in SUPPORTED_LANGUAGES:
         raise ValueError(
-            f"Unsupported language: {language!r} (expected 'en', 'ms', 'id', 'zh' or 'zh_my')"
+            f"Unsupported language: {language!r} (expected one of {SUPPORTED_LANGUAGES})"
         )
 
     # --- Build config ------------------------------------------------
