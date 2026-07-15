@@ -337,6 +337,13 @@ class EntityExtractor:
 
     def _convert_entity_to_spoken(self, entity: Entity, language: str) -> str:
         """Convert an entity to its spoken form based on type and language."""
+        from revo_norm.config import SUPPORTED_LANGUAGES
+
+        if language not in SUPPORTED_LANGUAGES:
+            raise ValueError(
+                f"Unsupported language: {language!r} (expected one of {SUPPORTED_LANGUAGES})"
+            )
+
         # Import here to avoid circular dependencies
         from revo_norm.shared_features import (
             normalize_fractions,
