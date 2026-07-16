@@ -52,7 +52,7 @@ normalize_text(text, language="en", disable=["temperature", "measurements"])
 
 ## Documentation
 
-**[khursanirevo.github.io/revo-norm](https://khursanirevo.github.io/revo-norm/)**
+**[revolab-sdn-bhd.github.io/revo-norm](https://revolab-sdn-bhd.github.io/revo-norm/)**
 
 ## License
 
