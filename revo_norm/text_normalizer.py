@@ -614,8 +614,9 @@ def normalize_text(
     text : str
         Input text to normalize.
     language : str
-        ``"en"`` for English, ``"ms"`` for Malay, ``"zh"`` for Chinese,
-        ``"zh_my"`` for Malaysian Chinese.
+        One of ``SUPPORTED_LANGUAGES``. Case and surrounding whitespace are
+        ignored; an unrecognized code raises ``ValueError`` listing the
+        accepted values.
     profile : str or None
         One of ``"minimal"``, ``"basic"``, ``"standard"``, ``"aggressive"``.
         If *None* the standard profile (all features on) is used.

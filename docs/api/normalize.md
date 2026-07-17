@@ -12,7 +12,7 @@ The primary entry point for text normalization.
 
 ### `language` {: #language }
 
-`str`, default `"en"` — Target language for normalization.
+`str`, default `"en"` — Target language code. Must be one of the supported codes (see [Languages](../languages.md), exposed as `SUPPORTED_LANGUAGES`); an unrecognized code raises `ValueError`. Case and surrounding whitespace are ignored (`"ID"`, `" en "` are accepted).
 
 | Value | Description |
 |-------|-------------|
@@ -136,7 +136,7 @@ When `normalize_text()` is called, the following steps execute in order:
     - Elongated word normalization
     - Measurement normalization
     - X-kali normalization
-    - Language-specific normalization (English or Malay)
+    - Language-specific normalization (per the selected language)
     - Spacing normalization
     - Sound word removal
     - Abbreviation expansion

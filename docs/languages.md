@@ -44,7 +44,7 @@ result = normalize_text("The ringgit fell 5% today", language="en")
 # "The ringgit fell five percent today"
 ```
 
-Pronunciation mappings apply to both languages equally -- terms like `GUI`, `ASCII`, and `IEEE` are mapped to their spoken forms regardless of the `language` parameter.
+Pronunciation mappings apply across all languages equally -- terms like `GUI`, `ASCII`, and `IEEE` are mapped to their spoken forms regardless of the `language` parameter.
 
 ---
 

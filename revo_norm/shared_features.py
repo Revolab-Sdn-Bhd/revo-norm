@@ -89,7 +89,7 @@ def normalize_fraction(match: re.Match, language: str = "en") -> str:
 
     Args:
         match: Regex match object with numerator and denominator groups
-        language: Language code ('en' for English, 'ms' for Malay, 'zh' for Chinese, 'zh_my' for Malaysian-Chinese)
+        language: Language code
 
     Returns:
         Spoken form of the fraction
@@ -128,7 +128,7 @@ def normalize_fractions(text: str, language: str = "en") -> str:
 
     Args:
         text: Input text containing fractions
-        language: Language code ('en', 'ms', 'zh', 'zh_my')
+        language: Language code
 
     Returns:
         Text with fractions normalized
@@ -150,7 +150,7 @@ def normalize_x_kali(match: re.Match, language: str = "en") -> str:
 
     Args:
         match: Regex match object with number group
-        language: Language code ('en' for English, 'ms' for Malay, 'zh' for Chinese, 'zh_my' for Malaysian-Chinese)
+        language: Language code
 
     Returns:
         Spoken form of the multiplier
@@ -187,7 +187,7 @@ def normalize_x_kali_text(text: str, language: str = "en") -> str:
 
     Args:
         text: Input text containing x multipliers
-        language: Language code ('en', 'ms', 'zh', 'zh_my')
+        language: Language code
 
     Returns:
         Text with x multipliers normalized
@@ -222,7 +222,7 @@ def normalize_temperature(match: re.Match, language: str = "en") -> str:
 
     Args:
         match: Regex match object with value and unit groups
-        language: Language code ('en' for English, 'ms' for Malay, 'zh' for Chinese, 'zh_my' for Malaysian-Chinese)
+        language: Language code
 
     Returns:
         Spoken form of the temperature
@@ -263,7 +263,7 @@ def normalize_temperatures(text: str, language: str = "en") -> str:
 
     Args:
         text: Input text containing temperatures
-        language: Language code ('en', 'ms', 'zh', 'zh_my')
+        language: Language code
 
     Returns:
         Text with temperatures normalized
@@ -285,7 +285,7 @@ def normalize_ic(match: re.Match, language: str = "en") -> str:
 
     Args:
         match: Regex match object with 3 groups (birth, place, code)
-        language: Language code ('en' for English, 'ms' for Malay, 'zh' for Chinese, 'zh_my' for Malaysian-Chinese)
+        language: Language code
 
     Returns:
         Spoken form of the IC number
@@ -334,7 +334,7 @@ def normalize_ic_numbers(text: str, language: str = "en") -> str:
 
     Args:
         text: Input text containing IC numbers
-        language: Language code ('en', 'ms', 'zh', 'zh_my')
+        language: Language code
 
     Returns:
         Text with IC numbers normalized
@@ -620,7 +620,7 @@ def normalize_measurements(text: str, language: str = "en") -> str:
 
     Args:
         text: Input text containing measurements
-        language: Language code ('en', 'ms', 'zh', 'zh_my')
+        language: Language code
 
     Returns:
         Text with measurements normalized
@@ -667,7 +667,7 @@ def normalize_hari_bulan(match: re.Match, language: str = "en") -> str:
 
     Args:
         match: Regex match object with day group
-        language: Language code ('en' or 'ms')
+        language: Language code
 
     Returns:
         Spoken form of the hari bulan
@@ -694,7 +694,7 @@ def normalize_hari_bulan_text(text: str, language: str = "en") -> str:
 
     Args:
         text: Input text containing hari bulan
-        language: Language code ('en' or 'ms')
+        language: Language code
 
     Returns:
         Text with hari bulan normalized
@@ -738,7 +738,7 @@ def normalize_hijri_year(match: re.Match, language: str = "en") -> str:
 
     Args:
         match: Regex match object with year group
-        language: Language code ('en' or 'ms')
+        language: Language code
 
     Returns:
         Spoken form of the Hijri year
@@ -775,7 +775,7 @@ def normalize_hijri_years(text: str, language: str = "en") -> str:
 
     Args:
         text: Input text containing Hijri years
-        language: Language code ('en' or 'ms')
+        language: Language code
 
     Returns:
         Text with Hijri years normalized

@@ -36,7 +36,7 @@ print(normalize_text("Hello   world", language="en", profile="minimal"))
 - **Measurements** — `5km`, `10kg`, `3GB`
 - **Entity protection** — currency, URLs, emails, and dates shielded from cascading transforms
 - **Pronunciation mappings** — custom overrides with highest pipeline priority (`GUI` → "gooey")
-- **Bilingual** — full support for English (`en`) and Malay (`ms`)
+- **Multilingual** — one `language` parameter selects the normalizer (see [Languages](languages.md))
 - **Configurable profiles** — `minimal`, `basic`, `standard`, `aggressive` presets
 
 ## Installation

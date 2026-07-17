@@ -21,7 +21,7 @@ Add a custom pronunciation mapping to the global mappings dictionary.
 |------|------|---------|-------------|
 | `term` | `str` | required | The term to map (e.g., `"YOLO"`) |
 | `pronunciation` | `str` | required | The spoken form (e.g., `"you only live once"`) |
-| `language` | `str` | `"en"` | Language code — currently ignored; mappings apply to both languages |
+| `language` | `str` | `"en"` | Language code — currently ignored; mappings apply across all languages |
 
 **Returns:** `None`
 
@@ -50,7 +50,7 @@ Get a copy of the current pronunciation mappings dictionary.
 
 | Name | Type | Default | Description |
 |------|------|---------|-------------|
-| `language` | `str` | `"en"` | Language code — currently ignored; same mappings returned for both languages |
+| `language` | `str` | `"en"` | Language code — currently ignored; same mappings returned for all languages |
 
 **Returns:** `dict[str, str]` — A copy of the pronunciation mappings. Modifications to the returned dict do not affect the global mappings.
 
