@@ -32,7 +32,7 @@ dependencies = [
 ]
 
 [project.urls]
-Repository = "https://github.com/khursanirevo/revo-norm"
+Repository = "https://github.com/Revolab-Sdn-Bhd/revo-norm"
 
 [tool.hatch.build.targets.wheel]
 packages = ["revo_norm"]

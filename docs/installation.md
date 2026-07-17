@@ -30,7 +30,7 @@ Use this method if you need to modify revo-norm or want the latest development v
 
 ```bash
 # Clone the repository
-git clone https://github.com/khursanirevo/revo-norm.git
+git clone https://github.com/Revolab-Sdn-Bhd/revo-norm.git
 cd revo-norm
 
 # Install in development mode
@@ -64,7 +64,7 @@ If you are contributing to revo-norm, install the development toolchain:
 
 ```bash
 # Clone and enter the repo
-git clone https://github.com/khursanirevo/revo-norm.git
+git clone https://github.com/Revolab-Sdn-Bhd/revo-norm.git
 cd revo-norm
 
 # Install with dev dependencies
