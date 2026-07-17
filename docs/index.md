@@ -29,7 +29,7 @@ print(normalize_text("Hello   world", language="en", profile="minimal"))
 - **Currency normalization** — `RM50K`, `$1.5M`, `USD 200B` expanded and spoken
 - **Date recognition** — `15/08/2025`, `2025-08-15`, `15 August 2025`
 - **Time recognition** — `3:30 pm`, `14:00`
-- **Number-to-words** — cardinal and ordinal numbers in English and Malay
+- **Number-to-words** — cardinal and ordinal numbers in the selected language
 - **Acronym handling** — `IBM` → "I B M", `NASA` preserved, `JSON` → "J son"
 - **Temperature** — `25C`, `100°F` converted to spoken form
 - **Fractions** — `3/4` → "three over four"

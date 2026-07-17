@@ -2,7 +2,7 @@
 
 ## Overview
 
-Number normalization converts numeric digits into their spoken word form for TTS. It handles cardinal numbers, ordinals, decimals, percentages, years, and numbers with commas -- with bilingual output for English and Malay.
+Number normalization converts numeric digits into their spoken word form for TTS. It handles cardinal numbers, ordinals, decimals, percentages, years, and numbers with commas -- with output in the selected language.
 
 ## Number-to-Words Engines
 

@@ -2,7 +2,7 @@
 Shared feature normalizers for TTS text normalization.
 
 Provides temperature, measurements, fractions, x-kali, hari bulan, hijri,
-and elongated word normalization for all supported languages (en, ms, zh, zh_my).
+and elongated word normalization for all supported languages.
 """
 
 import re

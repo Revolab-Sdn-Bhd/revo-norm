@@ -22,7 +22,7 @@ import re
 
 logger = logging.getLogger(__name__)
 
-# Single pronunciation mapping for all languages (English and Malay)
+# Single pronunciation mapping for all languages
 # Tech terms are pronounced the same way in both languages for Malaysian context
 #
 # GUIDELINES for adding entries:

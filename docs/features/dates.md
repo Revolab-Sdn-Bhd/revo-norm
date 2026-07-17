@@ -2,7 +2,7 @@
 
 ## Overview
 
-Date normalization converts written date expressions into their spoken form for TTS. It supports multiple common date formats, bilingual output for English and Malay, and automatic disambiguation between DD/MM and MM/DD formats.
+Date normalization converts written date expressions into their spoken form for TTS. It supports multiple common date formats, output in the selected language, and automatic disambiguation between DD/MM and MM/DD formats.
 
 Dates are extracted as entities early in the pipeline to prevent the fraction normalizer from misinterpreting date separators (e.g., `15/08` as a fraction).
 
