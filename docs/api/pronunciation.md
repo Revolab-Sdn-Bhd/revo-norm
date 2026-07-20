@@ -7,7 +7,7 @@ Explicit pronunciation mappings that are applied **first** in the normalization 
 1. When `normalize_text()` is called, pronunciation mappings are applied immediately after entity extraction
 2. Each mapping is a whole-word, case-insensitive match
 3. Mappings are sorted by key length (longest first) to handle overlapping terms correctly
-4. The same mappings are used for both English and Malay, reflecting the code-mixed nature of Malaysian text
+4. The same mappings are used across languages, reflecting the code-mixed nature of Malaysian text
 
 ## `add_custom_mapping`
 
@@ -21,7 +21,7 @@ Add a custom pronunciation mapping to the global mappings dictionary.
 |------|------|---------|-------------|
 | `term` | `str` | required | The term to map (e.g., `"YOLO"`) |
 | `pronunciation` | `str` | required | The spoken form (e.g., `"you only live once"`) |
-| `language` | `str` | `"en"` | Language code — currently ignored; mappings apply to both languages |
+| `language` | `str` | `"en"` | Language code — currently ignored; mappings apply across all languages |
 
 **Returns:** `None`
 
@@ -50,7 +50,7 @@ Get a copy of the current pronunciation mappings dictionary.
 
 | Name | Type | Default | Description |
 |------|------|---------|-------------|
-| `language` | `str` | `"en"` | Language code — currently ignored; same mappings returned for both languages |
+| `language` | `str` | `"en"` | Language code — currently ignored; same mappings returned for all languages |
 
 **Returns:** `dict[str, str]` — A copy of the pronunciation mappings. Modifications to the returned dict do not affect the global mappings.
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Measurement normalization converts measurement expressions (distance, volume, weight, duration, area) into their spoken form for TTS. It handles metric and imperial units with bilingual output for English and Malay.
+Measurement normalization converts measurement expressions (distance, volume, weight, duration, area) into their spoken form for TTS. It handles metric and imperial units with output in the selected language.
 
 Measurements are normalized before the language-specific normalizer and before acronym expansion to prevent units like "km" from being split into "k m".
 

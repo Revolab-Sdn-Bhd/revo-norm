@@ -22,8 +22,8 @@ import re
 
 logger = logging.getLogger(__name__)
 
-# Single pronunciation mapping for all languages (English and Malay)
-# Tech terms are pronounced the same way in both languages for Malaysian context
+# Single pronunciation mapping for all languages
+# Tech terms are pronounced the same way across languages for Malaysian context
 #
 # GUIDELINES for adding entries:
 # 1. The mapping must represent how a term SOUNDS when spoken aloud
@@ -89,8 +89,8 @@ def get_pronunciation_mappings(language: str = "en") -> dict[str, str]:
     """Get pronunciation mappings for a language.
 
     Args:
-        language: Language code ('en' for English, 'ms' for Malay)
-                  Note: Same mappings used for both languages
+        language: Language code
+                  Note: Same mappings used across all languages
 
     Returns:
         Dictionary mapping terms to their spoken forms
@@ -106,7 +106,7 @@ def apply_pronunciation_mappings(text: str, language: str = "en") -> str:
 
     Args:
         text: Input text
-        language: Language code ('en' for English, 'ms' for Malay)
+        language: Language code
 
     Returns:
         Text with pronunciation mappings applied
@@ -138,7 +138,7 @@ def add_custom_mapping(term: str, pronunciation: str, language: str = "en") -> N
     Args:
         term: The term to map (e.g., "JSON")
         pronunciation: The spoken form (e.g., "jay son")
-        language: Language code ('en' or 'ms') - ignored, applies to both
+        language: Language code - ignored, applies to all languages
 
     Raises:
         ValueError: If the mapping looks like an abbreviation expansion

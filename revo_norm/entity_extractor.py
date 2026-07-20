@@ -311,7 +311,7 @@ class EntityExtractor:
 
         Args:
             text: Text with entity placeholders
-            language: Target language ('en' or 'ms')
+            language: Target language code
 
         Returns:
             Text with entities converted to spoken form

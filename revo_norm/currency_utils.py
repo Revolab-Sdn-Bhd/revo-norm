@@ -1,8 +1,8 @@
 """
 Shared utility functions for currency normalization across languages.
 
-These functions are language-agnostic and can be used by both
-English and Malay normalizers.
+These functions are language-agnostic and can be used by any of the
+language normalizers.
 """
 
 import re

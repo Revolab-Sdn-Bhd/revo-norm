@@ -169,7 +169,7 @@ normalize_text("Query the SQL database", language="en")
 # add_custom_mapping("YOLO", "you only live once")
 ```
 
-Custom mappings apply globally (both languages) and are matched as whole words, case-insensitively.
+Custom mappings apply globally (across all languages) and are matched as whole words, case-insensitively.
 
 ### Built-in Pronunciation Mappings
 

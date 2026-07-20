@@ -77,7 +77,7 @@ Convert entity placeholders back to spoken form.
 | Name | Type | Default | Description |
 |------|------|---------|-------------|
 | `text` | `str` | required | Text with entity placeholders |
-| `language` | `str` | required | Target language (`"en"` or `"ms"`) |
+| `language` | `str` | required | Target language code (see [Languages](../languages.md)) |
 
 **Returns:** `str` — Text with all entity placeholders replaced by their spoken form.
 
