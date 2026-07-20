@@ -2,7 +2,7 @@
 
 ## Overview
 
-Time normalization converts written time expressions into their spoken form for TTS. It supports 12-hour and 24-hour formats, optional seconds, and AM/PM indicators with bilingual output for English and Malay.
+Time normalization converts written time expressions into their spoken form for TTS. It supports 12-hour and 24-hour formats, optional seconds, and AM/PM indicators with output in the selected language.
 
 Times are extracted as entities early in the pipeline to prevent the normalizer from misinterpreting the colon separator.
 

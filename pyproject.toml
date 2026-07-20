@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "revo-norm"
 dynamic = ["version"]
-description = "A text normalization library for English and Malay (Bahasa Melayu) TTS applications"
+description = "A text normalization library for TTS applications"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}

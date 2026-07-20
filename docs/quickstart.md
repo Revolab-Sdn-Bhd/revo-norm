@@ -10,7 +10,7 @@ The library exposes a single entry point — `normalize_text()` — that handles
 from revo_norm import normalize_text
 ```
 
-Pass your text and specify the language (`"en"` for English, `"ms"` for Malay):
+Pass your text and specify the language code (see [Languages](languages.md) for the full list):
 
 ```python
 # English

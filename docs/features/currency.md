@@ -2,7 +2,7 @@
 
 ## Overview
 
-Currency normalization converts written currency expressions into their spoken form for TTS. It supports multiple currencies, suffix-based magnitudes (K/M/B/T), decimal amounts, and produces bilingual output for English and Malay.
+Currency normalization converts written currency expressions into their spoken form for TTS. It supports multiple currencies, suffix-based magnitudes (K/M/B/T), decimal amounts, and produces output in the selected language.
 
 Currency extraction runs early in the pipeline to prevent other normalizers (acronym expansion, abbreviation expansion) from splitting symbols like "RM" into "R M" or "R meter".
 

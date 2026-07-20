@@ -1,5 +1,5 @@
 """
-Revo Norm — text normalization for English, Malay, Indonesian and Chinese TTS.
+Revo Norm — multilingual text normalization for TTS.
 
 Quick start::
 

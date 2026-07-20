@@ -209,7 +209,6 @@ Add to `.vscode/settings.json`:
 
 ## Known Issues
 
-- **M/B/T currency suffix expansion** fails in entity extraction path (7 tests fail, pre-existing bug)
 - **Date DD/MM vs MM/DD**: Heuristic-based, ambiguous dates may parse wrong
 - **Global state**: `add_custom_mapping()` mutates module-level dict — not thread-safe
 
@@ -240,5 +239,25 @@ Run `uv sync` to ensure all dependencies are installed.
 ## Commit Guidelines
 
 - Run `uv run ruff check revo_norm/` and fix all issues before committing
-- Run `uv run pytest ../tests/revo-norm/ -q` and ensure no new failures
+- Run `uv run pytest ../revo-norm-tests/ -q` and ensure no new failures
 - Use `git mv` for file renames to preserve history
+
+## Releasing
+
+Versioning follows semver, pre-1.0 (`0.x`): **patch** = bug fixes; **minor** = new backward-compatible features (a new language, a new public export); a breaking change rides in the minor bump until 1.0.
+
+- **Version is single-sourced** in `revo_norm/__init__.py` (`__version__`); `pyproject.toml` uses `dynamic = ["version"]` + `[tool.hatch.version]` to read it. Bump the one place.
+- **Changelog** is `docs/changelog.md` (Keep a Changelog format); the top section is the release being prepared, marked `(Current)`.
+- **Language list** has one source of truth each — `SUPPORTED_LANGUAGES` (code) and `docs/languages.md`. Keep other mentions generic so they can't go stale.
+
+### Cutting a release
+
+1. Land features on `main` as normal PRs.
+2. Add one "lock-and-wrap" commit — `chore(release): bump to vX.Y.Z` — that bumps `__version__` and finalizes the changelog, and nothing else.
+3. After it merges, tag that commit with an annotated tag: `git tag -a vX.Y.Z -m "..." && git push origin vX.Y.Z`. The tag name is the source of truth; historical tags need not match the in-code version, and history is never rewritten to make them match.
+
+### Guardrails
+
+- **Open PRs; never self-merge** — merging is a human decision. `gh pr merge` / state queries are for reading status only.
+- **Tests live in a separate repo** (`revo-norm-tests`); CI checks out its `main`, so merge library changes before their tests or CI reddens.
+- **Docs auto-deploy** — merging anything under `mkdocs.yml` or `docs/**` triggers Deploy Docs → GitHub Pages.
