@@ -2,7 +2,44 @@
 
 All notable changes to revo-norm are documented here.
 
-## v0.2.0-dev (Current)
+## v0.4.1 (Current)
+
+Explicit language scope and more lenient language input.
+
+### Added
+
+- `SUPPORTED_LANGUAGES` exported from the package root — single source of truth for the accepted language codes (`en`, `ms`, `id`, `zh`, `zh_my`)
+
+### Changed
+
+- `language` input is canonicalized (trimmed and lowercased) before dispatch, so `"ID"`, `" en "`, `"Zh_MY"` resolve correctly
+- Unknown-language validation now also fails fast at the entity-extractor entry point (not just `normalize_text`)
+
+## v0.4.0
+
+Indonesian (`id`) support.
+
+### Added
+
+- Indonesian normalizer: number-to-words, rupiah currency, dates (Maret/Agustus), times (siang/sore), percentages (persen), measurements
+- Indonesian written number conventions: dotted thousands (`1.000.000`), comma decimals (`10,5`), and rupiah slang suffixes (`rb` = ribu, `jt` = juta, `M` = miliar, `T` = triliun)
+
+### Changed
+
+- **Breaking:** unknown language codes now raise `ValueError` instead of silently falling back to Malay normalization
+- Single-digit-month slash dates (`15/8/2025`) now speak the month name instead of reading the digit
+
+## v0.3.0
+
+Chinese support.
+
+### Added
+
+- Standard Chinese (`zh`) and Malaysian Chinese (`zh_my`) normalizers
+- Chinese number-to-words, currency, dates/times, and measurements
+- `zh_my` colloquial currency and code-mixing support
+
+## v0.2.0
 
 Single unified pipeline architecture with entity extraction always enabled.
 

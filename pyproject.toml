@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "revo-norm"
-version = "0.2.0-dev"
+dynamic = ["version"]
 description = "A text normalization library for TTS applications"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -33,6 +33,9 @@ dependencies = [
 
 [project.urls]
 Repository = "https://github.com/Revolab-Sdn-Bhd/revo-norm"
+
+[tool.hatch.version]
+path = "revo_norm/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["revo_norm"]
