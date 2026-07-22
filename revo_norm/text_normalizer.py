@@ -210,13 +210,15 @@ def _spell_special_chars(text: str, language: str = "en") -> str:
         percent_word = "persen"
     else:
         percent_word = "peratus"
+    # "*" is dropped silently for en/ms; id keeps the original "star" wording.
+    star_word = "" if language in ("en", "ms") else "star"
     replacements: dict[str, str] = {
         "&": "and",
         "+": "plus",
         "=": "equals",
         "@": "at",
         "#": "hash",
-        "*": "",
+        "*": star_word,
         "%": percent_word,
         "$": "dollar",
         "EUR": "euro",
@@ -240,7 +242,7 @@ def _spell_special_chars(text: str, language: str = "en") -> str:
         "=": "等于",
         "@": at_word,
         "#": hash_word,
-        "*": "",
+        "*": "星号",
         "%": "巴仙",
         "$": money_word,
         "EUR": "欧元",
@@ -302,9 +304,13 @@ def url_to_spoken(url: str, language: str = "en") -> str:
     # Query strings/fragments can carry &, *, ! that would otherwise reach the
     # TTS engine as raw characters instead of being spoken/dropped like elsewhere.
     if language in ("zh", "zh_my"):
-        spoken = spoken.replace("&", " 和 ").replace("*", "").replace("!", "")
+        spoken = spoken.replace("&", " 和 ").replace("*", " 星号 ")
     else:
-        spoken = spoken.replace("&", " and ").replace("*", "").replace("!", "")
+        star_word = " " if language in ("en", "ms") else " star "
+        spoken = spoken.replace("&", " and ").replace("*", star_word)
+    # "!" is only dropped for en/ms; id/zh/zh_my keep it as-is.
+    if language in ("en", "ms"):
+        spoken = spoken.replace("!", "")
 
     if language in ("zh", "zh_my"):
         spoken = re.sub(
@@ -873,10 +879,12 @@ def normalize_text(
         protected_text = special_replace(protected_text, language)
         _track("special_chars", before, protected_text)
 
-    # Exclamation marks read poorly on TTS (over-emphasis) — drop them (always)
-    before = protected_text
-    protected_text = re.sub(r" {2,}", " ", re.sub(r"!+", "", protected_text)).strip()
-    _track("strip_exclamation", before, protected_text)
+    # Exclamation marks read poorly on TTS (over-emphasis) — drop them.
+    # Scoped to en/ms only; id/zh/zh_my keep "!" as-is.
+    if language in ("en", "ms"):
+        before = protected_text
+        protected_text = re.sub(r" {2,}", " ", re.sub(r"!+", "", protected_text)).strip()
+        _track("strip_exclamation", before, protected_text)
 
     # --- Step 7: Restore placeholders then entities as spoken form ---
     protected_text = _unstash_placeholders(protected_text, ph_stash)
