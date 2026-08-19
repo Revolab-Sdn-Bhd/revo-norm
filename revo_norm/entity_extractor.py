@@ -186,8 +186,8 @@ class EntityExtractor:
         - HH:MM:SS: 14:30:45
         """
         patterns = [
-            # HH:MM with Malay meridian (pagi/petang/malam/tengah hari) — must be before generic
-            r"\b\d{1,2}:\d{2}\s*(?:pagi|petang|malam|tengah\s+hari)\b",
+            # HH:MM with Malay/Indonesian meridian — must be before generic
+            r"\b\d{1,2}:\d{2}\s*(?:pagi|petang|malam|siang|sore|tengah\s+hari)\b",
             # HH:MM AM/PM format
             r"\b\d{1,2}:\d{2}\s*(?:am|pm|a\.m\.|p\.m\.)?\b",
             # HH:MM:SS format
@@ -580,12 +580,13 @@ class EntityExtractor:
     def _convert_time_to_spoken(self, time_text: str, language: str) -> str:
         """Convert a time to spoken form."""
         from revo_norm.normalizer_en import text_normalize as normalize_en
+        from revo_norm.normalizer_id import normalize_indonesian as normalize_id
         from revo_norm.normalizer_ms import normalize_malay as normalize_ms
 
         # Parse time format
         # HH:MM AM/PM or HH:MM:SS
         time_match = re.match(
-            r"\b(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.|pagi|petang|malam|tengah\s+hari)?",
+            r"\b(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.|pagi|petang|malam|siang|sore|tengah\s+hari)?",
             time_text,
             re.IGNORECASE,
         )
@@ -613,8 +614,12 @@ class EntityExtractor:
 
                 return result
             else:
-                hour_spoken = normalize_ms(hour)
-                minute_spoken = normalize_ms(minute)
+                if language == "id":
+                    hour_spoken = normalize_id(hour)
+                    minute_spoken = normalize_id(minute)
+                else:
+                    hour_spoken = normalize_ms(hour)
+                    minute_spoken = normalize_ms(minute)
                 result = f"{hour_spoken} {minute_spoken}"
 
                 if second:
@@ -626,9 +631,13 @@ class EntityExtractor:
                     if ampm_clean in ("am", "pagi"):
                         result += " pagi"
                     elif ampm_clean in ("pm", "petang"):
-                        result += " petang"
+                        result += " petang" if language != "id" else " sore"
                     elif ampm_clean == "malam":
                         result += " malam"
+                    elif ampm_clean == "siang":
+                        result += " siang"
+                    elif ampm_clean == "sore":
+                        result += " sore"
                     elif ampm_clean.startswith("tengah"):
                         result += " tengah hari"
 
@@ -637,6 +646,8 @@ class EntityExtractor:
         # Fallback: Let basic normalizer handle it
         if language == "en":
             return normalize_en(time_text)
+        elif language == "id":
+            return normalize_id(time_text)
         else:
             return normalize_ms(time_text)
 

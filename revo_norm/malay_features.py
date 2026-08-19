@@ -406,94 +406,67 @@ _DURATION_UNITS_MS: dict[str, str] = {
 }
 
 
+def _normalize_value(value: str, language: str) -> str:
+    """Dispatch number normalization to the correct language normalizer."""
+    if language == "id":
+        from revo_norm.normalizer_id import normalize_indonesian
+        return normalize_indonesian(value)
+    elif language == "en":
+        from revo_norm.normalizer_en import text_normalize as normalize_en
+        return normalize_en(value)
+    else:
+        from revo_norm.normalizer_ms import normalize_malay as normalize_ms
+        return normalize_ms(value)
+
+
 def normalize_distance(match: re.Match, language: str = "en") -> str:
     """Normalize distance notation to spoken form."""
-    from revo_norm.normalizer_en import text_normalize as normalize_en
-    from revo_norm.normalizer_ms import normalize_malay as normalize_ms
-
     value = match.group(1).replace(",", ".")
     unit = match.group(2).lower()
 
-    if language == "en":
-        value_spoken = normalize_en(value)
-        unit_spoken = _DISTANCE_UNITS_EN.get(unit, unit)
-        return f"{value_spoken} {unit_spoken}"
-    else:
-        value_spoken = normalize_ms(value)
-        unit_spoken = _DISTANCE_UNITS_MS.get(unit, unit)
-        return f"{value_spoken} {unit_spoken}"
+    value_spoken = _normalize_value(value, language)
+    units = _DISTANCE_UNITS_EN if language == "en" else _DISTANCE_UNITS_MS
+    return f"{value_spoken} {units.get(unit, unit)}"
 
 
 def normalize_volume(match: re.Match, language: str = "en") -> str:
     """Normalize volume notation to spoken form."""
-    from revo_norm.normalizer_en import text_normalize as normalize_en
-    from revo_norm.normalizer_ms import normalize_malay as normalize_ms
-
     value = match.group(1).replace(",", ".")
     unit = match.group(2).lower()
 
-    if language == "en":
-        value_spoken = normalize_en(value)
-        unit_spoken = _VOLUME_UNITS_EN.get(unit, unit)
-        return f"{value_spoken} {unit_spoken}"
-    else:
-        value_spoken = normalize_ms(value)
-        unit_spoken = _VOLUME_UNITS_MS.get(unit, unit)
-        return f"{value_spoken} {unit_spoken}"
+    value_spoken = _normalize_value(value, language)
+    units = _VOLUME_UNITS_EN if language == "en" else _VOLUME_UNITS_MS
+    return f"{value_spoken} {units.get(unit, unit)}"
 
 
 def normalize_weight(match: re.Match, language: str = "en") -> str:
     """Normalize weight notation to spoken form."""
-    from revo_norm.normalizer_en import text_normalize as normalize_en
-    from revo_norm.normalizer_ms import normalize_malay as normalize_ms
-
     value = match.group(1).replace(",", ".")
     unit = match.group(2).lower()
 
-    if language == "en":
-        value_spoken = normalize_en(value)
-        unit_spoken = _WEIGHT_UNITS_EN.get(unit, unit)
-        return f"{value_spoken} {unit_spoken}"
-    else:
-        value_spoken = normalize_ms(value)
-        unit_spoken = _WEIGHT_UNITS_MS.get(unit, unit)
-        return f"{value_spoken} {unit_spoken}"
+    value_spoken = _normalize_value(value, language)
+    units = _WEIGHT_UNITS_EN if language == "en" else _WEIGHT_UNITS_MS
+    return f"{value_spoken} {units.get(unit, unit)}"
 
 
 def normalize_duration(match: re.Match, language: str = "en") -> str:
     """Normalize duration notation to spoken form."""
-    from revo_norm.normalizer_en import text_normalize as normalize_en
-    from revo_norm.normalizer_ms import normalize_malay as normalize_ms
-
     value = match.group(1)
     unit = match.group(2).lower()
 
-    if language == "en":
-        value_spoken = normalize_en(value)
-        unit_spoken = _DURATION_UNITS_EN.get(unit, unit)
-        return f"{value_spoken} {unit_spoken}"
-    else:
-        value_spoken = normalize_ms(value)
-        unit_spoken = _DURATION_UNITS_MS.get(unit, unit)
-        return f"{value_spoken} {unit_spoken}"
+    value_spoken = _normalize_value(value, language)
+    units = _DURATION_UNITS_EN if language == "en" else _DURATION_UNITS_MS
+    return f"{value_spoken} {units.get(unit, unit)}"
 
 
 def normalize_area(match: re.Match, language: str = "en") -> str:
     """Normalize area notation to spoken form (e.g., '1000 sq ft' → 'one thousand square feet')."""
-    from revo_norm.normalizer_en import text_normalize as normalize_en
-    from revo_norm.normalizer_ms import normalize_malay as normalize_ms
-
     value = match.group(1).replace(",", ".")
     unit = match.group(2).lower()
 
-    if language == "en":
-        value_spoken = normalize_en(value)
-        unit_spoken = _AREA_UNITS_EN.get(unit, unit)
-        return f"{value_spoken} {unit_spoken}"
-    else:
-        value_spoken = normalize_ms(value)
-        unit_spoken = _AREA_UNITS_MS.get(unit, unit)
-        return f"{value_spoken} {unit_spoken}"
+    value_spoken = _normalize_value(value, language)
+    units = _AREA_UNITS_EN if language == "en" else _AREA_UNITS_MS
+    return f"{value_spoken} {units.get(unit, unit)}"
 
 
 def normalize_measurements(text: str, language: str = "en") -> str:

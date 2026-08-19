@@ -33,6 +33,7 @@ from revo_norm.malay_features import (
     normalize_x_kali_text,
 )
 from revo_norm.normalizer_en import text_normalize as text_normalizer_en
+from revo_norm.normalizer_id import normalize_indonesian as text_normalizer_id
 from revo_norm.normalizer_ms import normalize_malay as text_normalizer_ms
 from revo_norm.pronunciation_mappings import apply_pronunciation_mappings
 from revo_norm.tts_utils import parse_sound_word_field, smart_remove_sound_words
@@ -56,11 +57,15 @@ normalize_whitespace = _normalize_whitespace
 
 def _digit_word(digit: str, language: str) -> str:
     """Convert a single digit to its spoken word."""
-    if language == "ms":
-        return {
-            "0": "kosong", "1": "satu", "2": "dua", "3": "tiga", "4": "empat",
-            "5": "lima", "6": "enam", "7": "tujuh", "8": "lapan", "9": "sembilan",
-        }.get(digit, digit)
+    if language in ("ms", "id"):
+        id_digits = {
+            "0": "nol" if language == "id" else "kosong",
+            "1": "satu", "2": "dua", "3": "tiga", "4": "empat",
+            "5": "lima", "6": "enam", "7": "tujuh",
+            "8": "delapan" if language == "id" else "lapan",
+            "9": "sembilan",
+        }
+        return id_digits.get(digit, digit)
     return _DIGIT_WORDS.get(digit, digit)
 
 
@@ -656,6 +661,8 @@ def normalize_text(
         protected_text = text_normalizer_en(protected_text)
     elif language == "ms":
         protected_text = text_normalizer_ms(protected_text)
+    elif language == "id":
+        protected_text = text_normalizer_id(protected_text)
     _track(f"language_normalizer_{language}", before, protected_text)
 
     # Spacing normalization

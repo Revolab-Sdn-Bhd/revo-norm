@@ -49,7 +49,7 @@ PRONUNCIATION_MAPPINGS: dict[str, str] = {
     "ASCII": "as key",
     "IEEE": "I triple E",
     "GIF": "gif",
-    "WiFi": "wi fi",
+    "WiFi": "wai fai",
     "iOS": "I O S",
     "UiTM": "U I T M",
 }
