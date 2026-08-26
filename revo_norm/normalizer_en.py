@@ -174,6 +174,10 @@ _time_re = re.compile(
     r"\b(\d{1,2})[:\.](\d{2})\s*(?:(am|pm|a\.m\.|p\.m\.))",
     re.IGNORECASE,
 )
+_time_hour_only_re = re.compile(
+    r"\b(\d{1,2})\s*(am|pm|a\.m\.|p\.m\.)\b",
+    re.IGNORECASE,
+)
 _time_no_meridian_re = re.compile(
     r"\b(\d{1,2}):(\d{2})\b(?!\s*(?:am|pm|a\.m\.|p\.m\.))(?!.*%)",
     re.IGNORECASE,
@@ -207,6 +211,14 @@ def normalize_time(m):
         return f"{hour_word} {meridian_word}".strip()
     else:
         return f"{hour_word} {minute_word} {meridian_word}".strip()
+
+
+def normalize_time_hour_only(m):
+    """Normalize hour-with-meridian times without minutes (at 7 pm)."""
+    hour, meridian = m.groups()
+    meridian_lower = meridian.lower().replace(".", "")
+    meridian_word = "a m" if meridian_lower == "am" else "p m"
+    return f"{_inflect.number_to_words(int(hour))} {meridian_word}"
 
 
 def normalize_time_no_meridian(m):
@@ -383,6 +395,7 @@ def text_normalize(text: str) -> str:
     # Step 2: Process other entities
     text = re.sub(_date_re, normalize_date, text)
     text = re.sub(_currency_re, normalize_currency, text)
+    text = re.sub(_time_hour_only_re, normalize_time_hour_only, text)
     text = re.sub(_time_no_meridian_re, normalize_time_no_meridian, text)
     text = re.sub(_time_re, normalize_time, text)
     text = re.sub(_percentage_re, normalize_percentage, text)

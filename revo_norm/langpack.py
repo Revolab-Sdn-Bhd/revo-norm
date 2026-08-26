@@ -32,6 +32,9 @@ class LanguagePack:
     # Temperature unit symbol -> spoken form (keys: c, f, k)
     temperature_units: UnitTable = field(default_factory=dict)
     fraction_word: str = "per"
+    # Spoken before a digit string when '-' means a negative quantity
+    # ("suhu -5" -> "suhu negative five" / "negatif lima" / "负五").
+    negative_word: str = "negatif"
     times_word: str = "kali"
     hijri_suffix: str = "Hijri"
     # Symbol -> spoken form for TTS-unfriendly characters (&, *, #, ...).
@@ -233,6 +236,7 @@ def _register_builtin_packs() -> None:
             area_units={"sq ft": "square feet", "sqft": "square feet"},
             temperature_units={"c": "celsius", "f": "fahrenheit", "k": "kelvin"},
             fraction_word="over",
+            negative_word="negative",
             times_word="times",
             hijri_suffix="Hijri",
             symbol_words={
@@ -346,6 +350,7 @@ def _register_builtin_packs() -> None:
             fraction_word="per",
             times_word="kali",
             hijri_suffix="Hijriah",
+            negative_word="negatif",
             symbol_words={
         '&': 'and',
         '+': 'plus',
@@ -388,6 +393,7 @@ def _register_builtin_packs() -> None:
             temperature_units={"c": "摄氏度", "f": "华氏度", "k": "开尔文"},
             fraction_word="分之",
             times_word="次",
+            negative_word="负",
             hijri_suffix="Hijri",
             symbol_words={
         '&': '和',
@@ -428,6 +434,7 @@ def _register_builtin_packs() -> None:
             temperature_units={"c": "摄氏度", "f": "华氏度", "k": "开尔文"},
             fraction_word="分之",
             times_word="次",
+            negative_word="负",
             hijri_suffix="Hijri",
             symbol_words={
         '&': '和',
