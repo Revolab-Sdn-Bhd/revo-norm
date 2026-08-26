@@ -2,7 +2,17 @@
 
 All notable changes to revo-norm are documented here.
 
-## v0.6.0 (Current)
+## v0.6.1 (Current)
+
+Raw-particle TTS fixes — the last of the same family as the `!`/`&`/`*` bug.
+
+### Fixed
+
+- Negative signs: `-` before digits speaks the language's negative word (`negative` / `negatif` / `负`) instead of reaching TTS raw (`suhu -5` → `suhu negatif lima`). Digit-joined dashes (`03-8888`, `3-10`) keep dash behavior.
+- URL query strings: `?` and `=` are spoken (`question mark` / `equals`, 问号 / 等于) instead of reaching TTS raw.
+- No-minutes meridian times normalize: `jam 3 pm` → `tiga sore` (id), `jumpa 3 petang` → `tiga petang` (ms), `at 7 pm` → `seven p m` (en).
+
+## v0.6.0
 
 Layered pronunciation mappings — model-specific corrections and company personalization without global state.
 
