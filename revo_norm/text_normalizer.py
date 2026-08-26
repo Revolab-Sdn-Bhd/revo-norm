@@ -231,8 +231,12 @@ def url_to_spoken(url: str, language: str = "en") -> str:
         spoken = spoken.replace("/", " slash ")
         spoken = spoken.replace("-", " dash ")
 
-    # Query strings/fragments can carry &, *, ! that would otherwise reach the
-    # TTS engine as raw characters instead of being spoken/dropped like elsewhere.
+    # Query strings/fragments carry ?, =, &, *, ! that would otherwise reach
+    # the TTS engine as raw characters instead of being spoken/dropped.
+    if language in ("zh", "zh_my"):
+        spoken = spoken.replace("?", " 问号 ").replace("=", " 等于 ")
+    else:
+        spoken = spoken.replace("?", " question mark ").replace("=", " equals ")
     if language in ("zh", "zh_my"):
         spoken = spoken.replace("&", " 和 ").replace("*", " 星号 ")
     else:
@@ -577,6 +581,14 @@ def _normalize_core(
     before = text
     text = _expand_ussd_codes(text, language)
     _track("ussd_codes", before, text)
+
+    # --- Step 1c: Negative signs ---
+    # A '-' directly before digits is a negative sign, not a dash — speak it
+    # now, before number normalization consumes the digits. Digit-joined
+    # dashes (03-8888, 3-10) are excluded by the lookbehind.
+    before = text
+    text = re.sub(r"(?<![\w\-])-(?=\d)", f" {pack.negative_word} ", text)
+    _track("negative_sign", before, text)
 
     # --- Step 1c: Digit-by-digit context (exit, gate, lot, etc.) ---
     before = text

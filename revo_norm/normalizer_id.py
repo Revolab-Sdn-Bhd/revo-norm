@@ -119,6 +119,10 @@ _time_re = re.compile(
     r"\b(\d{1,2})[:\.](\d{2})\s*(?:(am|pm|a\.m\.|p\.m\.|pagi|siang|sore|malam))",
     re.IGNORECASE,
 )
+_time_hour_only_re = re.compile(
+    r"\b(\d{1,2})\s*(am|pm|a\.m\.|p\.m\.|pagi|siang|sore|malam)\b",
+    re.IGNORECASE,
+)
 _time_no_meridian_re = re.compile(
     r"\b(\d{1,2})[:\.](\d{2})\b(?!\s*(?:am|pm|a\.m\.|p\.m\.|pagi|siang|sore|malam))"
     r"(?!.*%)",
@@ -181,6 +185,20 @@ def normalize_time(m):
         return f"{hour_word} {meridian_word}".strip()
     else:
         return f"{hour_word} {minute_word} {meridian_word}".strip()
+
+
+def normalize_time_hour_only(m):
+    """Normalize hour-with-meridian times without minutes (jam 3 pm)."""
+    hour, meridian = m.groups()
+    hour_int = int(hour)
+    meridian_lower = meridian.lower().replace(".", "")
+    if meridian_lower in ("pagi", "siang", "sore", "malam"):
+        meridian_word = meridian_lower
+    elif meridian_lower == "am":
+        meridian_word = "pagi"
+    else:  # pm
+        meridian_word = "sore" if hour_int < 18 else "malam"
+    return f"{num2word(hour_int)} {meridian_word}"
 
 
 def normalize_time_no_meridian(m):
@@ -329,6 +347,7 @@ def normalize_indonesian(text: str) -> str:
     text = re.sub(_date_ymd_re, normalize_date_ymd, text)
     text = re.sub(_date_re, normalize_date, text)
     text = re.sub(_currency_re, normalize_currency, text)
+    text = re.sub(_time_hour_only_re, normalize_time_hour_only, text)
     text = re.sub(_time_no_meridian_re, normalize_time_no_meridian, text)
     text = re.sub(_time_re, normalize_time, text)
     text = re.sub(_percentage_re, normalize_percentage, text)
