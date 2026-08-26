@@ -88,19 +88,47 @@ _PROFILES: dict[str, dict[str, dict[str, str | None]]] = {
 
 
 def _normalize_scopes(mappings: dict) -> dict[str, dict[str, str | None]]:
-    """Accept a flat dict (all languages) or a scoped one; validate shape."""
+    """Accept a flat dict (all languages) or a scoped one; validate shape.
+
+    A dict whose values are dicts is scoped. A dict whose values are
+    strings/None is flat — unless every key is a known language code or
+    "*", in which case the caller almost certainly meant a scoped dict
+    with typo'd values, and we fail loudly instead of silently treating
+    language names as terms.
+    """
     if not mappings:
         return {}
     first = next(iter(mappings.values()))
-    if isinstance(first, str) or first is None:
-        # Flat: term -> pronunciation, applies to every language
-        return {ALL_LANGUAGES: dict(mappings)}
-    for scope, table in mappings.items():
-        if not isinstance(scope, str):
-            raise TypeError(f"Scope keys must be language codes or '*', got {scope!r}")
-        if not isinstance(table, dict):
-            raise TypeError(f"Scope {scope!r} must map to a dict, got {type(table).__name__}")
-    return {scope: dict(table) for scope, table in mappings.items()}
+    if isinstance(first, dict):
+        for scope, table in mappings.items():
+            if not isinstance(scope, str):
+                raise TypeError(f"Scope keys must be language codes or '*', got {scope!r}")
+            if not isinstance(table, dict):
+                raise TypeError(f"Scope {scope!r} must map to a dict, got {type(table).__name__}")
+        return {scope: dict(table) for scope, table in mappings.items()}
+    values = list(mappings.values())
+    all_scalar = all(isinstance(v, (str, type(None))) for v in values)
+    if not all_scalar:
+        raise TypeError("Mixing scoped and flat pronunciation entries is not supported")
+    keys_look_like_languages = all(
+        k == ALL_LANGUAGES or (isinstance(k, str) and len(k) <= 5 and k.lower() in _KNOWN_SCOPES)
+        for k in mappings
+    )
+    if keys_look_like_languages and set(mappings) - {ALL_LANGUAGES}:
+        raise TypeError(
+            "Scope keys (language codes / '*') must map to dicts; got scalar "
+            f"values under {sorted(mappings)}. If these are terms, note that "
+            "terms named like language codes are not supported in flat form."
+        )
+    # Flat: term -> pronunciation, applies to every language
+    return {ALL_LANGUAGES: dict(mappings)}
+
+
+# Language codes that trigger scope-detection when used as top-level keys.
+_KNOWN_SCOPES = {
+    "en", "ms", "id", "zh", "zh_my", "ja", "ko", "th", "tl", "vi", "ta",
+    "ar", "hi", "bn", "ur", "fa",
+}
 
 
 def register_pronunciation_profile(name: str, mappings: dict) -> None:
