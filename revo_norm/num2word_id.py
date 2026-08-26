@@ -146,7 +146,7 @@ def to_cardinal(number):
         raise OverflowError(errmsg_toobig % (number, max_num))
     minus = ""
     if number < 0:
-        minus = "minus "
+        minus = "negatif "
     float_word = ""
     n = split_by_koma(abs(number))
     if len(n) == 2:
