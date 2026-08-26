@@ -1,0 +1,14 @@
+[package]
+name = "revonorm-core"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+fancy-regex = "0.19.0"
+wasm-bindgen = "0.2.127"
+
+[target.wasm32-unknown-unknown.dependencies]
+wasm-bindgen = "0.2.127"
+
+[lib]
+crate-type = ["cdylib", "rlib"]

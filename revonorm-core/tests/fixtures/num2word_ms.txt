@@ -1,0 +1,175 @@
+0	kosong
+1	satu
+2	dua
+10	sepuluh
+11	sebelas
+15	lima belas
+20	dua puluh
+21	dua puluh satu
+99	sembilan puluh sembilan
+100	seratus
+101	seratus satu
+110	seratus sepuluh
+200	dua ratus
+999	sembilan ratus sembilan puluh sembilan
+1000	seribu
+1001	seribu satu
+1500	seribu lima ratus
+2000	dua ribu
+10000	sepuluh ribu
+100000	seratus ribu
+1000000	satu juta
+1500000	satu juta lima ratus ribu
+10000000	sepuluh juta
+1000000000	satu bilion
+1000000000000	satu trilion
+1867826	satu juta lapan ratus enam puluh tujuh ribu lapan ratus dua puluh enam
+419611	empat ratus sembilan belas ribu enam ratus sebelas
+4614227	empat juta enam ratus empat belas ribu dua ratus dua puluh tujuh
+4108604	empat juta seratus lapan ribu enam ratus empat
+3744855	tiga juta tujuh ratus empat puluh empat ribu lapan ratus lima puluh lima
+2341058	dua juta tiga ratus empat puluh satu ribu lima puluh lapan
+1719584	satu juta tujuh ratus sembilan belas ribu lima ratus lapan puluh empat
+9149733	sembilan juta seratus empat puluh sembilan ribu tujuh ratus tiga puluh tiga
+1458592	satu juta empat ratus lima puluh lapan ribu lima ratus sembilan puluh dua
+9906821	sembilan juta sembilan ratus enam ribu lapan ratus dua puluh satu
+7078674	tujuh juta tujuh puluh lapan ribu enam ratus tujuh puluh empat
+533225	lima ratus tiga puluh tiga ribu dua ratus dua puluh lima
+499915	empat ratus sembilan puluh sembilan ribu sembilan ratus lima belas
+1571946	satu juta lima ratus tujuh puluh satu ribu sembilan ratus empat puluh enam
+3668137	tiga juta enam ratus enam puluh lapan ribu seratus tiga puluh tujuh
+3903403	tiga juta sembilan ratus tiga ribu empat ratus tiga
+8478455	lapan juta empat ratus tujuh puluh lapan ribu empat ratus lima puluh lima
+445200	empat ratus empat puluh lima ribu dua ratus
+9416130	sembilan juta empat ratus enam belas ribu seratus tiga puluh
+3335943	tiga juta tiga ratus tiga puluh lima ribu sembilan ratus empat puluh tiga
+9142601	sembilan juta seratus empat puluh dua ribu enam ratus satu
+7038375	tujuh juta tiga puluh lapan ribu tiga ratus tujuh puluh lima
+3698380	tiga juta enam ratus sembilan puluh lapan ribu tiga ratus lapan puluh
+7536478	tujuh juta lima ratus tiga puluh enam ribu empat ratus tujuh puluh lapan
+9886238	sembilan juta lapan ratus lapan puluh enam ribu dua ratus tiga puluh lapan
+4667266	empat juta enam ratus enam puluh tujuh ribu dua ratus enam puluh enam
+109032	seratus sembilan ribu tiga puluh dua
+2678639	dua juta enam ratus tujuh puluh lapan ribu enam ratus tiga puluh sembilan
+7090294	tujuh juta sembilan puluh ribu dua ratus sembilan puluh empat
+5708457	lima juta tujuh ratus lapan ribu empat ratus lima puluh tujuh
+4661908	empat juta enam ratus enam puluh satu ribu sembilan ratus lapan
+2608514	dua juta enam ratus lapan ribu lima ratus empat belas
+3612366	tiga juta enam ratus dua belas ribu tiga ratus enam puluh enam
+5647120	lima juta enam ratus empat puluh tujuh ribu seratus dua puluh
+1714804	satu juta tujuh ratus empat belas ribu lapan ratus empat
+1556018	satu juta lima ratus lima puluh enam ribu lapan belas
+6374123	enam juta tiga ratus tujuh puluh empat ribu seratus dua puluh tiga
+1622632	satu juta enam ratus dua puluh dua ribu enam ratus tiga puluh dua
+6022675	enam juta dua puluh dua ribu enam ratus tujuh puluh lima
+5770620	lima juta tujuh ratus tujuh puluh ribu enam ratus dua puluh
+4437924	empat juta empat ratus tiga puluh tujuh ribu sembilan ratus dua puluh empat
+728978	tujuh ratus dua puluh lapan ribu sembilan ratus tujuh puluh lapan
+7707871	tujuh juta tujuh ratus tujuh ribu lapan ratus tujuh puluh satu
+8996415	lapan juta sembilan ratus sembilan puluh enam ribu empat ratus lima belas
+2094236	dua juta sembilan puluh empat ribu dua ratus tiga puluh enam
+6350754	enam juta tiga ratus lima puluh ribu tujuh ratus lima puluh empat
+1322048	satu juta tiga ratus dua puluh dua ribu empat puluh lapan
+9261705	sembilan juta dua ratus enam puluh satu ribu tujuh ratus lima
+4918716	empat juta sembilan ratus lapan belas ribu tujuh ratus enam belas
+6067229	enam juta enam puluh tujuh ribu dua ratus dua puluh sembilan
+9686362	sembilan juta enam ratus lapan puluh enam ribu tiga ratus enam puluh dua
+3226068	tiga juta dua ratus dua puluh enam ribu enam puluh lapan
+1166942	satu juta seratus enam puluh enam ribu sembilan ratus empat puluh dua
+768806	tujuh ratus enam puluh lapan ribu lapan ratus enam
+3823499	tiga juta lapan ratus dua puluh tiga ribu empat ratus sembilan puluh sembilan
+4855125	empat juta lapan ratus lima puluh lima ribu seratus dua puluh lima
+1338688	satu juta tiga ratus tiga puluh lapan ribu enam ratus lapan puluh lapan
+3905583	tiga juta sembilan ratus lima ribu lima ratus lapan puluh tiga
+1694523	satu juta enam ratus sembilan puluh empat ribu lima ratus dua puluh tiga
+6377460	enam juta tiga ratus tujuh puluh tujuh ribu empat ratus enam puluh
+4663624	empat juta enam ratus enam puluh tiga ribu enam ratus dua puluh empat
+7606963	tujuh juta enam ratus enam ribu sembilan ratus enam puluh tiga
+6120869	enam juta seratus dua puluh ribu lapan ratus enam puluh sembilan
+2728883	dua juta tujuh ratus dua puluh lapan ribu lapan ratus lapan puluh tiga
+6210607	enam juta dua ratus sepuluh ribu enam ratus tujuh
+5960454	lima juta sembilan ratus enam puluh ribu empat ratus lima puluh empat
+3514945	tiga juta lima ratus empat belas ribu sembilan ratus empat puluh lima
+4479145	empat juta empat ratus tujuh puluh sembilan ribu seratus empat puluh lima
+1197936	satu juta seratus sembilan puluh tujuh ribu sembilan ratus tiga puluh enam
+2871231	dua juta lapan ratus tujuh puluh satu ribu dua ratus tiga puluh satu
+8961381	lapan juta sembilan ratus enam puluh satu ribu tiga ratus lapan puluh satu
+4107246	empat juta seratus tujuh ribu dua ratus empat puluh enam
+2741439	dua juta tujuh ratus empat puluh satu ribu empat ratus tiga puluh sembilan
+7755440	tujuh juta tujuh ratus lima puluh lima ribu empat ratus empat puluh
+6366206	enam juta tiga ratus enam puluh enam ribu dua ratus enam
+4528973	empat juta lima ratus dua puluh lapan ribu sembilan ratus tujuh puluh tiga
+9344067	sembilan juta tiga ratus empat puluh empat ribu enam puluh tujuh
+3684532	tiga juta enam ratus lapan puluh empat ribu lima ratus tiga puluh dua
+5440562	lima juta empat ratus empat puluh ribu lima ratus enam puluh dua
+938484	sembilan ratus tiga puluh lapan ribu empat ratus lapan puluh empat
+3842789	tiga juta lapan ratus empat puluh dua ribu tujuh ratus lapan puluh sembilan
+538553	lima ratus tiga puluh lapan ribu lima ratus lima puluh tiga
+5292424	lima juta dua ratus sembilan puluh dua ribu empat ratus dua puluh empat
+6730429	enam juta tujuh ratus tiga puluh ribu empat ratus dua puluh sembilan
+4491947	empat juta empat ratus sembilan puluh satu ribu sembilan ratus empat puluh tujuh
+1110461	satu juta seratus sepuluh ribu empat ratus enam puluh satu
+3539705	tiga juta lima ratus tiga puluh sembilan ribu tujuh ratus lima
+9515703	sembilan juta lima ratus lima belas ribu tujuh ratus tiga
+5279419	lima juta dua ratus tujuh puluh sembilan ribu empat ratus sembilan belas
+3567282	tiga juta lima ratus enam puluh tujuh ribu dua ratus lapan puluh dua
+8375711	lapan juta tiga ratus tujuh puluh lima ribu tujuh ratus sebelas
+6637602	enam juta enam ratus tiga puluh tujuh ribu enam ratus dua
+7698257	tujuh juta enam ratus sembilan puluh lapan ribu dua ratus lima puluh tujuh
+2396988	dua juta tiga ratus sembilan puluh enam ribu sembilan ratus lapan puluh lapan
+4443952	empat juta empat ratus empat puluh tiga ribu sembilan ratus lima puluh dua
+2342609	dua juta tiga ratus empat puluh dua ribu enam ratus sembilan
+4137723	empat juta seratus tiga puluh tujuh ribu tujuh ratus dua puluh tiga
+9418195	sembilan juta empat ratus lapan belas ribu seratus sembilan puluh lima
+9042539	sembilan juta empat puluh dua ribu lima ratus tiga puluh sembilan
+4408073	empat juta empat ratus lapan ribu tujuh puluh tiga
+9807726	sembilan juta lapan ratus tujuh ribu tujuh ratus dua puluh enam
+7187927	tujuh juta seratus lapan puluh tujuh ribu sembilan ratus dua puluh tujuh
+9790058	sembilan juta tujuh ratus sembilan puluh ribu lima puluh lapan
+6700829	enam juta tujuh ratus ribu lapan ratus dua puluh sembilan
+6073293	enam juta tujuh puluh tiga ribu dua ratus sembilan puluh tiga
+3679592	tiga juta enam ratus tujuh puluh sembilan ribu lima ratus sembilan puluh dua
+2320822	dua juta tiga ratus dua puluh ribu lapan ratus dua puluh dua
+8548433	lapan juta lima ratus empat puluh lapan ribu empat ratus tiga puluh tiga
+8279822	lapan juta dua ratus tujuh puluh sembilan ribu lapan ratus dua puluh dua
+1525207	satu juta lima ratus dua puluh lima ribu dua ratus tujuh
+790482	tujuh ratus sembilan puluh ribu empat ratus lapan puluh dua
+1839608	satu juta lapan ratus tiga puluh sembilan ribu enam ratus lapan
+2564252	dua juta lima ratus enam puluh empat ribu dua ratus lima puluh dua
+2684053	dua juta enam ratus lapan puluh empat ribu lima puluh tiga
+7082669	tujuh juta lapan puluh dua ribu enam ratus enam puluh sembilan
+1065819	satu juta enam puluh lima ribu lapan ratus sembilan belas
+6455325	enam juta empat ratus lima puluh lima ribu tiga ratus dua puluh lima
+6402510	enam juta empat ratus dua ribu lima ratus sepuluh
+9997349	sembilan juta sembilan ratus sembilan puluh tujuh ribu tiga ratus empat puluh sembilan
+7852575	tujuh juta lapan ratus lima puluh dua ribu lima ratus tujuh puluh lima
+8877066	lapan juta lapan ratus tujuh puluh tujuh ribu enam puluh enam
+4218029	empat juta dua ratus lapan belas ribu dua puluh sembilan
+9281591	sembilan juta dua ratus lapan puluh satu ribu lima ratus sembilan puluh satu
+192620	seratus sembilan puluh dua ribu enam ratus dua puluh
+1921860	satu juta sembilan ratus dua puluh satu ribu lapan ratus enam puluh
+9008868	sembilan juta lapan ribu lapan ratus enam puluh lapan
+4476584	empat juta empat ratus tujuh puluh enam ribu lima ratus lapan puluh empat
+5707198	lima juta tujuh ratus tujuh ribu seratus sembilan puluh lapan
+1871535	satu juta lapan ratus tujuh puluh satu ribu lima ratus tiga puluh lima
+4924116	empat juta sembilan ratus dua puluh empat ribu seratus enam belas
+7294151	tujuh juta dua ratus sembilan puluh empat ribu seratus lima puluh satu
+2653447	dua juta enam ratus lima puluh tiga ribu empat ratus empat puluh tujuh
+7612221	tujuh juta enam ratus dua belas ribu dua ratus dua puluh satu
+54448	lima puluh empat ribu empat ratus empat puluh lapan
+4418935	empat juta empat ratus lapan belas ribu sembilan ratus tiga puluh lima
+8398442	lapan juta tiga ratus sembilan puluh lapan ribu empat ratus empat puluh dua
+2997282	dua juta sembilan ratus sembilan puluh tujuh ribu dua ratus lapan puluh dua
+8517486	lapan juta lima ratus tujuh belas ribu empat ratus lapan puluh enam
+1785278	satu juta tujuh ratus lapan puluh lima ribu dua ratus tujuh puluh lapan
+5007073	lima juta tujuh ribu tujuh puluh tiga
+8517170	lapan juta lima ratus tujuh belas ribu seratus tujuh puluh
+3337175	tiga juta tiga ratus tiga puluh tujuh ribu seratus tujuh puluh lima
+2564218	dua juta lima ratus enam puluh empat ribu dua ratus lapan belas
+6273234	enam juta dua ratus tujuh puluh tiga ribu dua ratus tiga puluh empat
+2710344	dua juta tujuh ratus sepuluh ribu tiga ratus empat puluh empat
+9049279	sembilan juta empat puluh sembilan ribu dua ratus tujuh puluh sembilan
+8897859	lapan juta lapan ratus sembilan puluh tujuh ribu lapan ratus lima puluh sembilan
+9595	sembilan ribu lima ratus sembilan puluh lima
+5438437	lima juta empat ratus tiga puluh lapan ribu empat ratus tiga puluh tujuh
+8197444	lapan juta seratus sembilan puluh tujuh ribu empat ratus empat puluh empat
