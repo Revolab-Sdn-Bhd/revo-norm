@@ -12,28 +12,41 @@ Example:
 
 import warnings
 from dataclasses import dataclass, field
+from enum import Enum
 
 # Single source of truth for language codes accepted by the pipeline.
 # Every language-dispatch point validates against this and fails fast.
 SUPPORTED_LANGUAGES = ("en", "ms", "id", "zh", "zh_my")
 
-# ---------------------------------------------------------------------------
-# Deprecated legacy aliases (kept for backward compatibility)
-# ---------------------------------------------------------------------------
+
+class Profile(str, Enum):
+    """Normalization profiles: how much of the pipeline runs."""
+
+    MINIMAL = "minimal"
+    BASIC = "basic"
+    STANDARD = "standard"
+    AGGRESSIVE = "aggressive"
 
 
-class _DeprecatedEnumAlias:
-    """Base class that emits DeprecationWarning when instantiated or accessed."""
+class Feature(str, Enum):
+    """Toggleable pipeline features — the names Config and disable= accept."""
 
-    _real_cls = None
-
-    def __class_getitem__(cls, item):
-        warnings.warn(
-            f"{cls.__name__} is deprecated. Use Config directly.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return cls._real_cls[item]
+    SPACING = "spacing"
+    ABBREVIATIONS = "abbreviations"
+    ACRONYMS = "acronyms"
+    PRONUNCIATION_OVERRIDES = "pronunciation_overrides"
+    ELONGATED = "elongated"
+    FRACTIONS = "fractions"
+    X_KALI = "x_kali"
+    TEMPERATURE = "temperature"
+    IC = "ic"
+    MEASUREMENTS = "measurements"
+    HARI_BULAN = "hari_bulan"
+    HIJRI = "hijri"
+    DATES = "dates"
+    TIMES = "times"
+    SPECIAL_CHARS = "special_chars"
+    SOUND_WORDS = "sound_words"
 
 
 # Keep old enum names importable for any code that references them
@@ -43,44 +56,6 @@ try:
     from enum import Enum
 except ImportError:
     Enum = None  # type: ignore[assignment,misc]
-
-
-if Enum is not None:
-
-    class FeatureGroup(str, Enum):
-        """DEPRECATED. Feature group names — kept for backward compat."""
-
-        NUMBERS = "numbers"
-        ENTITIES = "entities"
-        SPACING = "spacing"
-        MEASUREMENTS = "measurements"
-        MALAY_LOCAL = "malay_local"
-        ABBREVIATIONS = "abbreviations"
-        ACRONYMS = "acronyms"
-        ELONGATED = "elongated"
-        DATES = "dates"
-        TIMES = "times"
-
-    class FeatureLevel(str, Enum):
-        """DEPRECATED. Kept for backward compat."""
-
-        OFF = "off"
-        BASIC = "basic"
-        STANDARD = "standard"
-        AGGRESSIVE = "aggressive"
-
-    class Profile(str, Enum):
-        """DEPRECATED. Use profile name strings instead."""
-
-        MINIMAL = "minimal"
-        BASIC = "basic"
-        STANDARD = "standard"
-        AGGRESSIVE = "aggressive"
-
-else:
-    FeatureGroup = None  # type: ignore[assignment,misc]
-    FeatureLevel = None  # type: ignore[assignment,misc]
-    Profile = None  # type: ignore[assignment,misc]
 
 
 # ---------------------------------------------------------------------------
@@ -223,97 +198,4 @@ class Config:
         """Return True if Malay-local features should run for the given language."""
         return self.malay_local and language == "ms"
 
-    # ------------------------------------------------------------------
-    # Deprecated builder methods (backward compat)
-    # ------------------------------------------------------------------
 
-    def with_feature(self, group: "FeatureGroup", level: "FeatureLevel") -> "Config":
-        """DEPRECATED. Set a feature toggle. Use ``cfg.<field> = True/False`` instead."""
-        warnings.warn(
-            "with_feature() is deprecated. Set attributes directly: cfg.acronyms = False",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        name = group.value if isinstance(group, FeatureGroup) else str(group)
-        off = isinstance(level, FeatureLevel) and level == FeatureLevel.OFF
-        if hasattr(self, name):
-            setattr(self, name, not off)
-        return self
-
-    def with_sound_words(self, words: list[str]) -> "Config":
-        """DEPRECATED. Set ``cfg.sound_words`` directly instead."""
-        warnings.warn(
-            "with_sound_words() is deprecated. Set cfg.sound_words directly.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self.sound_words = words
-        return self
-
-
-# ---------------------------------------------------------------------------
-# Backward-compatible alias
-# ---------------------------------------------------------------------------
-
-NormalizationConfig = Config
-
-
-# ---------------------------------------------------------------------------
-# Deprecated factory functions
-# ---------------------------------------------------------------------------
-
-
-def minimal_config(**kwargs) -> Config:  # type: ignore[type-arg]
-    """DEPRECATED. Use Config.from_profile('minimal') instead."""
-    warnings.warn(
-        "minimal_config() is deprecated. Use Config.from_profile('minimal').",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    cfg = Config.from_profile("minimal")
-    for k, v in kwargs.items():
-        if hasattr(cfg, k):
-            setattr(cfg, k, v)
-    return cfg
-
-
-def basic_config(**kwargs) -> Config:  # type: ignore[type-arg]
-    """DEPRECATED. Use Config.from_profile('basic') instead."""
-    warnings.warn(
-        "basic_config() is deprecated. Use Config.from_profile('basic').",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    cfg = Config.from_profile("basic")
-    for k, v in kwargs.items():
-        if hasattr(cfg, k):
-            setattr(cfg, k, v)
-    return cfg
-
-
-def standard_config(**kwargs) -> Config:  # type: ignore[type-arg]
-    """DEPRECATED. Use Config() or Config.from_profile('standard') instead."""
-    warnings.warn(
-        "standard_config() is deprecated. Use Config() or Config.from_profile('standard').",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    cfg = Config()
-    for k, v in kwargs.items():
-        if hasattr(cfg, k):
-            setattr(cfg, k, v)
-    return cfg
-
-
-def aggressive_config(**kwargs) -> Config:  # type: ignore[type-arg]
-    """DEPRECATED. Use Config.from_profile('aggressive') instead."""
-    warnings.warn(
-        "aggressive_config() is deprecated. Use Config.from_profile('aggressive').",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    cfg = Config.from_profile("aggressive")
-    for k, v in kwargs.items():
-        if hasattr(cfg, k):
-            setattr(cfg, k, v)
-    return cfg

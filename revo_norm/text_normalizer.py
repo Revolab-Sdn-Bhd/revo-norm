@@ -9,7 +9,7 @@ Everything else is an internal helper.
 """
 
 import re
-import warnings
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Optional
 
 from revo_norm.config import SUPPORTED_LANGUAGES, Config
@@ -501,93 +501,33 @@ def special_replace(text: str, language: str = "en") -> str:
 
 
 # ===================================================================
-# Legacy-flag → Config mapping  (for **kwargs backward compat)
-# ===================================================================
-
-_LEGACY_FLAG_MAP: dict[str, str] = {
-    "normalize_spacing": "spacing",
-    "fix_dot_letters": "acronyms",  # dot-letter expansion controlled by acronyms toggle
-    "apply_pronunciation_overrides_flag": "pronunciation_overrides",
-    "expand_abbreviations_flag": "abbreviations",
-    "expand_acronyms_flag": "acronyms",
-    "normalize_elongated_flag": "elongated",
-    "normalize_fractions_flag": "fractions",
-    "normalize_x_kali_flag": "x_kali",
-    "normalize_temperature_flag": "temperature",
-    "normalize_ic_flag": "ic",
-    "normalize_measurements_flag": "measurements",
-    "normalize_hari_bulan_flag": "hari_bulan",
-    "normalize_hijri_flag": "hijri",
-}
-
-_LEGACY_DEFAULTS: dict[str, object] = {
-    "normalize_spacing": True,
-    "fix_dot_letters": True,
-    "sound_words_field": "",
-    "apply_pronunciation_overrides_flag": True,
-    "expand_abbreviations_flag": True,
-    "expand_acronyms_flag": True,
-    "normalize_elongated_flag": True,
-    "normalize_fractions_flag": True,
-    "normalize_x_kali_flag": True,
-    "normalize_temperature_flag": True,
-    "normalize_ic_flag": True,
-    "normalize_measurements_flag": True,
-    "normalize_hari_bulan_flag": True,
-    "normalize_hijri_flag": True,
-    "extract_entities_first": False,
-    "config": None,
-}
-
-
-# ===================================================================
-# THE ONE PIPELINE
+# THE ONE PIPELINE (core)
 # ===================================================================
 
 
-def normalize_text(
-    text: str,
-    language: str = "en",
-    profile: Optional[str] = None,
-    disable: Optional[list[str]] = None,
-    verbose: bool = False,
-    **kwargs: object,
-) -> str | dict:
-    """Normalize *text* for TTS in the given *language*.
+@dataclass(frozen=True)
+class NormalizationResult:
+    """Detailed normalization outcome — what changed and why.
 
-    Parameters
-    ----------
-    text : str
-        Input text to normalize.
-    language : str
-        One of ``SUPPORTED_LANGUAGES``. Case and surrounding whitespace are
-        ignored; an unrecognized code raises ``ValueError`` listing the
-        accepted values.
-    profile : str or None
-        One of ``"minimal"``, ``"basic"``, ``"standard"``, ``"aggressive"``.
-        If *None* the standard profile (all features on) is used.
-    disable : list[str] or None
-        Feature names to turn off, e.g. ``["acronyms", "measurements"]``.
-    verbose : bool
-        If *True*, return a dict with mappings and triggered rules instead of
-        just the normalized text string.
-    **kwargs
-        Legacy boolean flags — accepted for backward compatibility but emit
-        a ``DeprecationWarning``.  Supported names:
-        ``normalize_spacing``, ``fix_dot_letters``, ``sound_words_field``,
-        ``apply_pronunciation_overrides_flag``, ``expand_abbreviations_flag``,
-        ``expand_acronyms_flag``, ``normalize_elongated_flag``,
-        ``normalize_fractions_flag``, ``normalize_x_kali_flag``,
-        ``normalize_temperature_flag``, ``normalize_ic_flag``,
-        ``normalize_measurements_flag``, ``normalize_hari_bulan_flag``,
-        ``normalize_hijri_flag``, ``extract_entities_first``, ``config``.
-
-    Returns
-    -------
-    str or dict
-        Normalized text, or a dict with ``text``, ``original``, ``mappings``,
-        and ``rules`` keys when *verbose* is *True*.
+    ``normalize_text_detailed`` returns this; ``normalize_text`` returns
+    only ``text``.
     """
+
+    text: str
+    original: str
+    language: str
+    mappings: list[dict] = field(default_factory=list)
+    rules: list[str] = field(default_factory=list)
+
+
+def _normalize_core(
+    text: str,
+    language: str,
+    profile: Optional[str],
+    disable: Optional[list[str]],
+    config: Optional[Config] = None,
+) -> NormalizationResult:
+    """Shared pipeline. Returns the full result; public wrappers slice it."""
     # Canonicalize before validating so "ID", " en ", "Zh_MY" just work
     language = language.strip().lower()
     if language not in SUPPORTED_LANGUAGES:
@@ -596,11 +536,13 @@ def normalize_text(
         )
 
     # --- Build config ------------------------------------------------
-    cfg = _build_config(profile, disable, kwargs)
+    cfg = _build_config(profile, disable, config)
 
     text = text.strip()
     if not text:
-        return "" if not verbose else {"text": "", "original": "", "mappings": [], "rules": []}
+        return NormalizationResult(
+            text="", original="", language=language, mappings=[], rules=[]
+        )
 
     original_text = text
     _rules: list[str] = []
@@ -700,21 +642,20 @@ def normalize_text(
     extractor = EntityExtractor()
     protected_text, _entities = extractor.extract(text, always_extract)
 
-    if verbose:
-        for entity in extractor.entities:
-            if entity.type in speak_entities:
-                spoken = extractor._convert_entity_to_spoken(entity, language)
-                if spoken != entity.text:
-                    rule_name = entity.type.value
-                    _mappings.append(
-                        {
-                            "original": entity.text,
-                            "normalized": spoken,
-                            "rule": rule_name,
-                        }
-                    )
-                    if rule_name not in _rules:
-                        _rules.append(rule_name)
+    for entity in extractor.entities:
+        if entity.type in speak_entities:
+            spoken = extractor._convert_entity_to_spoken(entity, language)
+            if spoken != entity.text:
+                rule_name = entity.type.value
+                _mappings.append(
+                    {
+                        "original": entity.text,
+                        "normalized": spoken,
+                        "rule": rule_name,
+                    }
+                )
+                if rule_name not in _rules:
+                    _rules.append(rule_name)
 
     # --- Step 4: Pronunciation mappings (always, on protected text) --
     before = protected_text
@@ -810,14 +751,61 @@ def normalize_text(
     protected_text = _unstash_placeholders(protected_text, ph_stash)
     result = _restore_entities(protected_text, extractor, speak_entities, language)
 
-    if verbose:
-        return {
-            "text": result,
-            "original": original_text,
-            "mappings": _mappings,
-            "rules": _rules,
-        }
-    return result
+    return NormalizationResult(
+        text=result,
+        original=original_text,
+        language=language,
+        mappings=_mappings,
+        rules=_rules,
+    )
+
+
+def normalize_text(
+    text: str,
+    language: str,
+    profile: Optional[str] = None,
+    disable: Optional[list[str]] = None,
+    config: Optional[Config] = None,
+) -> str:
+    """Normalize *text* for TTS in the given *language*.
+
+    Parameters
+    ----------
+    text : str
+        Input text to normalize.
+    language : str
+        Required. One of ``SUPPORTED_LANGUAGES``. Case and surrounding
+        whitespace are ignored; an unrecognized code raises ``ValueError``
+        listing the accepted values.
+    profile : str or None
+        One of ``"minimal"``, ``"basic"``, ``"standard"``, ``"aggressive"``.
+        If *None* the standard profile (all features on) is used.
+    disable : list[str] or None
+        Feature names to turn off, e.g. ``["acronyms", "measurements"]``.
+    config : Config or None
+        A ready :class:`~revo_norm.config.Config`; overrides *profile*.
+        Mutually independent — pass one or the other, not both.
+
+    Returns
+    -------
+    str
+        The normalized text. For mappings and triggered rules use
+        :func:`normalize_text_detailed`.
+    """
+    return _normalize_core(text, language, profile, disable, config).text
+
+
+def normalize_text_detailed(
+    text: str,
+    language: str,
+    profile: Optional[str] = None,
+    disable: Optional[list[str]] = None,
+    config: Optional[Config] = None,
+) -> NormalizationResult:
+    """Like :func:`normalize_text` but returns a :class:`NormalizationResult`
+    with the normalized text plus per-entity mappings and the list of
+    pipeline rules that fired."""
+    return _normalize_core(text, language, profile, disable, config)
 
 
 # ===================================================================
@@ -828,63 +816,18 @@ def normalize_text(
 def _build_config(
     profile: Optional[str],
     disable: Optional[list[str]],
-    kwargs: dict,
+    config: Optional[Config] = None,
 ) -> Config:
-    """Resolve profile / disable / legacy **kwargs into a Config."""
-    # Check for legacy config= kwarg first
-    legacy_config = kwargs.pop("config", None)
-
-    # Detect non-default legacy flags
-    has_legacy = any(k in _LEGACY_DEFAULTS for k in kwargs)
-    has_legacy_nondefault = False
-    if has_legacy:
-        for k, v in kwargs.items():
-            if k in _LEGACY_DEFAULTS and v != _LEGACY_DEFAULTS[k]:
-                has_legacy_nondefault = True
-                break
-
-    if has_legacy:
-        warnings.warn(
-            "Passing individual flags to normalize_text() is deprecated. "
-            "Use profile= and disable= parameters instead.",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-
-    # If an old NormalizationConfig was passed, use it directly
-    if legacy_config is not None:
-        warnings.warn(
-            "The config= parameter is deprecated. Use profile= and disable= instead.",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-        if isinstance(legacy_config, Config):
-            return legacy_config
-        # Unexpected type — fall through
-        return Config()
-
-    # Build from profile + disable
-    cfg = Config.from_profile(profile) if profile is not None else Config()
+    """Resolve a Config from an explicit one, or profile + disable."""
+    if config is not None:
+        cfg = config
+    else:
+        cfg = Config.from_profile(profile) if profile is not None else Config()
 
     if disable:
         for f in disable:
             if hasattr(cfg, f):
                 setattr(cfg, f, False)
-
-    # Apply legacy boolean flags on top
-    if has_legacy_nondefault:
-        for flag_name, value in kwargs.items():
-            if flag_name == "sound_words_field":
-                # sound_words_field is a string; convert to list
-                if isinstance(value, str) and value.strip():
-                    cfg.sound_words = [line.strip() for line in value.split("\n") if line.strip()]
-                continue
-            if flag_name == "extract_entities_first":
-                # Was a mode selector, now always entity-extraction; ignore
-                continue
-            if flag_name in _LEGACY_FLAG_MAP:
-                field_name = _LEGACY_FLAG_MAP[flag_name]
-                setattr(cfg, field_name, bool(value))
 
     return cfg
 
