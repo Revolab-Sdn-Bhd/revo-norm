@@ -201,6 +201,71 @@ def _expand_digit_by_digit_context(text: str, language: str) -> str:
     return text
 
 
+def _spell_special_chars(text: str, language: str = "en") -> str:
+    """Spell out symbols (&, *, #, %, +, =, etc.) that TTS engines otherwise
+    read as their raw character name instead of skipping or pronouncing sensibly."""
+    if language == "en":
+        percent_word = "percent"
+    elif language == "id":
+        percent_word = "persen"
+    else:
+        percent_word = "peratus"
+    # "*" is dropped silently for en/ms; id keeps the original "star" wording.
+    star_word = "" if language in ("en", "ms") else "star"
+    replacements: dict[str, str] = {
+        "&": "and",
+        "+": "plus",
+        "=": "equals",
+        "@": "at",
+        "#": "hash",
+        "*": star_word,
+        "%": percent_word,
+        "$": "dollar",
+        "EUR": "euro",
+        "GBP": "pound",
+        "©": "copyright",
+        "®": "registered",
+        "™": "trademark",
+        "<": "less than",
+        ">": "greater than",
+        "|": "bar",
+        "~": "tilde",
+        "^": "caret",
+    }
+
+    at_word = "艾特" if language == "zh" else "at"
+    hash_word = "井" if language == "zh" else "hash"
+    money_word = "美元" if language == "zh" else "块"
+    replacements_zh: dict[str, str] = {
+        "&": "和",
+        "+": "加",
+        "=": "等于",
+        "@": at_word,
+        "#": hash_word,
+        "*": "星号",
+        "%": "巴仙",
+        "$": money_word,
+        "EUR": "欧元",
+        "GBP": "英镑",
+        "©": "版权",
+        "®": "注册",
+        "™": "商标",
+        "<": "小于",
+        ">": "大于",
+        "|": "竖线",
+        "~": "波浪号",
+        "^": "插入符",
+    }
+
+    if language in ("zh", "zh_my"):
+        for char, replacement in replacements_zh.items():
+            text = text.replace(char, f" {replacement} ")
+    else:
+        for char, replacement in replacements.items():
+            text = text.replace(char, f" {replacement} ")
+    return re.sub(r"\s+", " ", text).strip()
+
+
 def url_to_spoken(url: str, language: str = "en") -> str:
     """Convert a URL into spoken-friendly form for TTS."""
     spoken = url
@@ -235,6 +300,17 @@ def url_to_spoken(url: str, language: str = "en") -> str:
         spoken = spoken.replace(".", " dot ")
         spoken = spoken.replace("/", " slash ")
         spoken = spoken.replace("-", " dash ")
+
+    # Query strings/fragments can carry &, *, ! that would otherwise reach the
+    # TTS engine as raw characters instead of being spoken/dropped like elsewhere.
+    if language in ("zh", "zh_my"):
+        spoken = spoken.replace("&", " 和 ").replace("*", " 星号 ")
+    else:
+        star_word = " " if language in ("en", "ms") else " star "
+        spoken = spoken.replace("&", " and ").replace("*", star_word)
+    # "!" is only dropped for en/ms; id/zh/zh_my keep it as-is.
+    if language in ("en", "ms"):
+        spoken = spoken.replace("!", "")
 
     if language in ("zh", "zh_my"):
         spoken = re.sub(
@@ -488,64 +564,7 @@ def special_replace(text: str, language: str = "en") -> str:
 
     text = placeholder_pattern.sub(_stash, text)
 
-    if language == "en":
-        percent_word = "percent"
-    elif language == "id":
-        percent_word = "persen"
-    else:
-        percent_word = "peratus"
-    replacements: dict[str, str] = {
-        "&": "and",
-        "+": "plus",
-        "=": "equals",
-        "@": "at",
-        "#": "hash",
-        "*": "star",
-        "%": percent_word,
-        "$": "dollar",
-        "EUR": "euro",
-        "GBP": "pound",
-        "©": "copyright",
-        "®": "registered",
-        "™": "trademark",
-        "<": "less than",
-        ">": "greater than",
-        "|": "bar",
-        "~": "tilde",
-        "^": "caret",
-    }
-
-    at_word = "艾特" if language == "zh" else "at"
-    hash_word = "井" if language == "zh" else "hash"
-    money_word = "美元" if language == "zh" else "块"
-    replacements_zh: dict[str, str] = {
-        "&": "和",
-        "+": "加",
-        "=": "等于",
-        "@": at_word,
-        "#": hash_word,
-        "*": "星号",
-        "%": "巴仙",
-        "$": money_word,
-        "EUR": "欧元",
-        "GBP": "英镑",
-        "©": "版权",
-        "®": "注册",
-        "™": "商标",
-        "<": "小于",
-        ">": "大于",
-        "|": "竖线",
-        "~": "波浪号",
-        "^": "插入符",
-    }
-
-    if language in ("zh", "zh_my"):
-        for char, replacement in replacements_zh.items():
-            text = text.replace(char, f" {replacement} ")
-    else:
-        for char, replacement in replacements.items():
-            text = text.replace(char, f" {replacement} ")
-    text = re.sub(r"\s+", " ", text).strip()
+    text = _spell_special_chars(text, language)
 
     # Restore placeholders
     for i, ph in enumerate(placeholders):
@@ -860,6 +879,13 @@ def normalize_text(
         before = protected_text
         protected_text = special_replace(protected_text, language)
         _track("special_chars", before, protected_text)
+
+    # Exclamation marks read poorly on TTS (over-emphasis) — drop them.
+    # Scoped to en/ms only; id/zh/zh_my keep "!" as-is.
+    if language in ("en", "ms"):
+        before = protected_text
+        protected_text = re.sub(r" {2,}", " ", re.sub(r"!+", "", protected_text)).strip()
+        _track("strip_exclamation", before, protected_text)
 
     # --- Step 7: Restore placeholders then entities as spoken form ---
     protected_text = _unstash_placeholders(protected_text, ph_stash)
