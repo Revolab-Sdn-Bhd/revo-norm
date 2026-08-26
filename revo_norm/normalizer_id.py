@@ -120,7 +120,7 @@ _time_re = re.compile(
     re.IGNORECASE,
 )
 _time_no_meridian_re = re.compile(
-    r"\b(\d{1,2}):(\d{2})\b(?!\s*(?:am|pm|a\.m\.|p\.m\.|pagi|siang|sore|malam))"
+    r"\b(\d{1,2})[:\.](\d{2})\b(?!\s*(?:am|pm|a\.m\.|p\.m\.|pagi|siang|sore|malam))"
     r"(?!.*%)",
     re.IGNORECASE,
 )
@@ -163,14 +163,21 @@ def normalize_percentage(m):
 
 def normalize_time(m):
     hour, minute, meridian = m.groups()
-    hour_word = num2word(int(hour))
-    minute_word = num2word(int(minute))
+    hour_int = int(hour)
+    minute_int = int(minute)
+    hour_word = num2word(hour_int)
+    minute_word = num2word(minute_int)
 
+    meridian_lower = (meridian or "").lower()
     meridian_word = ""
-    if meridian:
-        meridian_word = meridian if len(meridian) > 2 else f"{meridian[0]} m"
+    if meridian_lower in ("pagi", "siang", "sore", "malam"):
+        meridian_word = meridian_lower
+    elif meridian_lower in ("am", "a.m."):
+        meridian_word = "pagi"
+    elif meridian_lower in ("pm", "p.m."):
+        meridian_word = "sore" if hour_int < 18 else "malam"
 
-    if minute_word == "nol":
+    if minute_int == 0:
         return f"{hour_word} {meridian_word}".strip()
     else:
         return f"{hour_word} {minute_word} {meridian_word}".strip()
