@@ -77,3 +77,8 @@ malay_normalizer/
 site/
 REPO_ANALYSIS/
 .omc/
+
+# Rust (revonorm-core)
+revonorm-core/target/
+revonorm-core/pkg/
+revonorm-core/pkg-node/

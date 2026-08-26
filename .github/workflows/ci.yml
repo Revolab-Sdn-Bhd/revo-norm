@@ -30,3 +30,30 @@ jobs:
 
       - name: Run tests
         run: uv run pytest revo-norm-tests/ -q --tb=short
+
+  rust-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: revonorm-core
+
+      - name: Regenerate fixtures from Python
+        run: |
+          pip install inflect
+          python revonorm-core/tests/parity_gen.py
+
+      - name: Native parity tests
+        working-directory: revonorm-core
+        run: cargo test
+
+      - name: Wasm build
+        working-directory: revonorm-core
+        run: cargo build --target wasm32-unknown-unknown --release
