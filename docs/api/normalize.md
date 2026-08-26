@@ -48,15 +48,13 @@ Common feature names:
 - `"abbreviations"` — Disable abbreviation expansion (currently a no-op)
 - `"elongated"` — Disable elongated word normalization
 - `"special_chars"` — Disable special character replacement (&, +, %, etc.)
-- `"pronunciation_overrides"` — Disable pronunciation overrides
+- `"pronunciation_overrides"` — Disable all pronunciation behavior (every layer)
 
-### `**kwargs` (legacy flags)
+### `config` {: #config-param }
 
-Legacy boolean flags accepted for backward compatibility. Using any of these emits a `DeprecationWarning`.
+`Config | None`, default `None` — a ready [`Config`](config.md); overrides `profile=`. Use it for per-call state `Config` carries: `sound_words`, `pronunciation_profile`, `pronunciations`.
 
-Supported legacy names:
-
-`normalize_spacing`, `fix_dot_letters`, `sound_words_field`, `apply_pronunciation_overrides_flag`, `expand_abbreviations_flag`, `expand_acronyms_flag`, `normalize_elongated_flag`, `normalize_fractions_flag`, `normalize_x_kali_flag`, `normalize_temperature_flag`, `normalize_ic_flag`, `normalize_measurements_flag`, `normalize_hari_bulan_flag`, `normalize_hijri_flag`, `extract_entities_first`, `config`
+Legacy boolean flags (`sound_words_field`, `normalize_spacing`, `*_flag`, ...) were **removed in v0.5.0** — see the [migration guide](../migration.md).
 
 ## Return Value
 

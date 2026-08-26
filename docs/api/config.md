@@ -120,49 +120,13 @@ cfg.is_enabled("unknown")     # True (safe default)
 
 Returns `True` if Malay-local features should run for the given language. This is `True` only when `malay_local` is enabled **and** `language == "ms"`.
 
-## Deprecated Methods
+## Removed in v0.5.0
 
-These methods are retained for backward compatibility but emit `DeprecationWarning`.
+The pre-0.5 configuration surface was removed outright — these now raise on use:
 
-### `with_feature(group, level)` {: #with-feature }
+- `with_feature(group, level)` / `with_sound_words(words)` — set attributes directly: `cfg.acronyms = False`, `cfg.sound_words = [...]`
+- `minimal_config()` / `basic_config()` / `standard_config()` / `aggressive_config()` — use `Config.from_profile("minimal")` or `profile=`
+- `NormalizationConfig` alias — use `Config`
+- `FeatureGroup` / `FeatureLevel` / old `Profile` enums — use the `Feature` and `Profile` enums, or plain strings
 
-Use direct attribute assignment instead:
-
-```python
-# Deprecated
-cfg.with_feature(FeatureGroup.ACRONYMS, FeatureLevel.OFF)
-
-# Preferred
-cfg.acronyms = False
-```
-
-### `with_sound_words(words)` {: #with-sound-words }
-
-Set `cfg.sound_words` directly instead:
-
-```python
-# Deprecated
-cfg.with_sound_words(["[laughter]", "[applause]"])
-
-# Preferred
-cfg.sound_words = ["[laughter]", "[applause]"]
-```
-
-## Deprecated Factory Functions
-
-These module-level functions are deprecated in favor of `Config.from_profile()`:
-
-| Deprecated | Replacement |
-|------------|-------------|
-| `minimal_config()` | `Config.from_profile("minimal")` |
-| `basic_config()` | `Config.from_profile("basic")` |
-| `standard_config()` | `Config()` or `Config.from_profile("standard")` |
-| `aggressive_config()` | `Config.from_profile("aggressive")` |
-
-## Backward-Compatible Aliases
-
-| Alias | Actual Class |
-|-------|-------------|
-| `NormalizationConfig` | `Config` |
-
-The deprecated enums `FeatureGroup`, `FeatureLevel`, and `Profile` are still importable for backward compatibility but should not be used in new code.
+See the [migration guide](../migration.md) for the full mapping.
