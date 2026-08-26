@@ -27,12 +27,7 @@ from revo_norm.currency_utils import (
     expand_currency_m_suffix,
     expand_currency_t_suffix,
 )
-from revo_norm.normalizer_en import text_normalize as text_normalizer_en
-from revo_norm.normalizer_id import normalize_indonesian as text_normalizer_id
-from revo_norm.normalizer_id import preparse_number_formats as _preparse_id_number_formats
-from revo_norm.normalizer_ms import normalize_malay as text_normalizer_ms
-from revo_norm.normalizer_zh import text_normalize_zh as text_normalizer_zh
-from revo_norm.normalizer_zh_my import text_normalize_zh_my as text_normalizer_zh_my
+from revo_norm.langpack import get_pack
 from revo_norm.pronunciation_mappings import apply_pronunciation_mappings
 from revo_norm.shared_features import (
     normalize_elongated_text,
@@ -114,19 +109,7 @@ _DIGIT_WORDS_ZH = {
 
 def _digit_word(digit: str, language: str) -> str:
     """Convert a single digit to its spoken word."""
-    if language in ("zh", "zh_my"):
-        return _DIGIT_WORDS_ZH.get(digit, digit)
-
-    if language == "ms":
-        return _DIGIT_WORDS_MS.get(digit, digit)
-
-    if language == "id":
-        return _DIGIT_WORDS_ID.get(digit, digit)
-
-    if language == "en":
-        return _DIGIT_WORDS.get(digit, digit)
-
-    raise ValueError(f"Unsupported language: {language!r} (expected one of {SUPPORTED_LANGUAGES})")
+    return get_pack(language).digit_words.get(digit, digit)
 
 
 def email_to_spoken(email: str, language: str = "en") -> str:
@@ -204,65 +187,9 @@ def _expand_digit_by_digit_context(text: str, language: str) -> str:
 def _spell_special_chars(text: str, language: str = "en") -> str:
     """Spell out symbols (&, *, #, %, +, =, etc.) that TTS engines otherwise
     read as their raw character name instead of skipping or pronouncing sensibly."""
-    if language == "en":
-        percent_word = "percent"
-    elif language == "id":
-        percent_word = "persen"
-    else:
-        percent_word = "peratus"
-    # "*" is dropped silently for en/ms; id keeps the original "star" wording.
-    star_word = "" if language in ("en", "ms") else "star"
-    replacements: dict[str, str] = {
-        "&": "and",
-        "+": "plus",
-        "=": "equals",
-        "@": "at",
-        "#": "hash",
-        "*": star_word,
-        "%": percent_word,
-        "$": "dollar",
-        "EUR": "euro",
-        "GBP": "pound",
-        "©": "copyright",
-        "®": "registered",
-        "™": "trademark",
-        "<": "less than",
-        ">": "greater than",
-        "|": "bar",
-        "~": "tilde",
-        "^": "caret",
-    }
-
-    at_word = "艾特" if language == "zh" else "at"
-    hash_word = "井" if language == "zh" else "hash"
-    money_word = "美元" if language == "zh" else "块"
-    replacements_zh: dict[str, str] = {
-        "&": "和",
-        "+": "加",
-        "=": "等于",
-        "@": at_word,
-        "#": hash_word,
-        "*": "星号",
-        "%": "巴仙",
-        "$": money_word,
-        "EUR": "欧元",
-        "GBP": "英镑",
-        "©": "版权",
-        "®": "注册",
-        "™": "商标",
-        "<": "小于",
-        ">": "大于",
-        "|": "竖线",
-        "~": "波浪号",
-        "^": "插入符",
-    }
-
-    if language in ("zh", "zh_my"):
-        for char, replacement in replacements_zh.items():
-            text = text.replace(char, f" {replacement} ")
-    else:
-        for char, replacement in replacements.items():
-            text = text.replace(char, f" {replacement} ")
+    symbols = get_pack(language).symbol_words
+    for char, replacement in symbols.items():
+        text = text.replace(char, f" {replacement} ")
     return re.sub(r"\s+", " ", text).strip()
 
 
@@ -685,16 +612,16 @@ def normalize_text(
 
     # --- Step 1: Currency suffix expansion (always runs) -----
     before = text
-    if language == "id":
-        # Indonesian written conventions (1.000.000, 10,5, Rp5M/Rp5jt where
-        # M = miliar) are rewritten to plain digits + magnitude words first,
-        # so the en-semantics M suffix (million) must not run for id.
-        text = _preparse_id_number_formats(text)
+    pack = get_pack(language)
+    # Written number conventions (1.000.000, 10,5, Rp5M) are rewritten to
+    # plain digits + magnitude words first, per language.
+    if pack.preparse_number_formats is not None:
+        text = pack.preparse_number_formats(text)
     text = CURRENCY_T_SUFFIX_PATTERN.sub(expand_currency_t_suffix, text)
     text = CURRENCY_TRILIUN_PATTERN.sub(expand_currency_t_suffix, text)
     text = CURRENCY_B_SUFFIX_PATTERN.sub(expand_currency_b_suffix, text)
     text = CURRENCY_MILIAR_PATTERN.sub(expand_currency_b_suffix, text)
-    if language != "id":
+    if pack.use_en_currency_m_suffix:
         text = CURRENCY_M_SUFFIX_PATTERN.sub(expand_currency_m_suffix, text)
     text = CURRENCY_JUTA_PATTERN.sub(expand_currency_m_suffix, text)
     text = CURRENCY_K_SUFFIX_PATTERN.sub(expand_currency_k_suffix, text)
@@ -825,16 +752,8 @@ def normalize_text(
 
     # Language-specific normalizer (always runs for contractions, numbers, etc.)
     before = protected_text
-    if language == "en":
-        protected_text = text_normalizer_en(protected_text)
-    elif language == "ms":
-        protected_text = text_normalizer_ms(protected_text)
-    elif language == "id":
-        protected_text = text_normalizer_id(protected_text)
-    elif language == "zh":
-        protected_text = text_normalizer_zh(protected_text)
-    elif language == "zh_my":
-        protected_text = text_normalizer_zh_my(protected_text)
+    assert pack.normalize is not None  # registered packs always carry one
+    protected_text = pack.normalize(protected_text)
     _track(f"language_normalizer_{language}", before, protected_text)
 
     # Spacing normalization
@@ -880,9 +799,9 @@ def normalize_text(
         protected_text = special_replace(protected_text, language)
         _track("special_chars", before, protected_text)
 
-    # Exclamation marks read poorly on TTS (over-emphasis) — drop them.
-    # Scoped to en/ms only; id/zh/zh_my keep "!" as-is.
-    if language in ("en", "ms"):
+    # Exclamation marks read poorly on TTS (over-emphasis) — drop them
+    # where the language's pack opts in.
+    if pack.drops_exclamation:
         before = protected_text
         protected_text = re.sub(r" {2,}", " ", re.sub(r"!+", "", protected_text)).strip()
         _track("strip_exclamation", before, protected_text)
