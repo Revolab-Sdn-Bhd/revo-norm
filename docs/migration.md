@@ -1,8 +1,23 @@
 # Migration Guide
 
-This guide covers migrating from the old revo-norm API to the current API. The old API is still functional but emits `DeprecationWarning`.
+Covers migrating to the **v0.5.0** API. v0.5.0 removed the deprecated surface outright — old calls now raise `TypeError`, not `DeprecationWarning`.
+
+## v0.5.0 in one minute
+
+| Pre-0.5 call | v0.5.0 call |
+|---|---|
+| `normalize_text(text)` (defaulted to `en`) | `normalize_text(text, language="en")` — **required** |
+| `normalize_text(text, "ms", verbose=True)` | `normalize_text_detailed(text, "ms").text / .mappings / .rules` |
+| `normalize_text(..., sound_words_field="a\nb")` | `cfg = Config(); cfg.sound_words = ["a", "b"]` then `normalize_text(..., config=cfg)` |
+| `normalize_text(..., normalize_temperature_flag=False)` | `normalize_text(..., disable=[Feature.TEMPERATURE])` |
+| `standard_config()` etc. | `Config()` / `Config.from_profile("standard")` or `profile=` |
+| `NormalizationConfig`, `FeatureGroup`, `FeatureLevel` | `Config`, `Feature` (profile strings or `Profile` enum) |
+
+New in v0.5.0: `Profile` and `Feature` enums, `normalize_text_detailed` → typed `NormalizationResult`, `config=` passthrough, and language packs (`LanguagePack`, `register_language`, `supported_languages`) for adding languages without touching core files.
 
 ---
+
+## Legacy reference (pre-0.4 → 0.4)
 
 ## Quick Reference
 

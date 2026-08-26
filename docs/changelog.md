@@ -2,7 +2,28 @@
 
 All notable changes to revo-norm are documented here.
 
-## v0.4.2 (Current)
+## v0.5.0 (Current)
+
+Multilingual-first architecture and a clean API. Breaking changes ride in the 0.x minor.
+
+### Breaking
+
+- `language` is now a required argument — the old `"en"` default silently normalized non-English input with English rules; omitting it now raises `TypeError`
+- `normalize_text` always returns `str`; the `verbose=True` dict return moved to `normalize_text_detailed()` as a typed `NormalizationResult` (`.text`, `.original`, `.language`, `.mappings`, `.rules`)
+- Legacy `**kwargs` boolean flags removed (`sound_words_field`, `normalize_spacing`, `*_flag`, ...); use `config=Config(...)`, `profile=`, or `disable=`
+- Deprecated shims removed: `minimal_config()` / `basic_config()` / `standard_config()` / `aggressive_config()`, `NormalizationConfig`, `FeatureGroup`, `FeatureLevel`, `Config.with_feature()`, `Config.with_sound_words()`
+
+### Added
+
+- **Language packs** (`revo_norm.langpack`): every language is one `LanguagePack` — unit tables, month names, symbol words, digit words, currency names, plus behavior hooks (`normalize`, `speak_number`, `num2word`, `preparse_number_formats`). `register_language(pack)` adds a new language with zero core-file edits; `LanguagePack`, `register_language`, `supported_languages` are exported
+- `Profile` and `Feature` enums — IDE autocomplete for `profile=` and `disable=`
+- `normalize_text(config=...)` accepts a ready `Config`
+
+### Changed
+
+- Core pipeline files no longer branch on language codes for vocabulary; per-language dispatch lives in the packs (81 → 39 language branches in `text_normalizer`/`shared_features`/`entity_extractor`; the remainder is genuine per-language behavior)
+
+## v0.4.2
 
 TTS symbol fixes and Indonesian deltas validated on the TTS server.
 
