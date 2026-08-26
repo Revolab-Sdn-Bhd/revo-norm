@@ -2,7 +2,19 @@
 
 All notable changes to revo-norm are documented here.
 
-## v0.4.1 (Current)
+## v0.4.2 (Current)
+
+TTS symbol fixes and Indonesian deltas validated on the TTS server.
+
+### Fixed
+
+- `*` and `!` are silently dropped for `en`/`ms` (prose and URL queries) instead of being pronounced literally ("asterisk", exclamation over-emphasis); `zh`/`zh_my`/`id` keep prior behavior
+- `&` inside URL query strings (`https://example.com?a=1&b=2`) is spoken ("and" / 和) instead of reaching TTS raw
+- Indonesian dotted no-meridian times (`jam 09.30`) read as a time ("sembilan tiga puluh"), not a decimal
+- Indonesian `am`/`pm` map to `pagi`/`sore`/`malam` in `normalize_time` instead of leaving raw "pm"
+- Indonesian negative cardinals speak `negatif`, not `minus`
+
+## v0.4.1
 
 Explicit language scope and more lenient language input.
 

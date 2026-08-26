@@ -12,7 +12,7 @@ Quick start::
     normalize_text("test", language="en", disable=["acronyms"])
 """
 
-__version__ = "0.4.1"
+__version__ = "0.4.2"
 
 # Main entry point
 # Simple configuration
