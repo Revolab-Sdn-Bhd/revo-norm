@@ -30,3 +30,32 @@ jobs:
 
       - name: Run tests
         run: uv run pytest revo-norm-tests/ -q --tb=short
+
+  rust-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: revonorm-core
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Regenerate parity fixtures from Python
+        run: |
+          uv sync --all-extras
+          uv run python revonorm-core/tests/gen_fixtures.py
+
+      - name: Native parity tests
+        run: cargo test --manifest-path revonorm-core/Cargo.toml
+
+      - name: Clippy
+        run: cargo clippy --manifest-path revonorm-core/Cargo.toml -- -D warnings
+
+      - name: wasm build
+        run: cargo build --release --manifest-path revonorm-core/Cargo.toml --target wasm32-unknown-unknown
