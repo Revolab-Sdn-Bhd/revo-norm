@@ -1,92 +1,104 @@
 # Pronunciation Mappings
 
-Explicit pronunciation mappings that are applied **first** in the normalization pipeline, before any other transformations. This gives them the highest priority and prevents downstream steps (acronym expansion, abbreviation expansion, etc.) from altering mapped terms.
+Explicit pronunciation mappings applied **first** in the normalization pipeline, before any other transformation — highest priority, so mapped terms survive downstream steps (acronym expansion, abbreviation expansion, ...) intact.
 
-## How It Works
+Mappings resolve in **layers**; later layers win:
 
-1. When `normalize_text()` is called, pronunciation mappings are applied immediately after entity extraction
-2. Each mapping is a whole-word, case-insensitive match
-3. Mappings are sorted by key length (longest first) to handle overlapping terms correctly
-4. The same mappings are used across languages, reflecting the code-mixed nature of Malaysian text
+1. **Legacy global** — `PRONUNCIATION_MAPPINGS`, written by `add_custom_mapping()`. Process-wide; kept for backward compatibility.
+2. **Named profile** — `"builtin"` (default, ships with the library), `"none"`, or one you register via `register_pronunciation_profile()`.
+3. **`Config.pronunciations`** — per-call, the company personalization path. Last say.
 
-## `add_custom_mapping`
+Every layer may be **language-scoped**: `{"*": {...}, "ms": {...}}` — a flat dict applies to all languages. A `None` value **deletes** the term from all lower layers ("my TTS model handles this, leave it alone").
 
-::: revo_norm.pronunciation_mappings.add_custom_mapping
+Setting `Config.pronunciation_overrides = False` disables all pronunciation behavior, every layer.
 
-Add a custom pronunciation mapping to the global mappings dictionary.
-
-**Parameters:**
-
-| Name | Type | Default | Description |
-|------|------|---------|-------------|
-| `term` | `str` | required | The term to map (e.g., `"YOLO"`) |
-| `pronunciation` | `str` | required | The spoken form (e.g., `"you only live once"`) |
-| `language` | `str` | `"en"` | Language code — currently ignored; mappings apply across all languages |
-
-**Returns:** `None`
-
-!!! warning "Thread Safety"
-    `add_custom_mapping` modifies the global `PRONUNCIATION_MAPPINGS` dictionary. It is not thread-safe. Call it during application startup, not from concurrent request handlers.
+## Quick Start
 
 ```python
-from revo_norm.pronunciation_mappings import add_custom_mapping
+from revo_norm import Config, normalize_text
 
-# Add a custom mapping
-add_custom_mapping("YOLO", "you only live once", "en")
+# Company personalization: your product name, your pronunciation
+cfg = Config()
+cfg.pronunciations = {"RevoPay": "revo pay"}
+normalize_text("Top up RevoPay now", language="ms", config=cfg)
+# "top up revo pay now"
 
-# Now normalize_text will use it
-from revo_norm import normalize_text
-result = normalize_text("YOLO approach", language="en")
-# "you only live once approach"
+# Model-specific: this TTS model says "wee fee", fix it — for this call only
+cfg = Config()
+cfg.pronunciations = {"WiFi": "wai fai"}
+normalize_text("Sambung WiFi", language="ms", config=cfg)
+
+# Unmap a builtin entry — your model handles it natively
+cfg = Config()
+cfg.pronunciations = {"WiFi": None}
+normalize_text("Connect WiFi", language="en", config=cfg)  # "WiFi" survives
+
+# Disable the builtin layer entirely
+cfg = Config(pronunciation_profile="none")
+
+# Language-scoped: different spoken forms per language
+cfg = Config()
+cfg.pronunciations = {
+    "*": {"WiFi": "wi fi"},
+    "ms": {"Dr": "Doktor"},
+}
 ```
 
-## `get_pronunciation_mappings`
+## `Config.pronunciations` / `Config.pronunciation_profile`
 
-::: revo_norm.pronunciation_mappings.get_pronunciation_mappings
+Request-scoped layers 3 and 2. Prefer these over `add_custom_mapping()` in servers — no global mutation, safe under concurrency.
 
-Get a copy of the current pronunciation mappings dictionary.
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `pronunciation_profile` | `str` | `"builtin"` | Named profile: `"builtin"`, `"none"`, or a registered one |
+| `pronunciations` | `dict` | `{}` | Flat (all languages) or scoped (`{"*": {...}, "ms": {...}}`). `None` values delete |
 
-**Parameters:**
+Config entries that look like abbreviation expansions ("YOLO" → "you only live once") emit a `UserWarning` — surfaced, not blocking. You own your output.
 
-| Name | Type | Default | Description |
-|------|------|---------|-------------|
-| `language` | `str` | `"en"` | Language code — currently ignored; same mappings returned for all languages |
+## `register_pronunciation_profile`
 
-**Returns:** `dict[str, str]` — A copy of the pronunciation mappings. Modifications to the returned dict do not affect the global mappings.
+::: revo_norm.pronunciation_mappings.register_pronunciation_profile
+
+Register a named mapping set at process startup — the natural home for TTS-model-specific tables and company dictionaries.
 
 ```python
-from revo_norm.pronunciation_mappings import get_pronunciation_mappings
+from revo_norm import Config, normalize_text, register_pronunciation_profile
 
-mappings = get_pronunciation_mappings()
-# {"GUI": "gooey", "WiFi": "why fi", "ASCII": "as key", ...}
+# Your TTS model's quirks — registered once at server startup
+register_pronunciation_profile("my-vits", {
+    "*": {"WiFi": "wai fai", "nginx": "engine x"},
+    "ms": {"Dato": "Dato Sri"},
+})
+
+cfg = Config(pronunciation_profile="my-vits")
+normalize_text("Restart nginx dan WiFi", language="ms", config=cfg)
+# "restart engine x dan wai fai"
 ```
 
-## Built-in Mappings
+`get_registered_profiles()` lists all registered names.
 
-The following mappings are included by default:
+## `pronunciations_from_file`
 
-### Text Corrections / OCR Fixes
+::: revo_norm.pronunciation_mappings.pronunciations_from_file
 
-| Term | Spoken Form |
-|------|-------------|
-| `bias` | `bai yers` |
+Load scoped mappings from a JSON file — for deployment-driven config:
 
-### Malay Honorifics
+```json
+{"*": {"WiFi": "wai fai"}, "ms": {"Dato": "Dato Sri"}}
+```
 
-| Term | Spoken Form |
-|------|-------------|
-| `Hj` | `Haji` |
-| `Hjh` | `Hajah` |
-| `Dr` | `Doktor` |
-| `Dr.` | `Doktor` |
-| `Prof` | `Profesor` |
-| `Prof.` | `Profesor` |
-| `Dato` | `Dato` |
-| `Dato'` | `Dato` |
-| `Datin` | `Datin` |
-| `Datuk` | `Datuk` |
+```python
+from revo_norm import Config, pronunciations_from_file
 
-### Technology Terms
+cfg = Config()
+cfg.pronunciations = pronunciations_from_file("/etc/myapp/pronunciations.json")
+```
+
+## Built-in Profile
+
+The `"builtin"` profile ships with the library and is the default. Slimmed in v0.6.0:
+
+### Technology Terms (all languages)
 
 | Term | Spoken Form |
 |------|-------------|
@@ -94,104 +106,88 @@ The following mappings are included by default:
 | `ASCII` | `as key` |
 | `IEEE` | `I triple E` |
 | `GIF` | `gif` |
-| `WiFi` | `why fi` |
+| `WiFi` | `wi fi` |
 | `iOS` | `I O S` |
+| `UiTM` | `U I T M` |
+
+### Malay Honorifics (`ms` / `id` only — v0.6.0 change)
+
+| Term | Spoken Form |
+|------|-------------|
+| `Hj` | `Haji` |
+| `Hjh` | `Hajah` |
+| `Dr` / `Dr.` | `Doktor` |
+| `Prof` / `Prof.` | `Profesor` |
+| `Dato` / `Dato'` | `Dato` (identity — protects the title from letter-splitting) |
+| `Datin` | `Datin` (identity) |
+| `Datuk` | `Datuk` (identity) |
+
+Previously honorifics applied to every language; they now apply to Malay/Indonesian text only, so English output stops inheriting them. The `bias` → `bai yers` OCR patch was removed — fix OCR errors at the input source.
 
 ### Terms NOT in Pronunciation Mappings
 
-The following terms are handled by the generalized `expand_acronym()` rule instead, not by explicit mappings:
+Handled by the generalized `expand_acronym()` rule instead:
 
-- `JSON` → Handled by generalized rule (consonant-vowel-consonant pattern)
-- `JPEG` → Handled by generalized rule
-- `PNG` → Handled by generalized rule
-- `API`, `GPU`, `CPU` → Split letter-by-letter by `expand_acronym()`
-- `AI`, `ML`, `LLM`, `DL`, `NLP`, `RL` → Split letter-by-letter by `expand_acronym()`
-- `NASA` → Preserved as-is by `expand_acronym()`
+- `JSON`, `JPEG`, `PNG` → consonant-vowel-consonant pattern ("J son")
+- `API`, `GPU`, `CPU` → letter-by-letter
+- `AI`, `ML`, `LLM`, `DL`, `NLP`, `RL` → letter-by-letter
+- `NASA` → preserved as-is
+
+## `add_custom_mapping` (legacy)
+
+::: revo_norm.pronunciation_mappings.add_custom_mapping
+
+Writes the process-global legacy table — **layer 1**. Still functional, still raises `ValueError` on expansion-looking mappings. Prefer `Config.pronunciations` in servers: it is request-scoped, layerable, and warn-only.
+
+```python
+from revo_norm.pronunciation_mappings import add_custom_mapping
+
+add_custom_mapping("SQL", "sequel")        # ✅ pronunciation
+add_custom_mapping("YOLO", "you only live once")  # ❌ raises ValueError
+```
+
+## `get_pronunciation_mappings`
+
+::: revo_norm.pronunciation_mappings.get_pronunciation_mappings
+
+Legacy single-layer view: legacy global + builtin profile for a language.
 
 ## `apply_pronunciation_mappings`
 
 ::: revo_norm.pronunciation_mappings.apply_pronunciation_mappings
 
-Apply all pronunciation mappings to text. Called internally by `normalize_text()`. You typically do not need to call this directly.
-
-```python
-from revo_norm.pronunciation_mappings import apply_pronunciation_mappings
-
-result = apply_pronunciation_mappings("Build GUI interface", "en")
-# "Build gooey interface"
-```
+Apply a resolved table to text — whole-word, case-insensitive, longest term first. Called internally with the resolved layers; pass `mappings=` to use directly.
 
 ## `remove_preservation_markers`
 
 ::: revo_norm.pronunciation_mappings.remove_preservation_markers
 
-Remove `__PRESERVED__...__` markers from text. Called at the end of the normalization pipeline to clean up any markers that were inserted to protect terms from further transformation.
+Strip `__PRESERVED__...__` markers left by the pipeline.
+
+## Debugging Which Layer Fired
+
+`normalize_text_detailed()` records every fired pronunciation replacement:
 
 ```python
-from revo_norm.pronunciation_mappings import remove_preservation_markers
+from revo_norm import normalize_text_detailed
 
-result = remove_preservation_markers("Train __PRESERVED__ML__ model")
-# "Train ML model"
+result = normalize_text_detailed("Sambung WiFi sekarang", language="ms")
+result.mappings
+# [{'original': 'WiFi', 'normalized': 'wi fi', 'rule': 'pronunciation'}]
 ```
 
-## `add_custom_mapping`
-
-::: revo_norm.pronunciation_mappings.add_custom_mapping
-
-!!! warning "TTS-Only: Pronunciation, not Expansion"
-    Mappings must represent **how a term sounds when spoken**, not what it stands for.
-
-    ```python
-    # ✅ Correct — pronunciation (how you say it)
-    add_custom_mapping("SQL", "sequel")
-
-    # ❌ Wrong — abbreviation expansion (what it means)
-    add_custom_mapping("YOLO", "you only live once")  # raises ValueError
-    ```
-
-    The validation rejects mappings where the replacement looks like an expansion:
-    - Short abbreviations (≤4 chars) expanded to 3+ words
-    - Replacements 3x+ longer than the original
-    - Replacements containing connector words ("of", "the", "and") suggesting a full name/title
-
-    If you're certain your mapping is valid pronunciation, set it directly:
-    ```python
-    from revo_norm.pronunciation_mappings import PRONUNCIATION_MAPPINGS
-    PRONUNCIATION_MAPPINGS["YOLO"] = "you only live once"
-    ```
-
-## Examples
-
-### Custom mapping for a tech term
+## Shape Reference
 
 ```python
-from revo_norm import normalize_text
-from revo_norm.pronunciation_mappings import add_custom_mapping
+# Flat — all languages
+{"WiFi": "wai fai"}
 
-add_custom_mapping("SQL", "sequel")
+# Scoped — "*" plus any language code
+{"*": {"WiFi": "wai fai"}, "ms": {"Dr": "Doktor"}, "id": {"Dr": "Dokter"}}
 
-result = normalize_text("Query the SQL database", language="en")
-# "Query the sequel database"
+# Deletion — removes the term from lower layers
+{"WiFi": None}
+{"ms": {"WiFi": None}}   # delete for ms only
 ```
 
-### Custom mapping for a brand name
-
-```python
-from revo_norm import normalize_text
-from revo_norm.pronunciation_mappings import add_custom_mapping
-
-add_custom_mapping("KDE", "K D E")
-
-result = normalize_text("Launch KDE desktop", language="en")
-# "Launch K D E desktop"
-```
-
-### Inspecting current mappings
-
-```python
-from revo_norm.pronunciation_mappings import get_pronunciation_mappings
-
-mappings = get_pronunciation_mappings()
-for term, spoken in sorted(mappings.items()):
-    print(f"{term} → {spoken}")
-```
+Invalid shapes fail loudly: scope keys must map to dicts; a top-level dict whose keys are all language codes with scalar values is rejected as a likely scoping mistake (`{"ms": "Doktor"}` raises `TypeError`).

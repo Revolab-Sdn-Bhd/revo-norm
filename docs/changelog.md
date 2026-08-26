@@ -2,7 +2,26 @@
 
 All notable changes to revo-norm are documented here.
 
-## v0.5.0 (Current)
+## v0.6.0 (Current)
+
+Layered pronunciation mappings — model-specific corrections and company personalization without global state.
+
+### Added
+
+- **Pronunciation layers**: legacy global < named profile < `Config.pronunciations`; later layers win, `None` deletes a term from lower layers
+- **Named profiles**: `register_pronunciation_profile(name, mappings)` for TTS-model or company tables at startup; `"builtin"` (default) and `"none"` ship with the library
+- `Config.pronunciation_profile` and `Config.pronunciations` — request-scoped, thread-safe personalization; every layer supports language scoping (`{"*": {...}, "ms": {...}}`; flat dict = all languages)
+- `pronunciations_from_file(path)` — JSON loader for deployment-driven config
+- `normalize_text_detailed()` records each fired pronunciation replacement (`rule: "pronunciation"`)
+- Config entries that look like abbreviation expansions now `UserWarning` instead of raising — the caller owns their output; legacy `add_custom_mapping()` keeps its `ValueError`
+
+### Changed
+
+- **Malay honorifics (`Hj`, `Dr`, `Prof`, title identities `Dato`/`Datin`/`Datuk`) now apply to `ms`/`id` only** — English output stops inheriting them
+- The `bias` → `bai yers` OCR patch is removed — fix OCR errors at the input source
+- `Config.pronunciation_overrides = False` now disables all pronunciation behavior (every layer), not just the step-6 helper
+
+## v0.5.0
 
 Multilingual-first architecture and a clean API. Breaking changes ride in the 0.x minor.
 
