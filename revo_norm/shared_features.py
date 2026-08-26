@@ -7,6 +7,8 @@ and elongated word normalization for all supported languages.
 
 import re
 
+from revo_norm.langpack import get_pack
+
 
 # Elongated word normalization
 def normalize_elongated_word(word: str) -> str:
@@ -100,7 +102,6 @@ def normalize_fraction(match: re.Match, language: str = "en") -> str:
         >>> normalize_fraction(re.match(r'(\d+)/(\d+)', '10/4'), 'ms')
         'sepuluh per empat'
     """
-    from revo_norm.normalizer_en import text_normalize as normalize_en
 
     numerator = match.group(1)
     denominator = match.group(2)
@@ -111,15 +112,11 @@ def normalize_fraction(match: re.Match, language: str = "en") -> str:
         numerator_spoken = to_cardinal(int(numerator))
         denominator_spoken = to_cardinal(int(denominator))
         return f"{denominator_spoken}分之{numerator_spoken}"
-    elif language == "en":
-        numerator_spoken = normalize_en(numerator)
-        denominator_spoken = normalize_en(denominator)
-        return f"{numerator_spoken} over {denominator_spoken}"
     else:
-        normalize_local = _ms_or_id_normalizer(language)
-        numerator_spoken = normalize_local(numerator)
-        denominator_spoken = normalize_local(denominator)
-        return f"{numerator_spoken} per {denominator_spoken}"
+        pack = get_pack(language)
+        numerator_spoken = pack.speak_number(numerator)
+        denominator_spoken = pack.speak_number(denominator)
+        return f"{numerator_spoken} {pack.fraction_word} {denominator_spoken}"
 
 
 def normalize_fractions(text: str, language: str = "en") -> str:
@@ -161,7 +158,6 @@ def normalize_x_kali(match: re.Match, language: str = "en") -> str:
         >>> normalize_x_kali(re.match(r'(\d+)[xX]', '10x'), 'ms')
         'sepuluh kali'
     """
-    from revo_norm.normalizer_en import text_normalize as normalize_en
 
     number = match.group(1)
 
@@ -172,13 +168,9 @@ def normalize_x_kali(match: re.Match, language: str = "en") -> str:
         if number_spoken == "二":
             return "两次"
         return f"{number_spoken}次"
-    elif language == "en":
-        number_spoken = normalize_en(number)
-        return f"{number_spoken} times"
     else:
-        normalize_local = _ms_or_id_normalizer(language)
-        number_spoken = normalize_local(number)
-        return f"{number_spoken} kali"
+        pack = get_pack(language)
+        return f"{pack.speak_number(number)} {pack.times_word}"
 
 
 def normalize_x_kali_text(text: str, language: str = "en") -> str:
@@ -233,7 +225,6 @@ def normalize_temperature(match: re.Match, language: str = "en") -> str:
         >>> normalize_temperature(re.match(r'(-?\d+)\s*([CFK])', '25C'), 'ms')
         'dua puluh lima celcius'
     """
-    from revo_norm.normalizer_en import text_normalize as normalize_en
 
     value = match.group(1).replace(",", ".")
     unit = match.group(2).lower()
@@ -246,14 +237,10 @@ def normalize_temperature(match: re.Match, language: str = "en") -> str:
         num_int = int(num_val)
         cardinal = to_cardinal(num_int) if num_val == num_int else to_cardinal(num_val)
         return f"{cardinal}{unit_spoken}"
-    elif language == "en":
-        value_spoken = normalize_en(value)
-        unit_spoken = _TEMPERATURE_UNITS[unit]["en"]
-        return f"{value_spoken} {unit_spoken}"
     else:
-        normalize_local = _ms_or_id_normalizer(language)
-        value_spoken = normalize_local(value)
-        unit_spoken = _TEMPERATURE_UNITS[unit][language]
+        pack = get_pack(language)
+        value_spoken = pack.speak_number(value)
+        unit_spoken = pack.temperature_units[unit]
         return f"{value_spoken} {unit_spoken}"
 
 
@@ -521,97 +508,42 @@ _MEASUREMENT_ZH_UNITS = {
 
 def normalize_distance(match: re.Match, language: str = "en") -> str:
     """Normalize distance notation to spoken form."""
-    from revo_norm.normalizer_en import text_normalize as normalize_en
-
+    pack = get_pack(language)
     value = match.group(1).replace(",", ".")
     unit = match.group(2).lower()
-
-    if language == "en":
-        value_spoken = normalize_en(value)
-        unit_spoken = _DISTANCE_UNITS_EN.get(unit, unit)
-        return f"{value_spoken} {unit_spoken}"
-    else:
-        normalize_local = _ms_or_id_normalizer(language)
-        units = _DISTANCE_UNITS_ID if language == "id" else _DISTANCE_UNITS_MS
-        value_spoken = normalize_local(value)
-        unit_spoken = units.get(unit, unit)
-        return f"{value_spoken} {unit_spoken}"
+    return f"{pack.speak_number(value)} {pack.distance_units.get(unit, unit)}"
 
 
 def normalize_volume(match: re.Match, language: str = "en") -> str:
     """Normalize volume notation to spoken form."""
-    from revo_norm.normalizer_en import text_normalize as normalize_en
-
+    pack = get_pack(language)
     value = match.group(1).replace(",", ".")
     unit = match.group(2).lower()
-
-    if language == "en":
-        value_spoken = normalize_en(value)
-        unit_spoken = _VOLUME_UNITS_EN.get(unit, unit)
-        return f"{value_spoken} {unit_spoken}"
-    else:
-        normalize_local = _ms_or_id_normalizer(language)
-        units = _VOLUME_UNITS_ID if language == "id" else _VOLUME_UNITS_MS
-        value_spoken = normalize_local(value)
-        unit_spoken = units.get(unit, unit)
-        return f"{value_spoken} {unit_spoken}"
+    return f"{pack.speak_number(value)} {pack.volume_units.get(unit, unit)}"
 
 
 def normalize_weight(match: re.Match, language: str = "en") -> str:
     """Normalize weight notation to spoken form."""
-    from revo_norm.normalizer_en import text_normalize as normalize_en
-
+    pack = get_pack(language)
     value = match.group(1).replace(",", ".")
     unit = match.group(2).lower()
-
-    if language == "en":
-        value_spoken = normalize_en(value)
-        unit_spoken = _WEIGHT_UNITS_EN.get(unit, unit)
-        return f"{value_spoken} {unit_spoken}"
-    else:
-        normalize_local = _ms_or_id_normalizer(language)
-        units = _WEIGHT_UNITS_ID if language == "id" else _WEIGHT_UNITS_MS
-        value_spoken = normalize_local(value)
-        unit_spoken = units.get(unit, unit)
-        return f"{value_spoken} {unit_spoken}"
+    return f"{pack.speak_number(value)} {pack.weight_units.get(unit, unit)}"
 
 
 def normalize_duration(match: re.Match, language: str = "en") -> str:
     """Normalize duration notation to spoken form."""
-    from revo_norm.normalizer_en import text_normalize as normalize_en
-
+    pack = get_pack(language)
     value = match.group(1)
     unit = match.group(2).lower()
-
-    if language == "en":
-        value_spoken = normalize_en(value)
-        unit_spoken = _DURATION_UNITS_EN.get(unit, unit)
-        return f"{value_spoken} {unit_spoken}"
-    else:
-        normalize_local = _ms_or_id_normalizer(language)
-        units = _DURATION_UNITS_ID if language == "id" else _DURATION_UNITS_MS
-        value_spoken = normalize_local(value)
-        unit_spoken = units.get(unit, unit)
-        return f"{value_spoken} {unit_spoken}"
+    return f"{pack.speak_number(value)} {pack.duration_units.get(unit, unit)}"
 
 
 def normalize_area(match: re.Match, language: str = "en") -> str:
     """Normalize area notation to spoken form (e.g., '1000 sq ft' → 'one thousand square feet')."""
-    from revo_norm.normalizer_en import text_normalize as normalize_en
-
+    pack = get_pack(language)
     value = match.group(1).replace(",", ".")
     unit = match.group(2).lower()
-
-    if language == "en":
-        value_spoken = normalize_en(value)
-        unit_spoken = _AREA_UNITS_EN.get(unit, unit)
-        return f"{value_spoken} {unit_spoken}"
-    else:
-        normalize_local = _ms_or_id_normalizer(language)
-        units = _AREA_UNITS_ID if language == "id" else _AREA_UNITS_MS
-        value_spoken = normalize_local(value)
-        unit_spoken = units.get(unit, unit)
-        return f"{value_spoken} {unit_spoken}"
+    return f"{pack.speak_number(value)} {pack.area_units.get(unit, unit)}"
 
 
 def normalize_measurements(text: str, language: str = "en") -> str:
@@ -676,16 +608,12 @@ def normalize_hari_bulan(match: re.Match, language: str = "en") -> str:
         >>> normalize_hari_bulan(re.match(r'([1-9]|[12][0-9]|3[01])\s*[Hh][Bb]', '10HB'), 'ms')
         'sepuluh hari bulan'
     """
-    from revo_norm.normalizer_en import text_normalize as normalize_en
 
     day = match.group(1)
 
-    if language == "en":
-        day_spoken = normalize_en(day)
-        return f"{day_spoken} hari bulan"
-    else:
-        day_spoken = _ms_or_id_normalizer(language)(day)
-        return f"{day_spoken} hari bulan"
+    pack = get_pack(language)
+    day_spoken = pack.speak_number(day)
+    return f"{day_spoken} hari bulan"
 
 
 def normalize_hari_bulan_text(text: str, language: str = "en") -> str:
@@ -703,7 +631,7 @@ def normalize_hari_bulan_text(text: str, language: str = "en") -> str:
         >>> normalize_hari_bulan_text("10HB every year", language="ms")
         'sepuluh hari bulan every year'
     """
-    if language in ("zh", "zh_my"):
+    if not get_pack(language).uses_hari_bulan:
         return text
 
     # Use a unique placeholder that cannot appear in normal text
@@ -711,15 +639,10 @@ def normalize_hari_bulan_text(text: str, language: str = "en") -> str:
     PLACEHOLDER = "__HARI_BULAN__"  # noqa: N806
 
     def replace_hb(match):
-        from revo_norm.normalizer_en import text_normalize as normalize_en
 
         day = match.group(1)
-        if language == "en":
-            day_spoken = normalize_en(day)
-            return f"{day_spoken}{PLACEHOLDER}"
-        else:
-            day_spoken = _ms_or_id_normalizer(language)(day)
-            return f"{day_spoken}{PLACEHOLDER}"
+        day_spoken = get_pack(language).speak_number(day)
+        return f"{day_spoken}{PLACEHOLDER}"
 
     result = _HARI_BULAN_PATTERN.sub(replace_hb, text)
     # Replace placeholder with actual spoken form
@@ -749,24 +672,13 @@ def normalize_hijri_year(match: re.Match, language: str = "en") -> str:
         >>> normalize_hijri_year(re.match(r'(\d{3,4})\s*[Hh]', '1433H'), 'ms')
         'satu empat tiga tiga Hijri'
     """
-    from revo_norm.normalizer_en import text_normalize as normalize_en
 
     year = match.group(1)
 
-    if language == "en":
-        # Speak each digit individually for Hijri years
-        spoken = []
-        for digit in year:
-            spoken.append(normalize_en(digit))
-        return " ".join(spoken) + " Hijri"
-    else:
-        normalize_local = _ms_or_id_normalizer(language)
-        # Speak each digit individually for Hijri years
-        spoken = []
-        for digit in year:
-            spoken.append(normalize_local(digit))
-        suffix = "Hijriah" if language == "id" else "Hijri"
-        return " ".join(spoken) + f" {suffix}"
+    pack = get_pack(language)
+    # Speak each digit individually for Hijri years
+    spoken = [pack.speak_number(digit) for digit in year]
+    return " ".join(spoken) + f" {pack.hijri_suffix}"
 
 
 def normalize_hijri_years(text: str, language: str = "en") -> str:
@@ -784,7 +696,7 @@ def normalize_hijri_years(text: str, language: str = "en") -> str:
         >>> normalize_hijri_years("Year 1433H", language="en")
         'Year one four three three Hijri'
     """
-    if language in ("zh", "zh_my"):
+    if not get_pack(language).uses_hijri_years:
         return text
 
     return _HIJRI_YEAR_PATTERN.sub(lambda m: normalize_hijri_year(m, language), text)

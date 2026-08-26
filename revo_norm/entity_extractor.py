@@ -413,15 +413,11 @@ class EntityExtractor:
     @staticmethod
     def _ms_or_id_normalizer_and_months(language: str):
         """Return (normalizer, months) for the Malay/Indonesian branches."""
-        if language == "ms":
-            from revo_norm.normalizer_ms import _months, normalize_malay
+        from revo_norm.langpack import get_pack
 
-            return normalize_malay, _months
-        if language == "id":
-            from revo_norm.normalizer_id import _months, normalize_indonesian
-
-            return normalize_indonesian, _months
-        raise ValueError(f"Unsupported language for Malay/Indonesian branch: {language!r}")
+        pack = get_pack(language)
+        assert pack.normalize is not None
+        return pack.normalize, pack.month_names
 
     def _date_to_chinese(self, m: re.Match, type: str) -> str:
         from revo_norm.normalizer_zh import normalize_date_dmy, normalize_date_ymd
@@ -457,8 +453,6 @@ class EntityExtractor:
 
     def _convert_version_to_spoken(self, version_text: str, language: str) -> str:
         """Convert version number (e.g., '3.14.159') to spoken form."""
-        from revo_norm.normalizer_en import text_normalize as normalize_en
-        from revo_norm.normalizer_ms import normalize_malay as normalize_ms
 
         if language in ("zh", "zh_my"):
             from revo_norm.num2word_zh import _DIGITS as _DIGITS_ZH
@@ -467,12 +461,9 @@ class EntityExtractor:
             spoken_parts = [" ".join(_DIGITS_ZH.get(c, c) for c in p) for p in parts]
             return " 点 ".join(spoken_parts)
         else:
-            if language == "id":
-                from revo_norm.normalizer_id import normalize_indonesian as normalize
-            elif language == "ms":
-                normalize = normalize_ms
-            else:  # default to English
-                normalize = normalize_en
+            from revo_norm.langpack import get_pack
+
+            normalize = get_pack(language).speak_number
             parts = version_text.split(".")
             spoken_parts = [normalize(p) for p in parts]
             return " point ".join(spoken_parts)
@@ -709,15 +700,10 @@ class EntityExtractor:
             expand_currency_m_suffix,
             expand_currency_t_suffix,
         )
+        from revo_norm.langpack import get_pack
 
-        # num2word is only used on the Malay/Indonesian paths (en uses inflect,
-        # zh/zh_my delegate to the Chinese normalizers before it is referenced)
-        if language == "ms":
-            from revo_norm.num2word_ms import to_cardinal as num2word
-        elif language == "id":
-            from revo_norm.num2word_id import to_cardinal as num2word
-        elif language not in ("en", "zh", "zh_my"):
-            raise ValueError(f"Unsupported language: {language!r}")
+        pack = get_pack(language)
+        num2word = pack.num2word  # None for en (inflect) / zh (delegates)
 
         # Initialize inflect engine for English number-to-words conversion
         _inflect_engine = inflect.engine()
@@ -779,9 +765,7 @@ class EntityExtractor:
             "GBP": ("pound", "pence"),
             "£": ("pound", "pence"),
         }
-        if language == "id":
-            currency_names["USD"] = ("dolar", "sen")
-            currency_names["$"] = ("dolar", "sen")
+        currency_names.update(get_pack(language).currency_names)
 
         unit_main, unit_sub = currency_names.get(symbol, (symbol.lower(), "cents"))
 
