@@ -149,21 +149,21 @@ profile_name = "minimal"
 
 ## What Was Removed
 
-The following types and functions still exist for backward compatibility but are deprecated and will emit `DeprecationWarning`:
+The following were **removed in v0.5.0** — importing or calling them now raises:
 
-| Removed/Deprecated | Replacement |
-|-------------------|-------------|
-| `NormalizationConfig` class | `Config` class (alias kept) |
-| `FeatureGroup` enum | Plain strings (`"acronyms"`, `"measurements"`, etc.) |
+| Removed | Replacement |
+|---------|-------------|
+| `NormalizationConfig` class | `Config` class |
+| `FeatureGroup` enum | `Feature` enum or plain strings (`"acronyms"`, `"measurements"`, etc.) |
 | `FeatureLevel` enum | Boolean `True`/`False` |
-| `Profile` enum | Plain strings (`"minimal"`, `"basic"`, `"standard"`, `"aggressive"`) |
+| Old `Profile` enum | New `Profile` enum or plain strings (`"minimal"`, `"basic"`, `"standard"`, `"aggressive"`) |
 | `minimal_config()` | `Config.from_profile("minimal")` or `profile="minimal"` |
 | `basic_config()` | `Config.from_profile("basic")` or `profile="basic"` |
 | `standard_config()` | `Config()` or `profile="standard"` |
 | `aggressive_config()` | `Config.from_profile("aggressive")` or `profile="aggressive"` |
 | `config.with_feature()` | Direct attribute: `cfg.acronyms = False` |
 | `config.with_sound_words()` | Direct attribute: `cfg.sound_words = [...]` |
-| Legacy boolean flags in `normalize_text()` | `profile=` and `disable=` parameters |
+| Legacy boolean flags in `normalize_text()` | `profile=`, `disable=`, or `config=Config(...)` (sound words: `cfg.sound_words`) |
 
 ---
 
