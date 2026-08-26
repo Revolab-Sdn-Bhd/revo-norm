@@ -28,7 +28,10 @@ from revo_norm.currency_utils import (
     expand_currency_t_suffix,
 )
 from revo_norm.langpack import get_pack
-from revo_norm.pronunciation_mappings import apply_pronunciation_mappings
+from revo_norm.pronunciation_mappings import (
+    apply_pronunciation_mappings,
+    resolve_pronunciations,
+)
 from revo_norm.shared_features import (
     normalize_elongated_text,
     normalize_measurements,
@@ -658,9 +661,21 @@ def _normalize_core(
                     _rules.append(rule_name)
 
     # --- Step 4: Pronunciation mappings (always, on protected text) --
-    before = protected_text
-    protected_text = apply_pronunciation_mappings(protected_text, language)
-    _track("pronunciation_mappings", before, protected_text)
+    if cfg.pronunciation_overrides:
+        before = protected_text
+        pronunciation_table = resolve_pronunciations(
+            language,
+            profile=cfg.pronunciation_profile,
+            user_mappings=cfg.pronunciations or None,
+        )
+        protected_text = apply_pronunciation_mappings(protected_text, language, pronunciation_table)
+        _track("pronunciation_mappings", before, protected_text)
+        for term, spoken in pronunciation_table.items():
+            pattern = re.compile(rf"\b{re.escape(term)}\b", re.IGNORECASE)
+            if pattern.search(before):
+                _mappings.append(
+                    {"original": term, "normalized": spoken, "rule": "pronunciation"}
+                )
 
     # --- Step 5: Stash placeholders to protect from downstream processing --
     protected_text, ph_stash = _stash_placeholders(protected_text)

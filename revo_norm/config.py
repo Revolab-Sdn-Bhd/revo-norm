@@ -127,6 +127,15 @@ class Config:
     # Sound words for removal (aggressive profile may populate this)
     sound_words: list[str] = field(default_factory=list)
 
+    # Named pronunciation profile: "builtin" (default), "none", or one
+    # registered via register_pronunciation_profile().
+    pronunciation_profile: str = "builtin"
+
+    # Per-call pronunciation overrides; layered on top of the profile.
+    # Flat dict = all languages; {"*": {...}, "ms": {...}} for scoping.
+    # None value removes a term from lower layers.
+    pronunciations: dict = field(default_factory=dict)
+
     # Strip all bracketed content like [laughter], [music], etc.
     strip_bracketed: bool = False
 
