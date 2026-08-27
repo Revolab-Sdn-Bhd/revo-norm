@@ -50,7 +50,7 @@ jobs:
 
       - name: Publish node variant
         if: ${{ !contains(github.ref, 'no-publish') }}
-        run: npm publish pkg-node --access public
+        run: cd pkg-node && npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -59,7 +59,6 @@ jobs:
         run: |
           cd pkg-web
           npm pkg set name="@revolab/revonorm-core-web"
-          cd ..
-          npm publish pkg-web --access public
+          npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
