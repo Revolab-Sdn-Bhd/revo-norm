@@ -15,6 +15,19 @@ jobs:
 
       - uses: astral-sh/setup-uv@v5
 
+      # revo_norm is a shim over the revonorm engine wheel — build it first
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: revonorm-core
+
+      - name: Build engine wheel
+        uses: PyO3/maturin-action@v1
+        with:
+          command: develop
+          working-directory: revonorm-core
+
       - name: Install dependencies
         run: uv sync --all-extras
 
@@ -46,10 +59,10 @@ jobs:
 
       - uses: astral-sh/setup-uv@v5
 
-      - name: Build engine wheel and snapshot fixtures
+      - name: Build engine wheel
         uses: PyO3/maturin-action@v1
         with:
-          args: develop --release
+          command: develop
           working-directory: revonorm-core
 
       - name: Regenerate fixtures from the engine
