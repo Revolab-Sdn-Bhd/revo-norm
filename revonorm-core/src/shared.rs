@@ -102,9 +102,17 @@ pub fn spoken_temperature(text: &str, language: &str) -> String {
         let value = c.get(1).map(|m| m.as_str()).unwrap_or("0").replace(',', ".");
         let unit = c.get(2).map(|m| m.as_str().to_lowercase()).unwrap_or_default();
         if let Some(spoken) = pack.temperature_units.get(&unit) {
+            let zh = matches!(language, "zh" | "zh_my");
             if let Some((w, frac)) = value.split_once('.') {
+                if zh {
+                    let digits: String = frac.chars().map(|d| crate::normalize_zh::to_cardinal_zh(d.to_digit(10).unwrap_or(0) as u128)).collect();
+                    return format!("{}点{digits}{spoken}", crate::normalize_zh::to_cardinal_zh(w.parse().unwrap_or(0)));
+                }
                 let digits: String = frac.chars().map(|d| cardinal_for(d.to_digit(10).unwrap_or(0) as u128, language)).collect::<Vec<_>>().join(" ");
                 return format!("{} perpuluhan {digits} {spoken}", cardinal_for(w.parse().unwrap_or(0), language));
+            }
+            if zh {
+                return format!("{}{spoken}", crate::normalize_zh::to_cardinal_zh(value.parse().unwrap_or(0)));
             }
             return format!("{} {spoken}", cardinal_for(value.parse().unwrap_or(0), language));
         }
@@ -116,6 +124,14 @@ pub fn spoken_fraction(text: &str, language: &str) -> String {
     if let Ok(Some(c)) = RE_FRACTION.captures(text) {
         let n = c.get(1).map(|m| m.as_str()).unwrap_or("0");
         let d = c.get(2).map(|m| m.as_str()).unwrap_or("0");
+        if matches!(language, "zh" | "zh_my") {
+            // zh: denominator + 分之 + numerator, joined without spaces
+            return format!(
+                "{}分之{}",
+                crate::normalize_zh::to_cardinal_zh(d.parse().unwrap_or(0)),
+                crate::normalize_zh::to_cardinal_zh(n.parse().unwrap_or(0))
+            );
+        }
         let pack = get_pack(language);
         return format!("{} {} {}", cardinal_for(n.parse().unwrap_or(0), language), pack.fraction_word, cardinal_for(d.parse().unwrap_or(0), language));
     }
@@ -125,6 +141,13 @@ pub fn spoken_fraction(text: &str, language: &str) -> String {
 pub fn spoken_x_kali(text: &str, language: &str) -> String {
     if let Ok(Some(c)) = RE_X_KALI.captures(text) {
         let n = c.get(1).map(|m| m.as_str()).unwrap_or("0");
+        if matches!(language, "zh" | "zh_my") {
+            let n_word = crate::normalize_zh::to_cardinal_zh(n.parse().unwrap_or(0));
+            if n_word == "二" {
+                return "两次".to_string();
+            }
+            return format!("{n_word}次");
+        }
         let pack = get_pack(language);
         return format!("{} {}", cardinal_for(n.parse().unwrap_or(0), language), pack.times_word);
     }

@@ -44,11 +44,12 @@ fn unknown_language_errors() {
 }
 
 #[test]
-fn unported_language_errors_loudly() {
-    // zh is registered but not ported yet — must error, never silently
-    // fall back to Malay.
-    let err = normalize("hello", "zh").unwrap_err();
-    assert!(err.contains("not ported"), "got: {err}");
+fn unregistered_language_errors_loudly() {
+    // 'tl' is not in the registry — must error naming the code, never
+    // silently fall back to another language.
+    let err = normalize("hello", "tl").unwrap_err();
+    assert!(err.contains("tl"), "error must name the bad code: {err}");
+    assert!(err.contains("expected one of"), "got: {err}");
 }
 
 #[test]
@@ -122,5 +123,28 @@ fn pipeline_en_parity() {
         let got = normalize(&input, "en")
             .unwrap_or_else(|e| panic!("normalize({input:?}, en) errored: {e}"));
         assert_eq!(got, expected, "normalize({input:?}, en)");
+    }
+}
+
+#[test]
+fn pipeline_zh_parity() {
+    for (input, expected) in fixtures("pipeline_zh.txt") {
+        let got = normalize(&input, "zh")
+            .unwrap_or_else(|e| panic!("normalize({input:?}, zh) errored: {e}"));
+        assert_eq!(got, expected, "normalize({input:?}, zh)");
+    }
+}
+
+#[test]
+fn pipeline_zh_my_matches_zh_on_shared_cases() {
+    // zh_my reuses zh's passes; on these vocabulary-neutral cases the
+    // outputs agree (the url separator divergence is asserted separately)
+    for (input, expected) in fixtures("pipeline_zh.txt") {
+        if input.contains("http") {
+            continue;
+        }
+        let got = normalize(&input, "zh_my")
+            .unwrap_or_else(|e| panic!("normalize({input:?}, zh_my) errored: {e}"));
+        assert_eq!(got, expected, "normalize({input:?}, zh_my)");
     }
 }

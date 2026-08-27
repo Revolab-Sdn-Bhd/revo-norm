@@ -18,6 +18,7 @@ pub mod lang;
 pub mod langpack;
 pub mod normalize;
 pub mod normalize_en;
+pub mod normalize_zh;
 pub mod normalize_id;
 pub mod num2word_en;
 pub mod num2word;

@@ -199,7 +199,33 @@ fn convert_to_spoken(e: &Entity, language: &str) -> String {
 /// python url_to_spoken (latin branch — zh arrives with the zh milestone).
 fn spoken_url(url: &str, language: &str) -> String {
     let pack = get_pack(language);
+    let zh = matches!(language, "zh" | "zh_my");
     let mut spoken = url.to_string();
+    if zh {
+        // python zh: protocol + 冒号斜杠斜杠 (zh) / 冒号 slash slash (zh_my),
+        // 点, 斜杠, 杠, 问号, 等于, digits spoken with zh digits.
+        let sep = if language == "zh" { "冒号斜杠斜杠" } else { "冒号 slash slash " };
+        if let Some((protocol, _)) = spoken.clone().split_once("://") {
+            let protocol_spoken: String = protocol.chars().map(|c| c.to_string()).collect::<Vec<_>>().join(" ");
+            spoken = spoken.replace(&format!("{protocol}://"), &format!("{protocol_spoken} {sep}"));
+        }
+        if let Ok(re) = fancy_regex::Regex::new(r"www\.?") {
+            spoken = re.replace_all(&spoken, "w w w 点 ").into_owned();
+        }
+        spoken = spoken.replace('.', "点");
+        spoken = spoken.replace('/', "斜杠");
+        spoken = spoken.replace('-', "杠");
+        spoken = spoken.replace('?', " 问号 ").replace('=', " 等于 ");
+        spoken = spoken.replace('&', " 和 ").replace('*', " 星号 ");
+        if let Ok(re) = fancy_regex::Regex::new(r"\d+") {
+            spoken = re
+                .replace_all(&spoken, |c: &fancy_regex::Captures<str>| {
+                    c[0].chars().map(|d| crate::normalize_zh::to_cardinal_zh(d.to_digit(10).unwrap_or(0) as u128)).collect::<Vec<_>>().join(" ")
+                })
+                .into_owned();
+        }
+        return squash_spaces(spoken.trim());
+    }
     if let Some((protocol, _)) = spoken.clone().split_once("://") {
         let protocol_spoken: String = protocol.chars().map(|c| c.to_string()).collect::<Vec<_>>().join(" ");
         spoken = spoken.replace(
@@ -327,6 +353,39 @@ fn squash_spaces(text: &str) -> String {
 /// cents spoken as a padded 2-digit number, whole==0 skips the main unit.
 fn spoken_currency(text: &str, language: &str) -> String {
     let pack = get_pack(language);
+    if matches!(language, "zh" | "zh_my") {
+        // python delegates zh currency to normalizer_zh.normalize_currency:
+        // cardinal + 令吉/美元/... + cardinal + 仙/分, joined without spaces
+        let re = fancy_regex::Regex::new(
+            r"(?i)(?<![A-Za-z0-9_])(\$|£|€|RM|MYR|USD|EUR|GBP)(?:\s?)([\d,]+(?:[\.,]\d{1,2})?)",
+        )
+        .unwrap();
+        if let Ok(Some(c)) = re.captures(text) {
+            let symbol = c[1].to_uppercase();
+            let amount = c[2].replace(',', "");
+            let (unit_main, unit_sub) = match symbol.as_str() {
+                "RM" | "MYR" => ("令吉", "仙"),
+                "$" | "USD" => ("美元", "分"),
+                "£" | "GBP" => ("英镑", "便士"),
+                "€" | "EUR" => ("欧元", "分"),
+                _ => ("元", "分"),
+            };
+            let czh = crate::normalize_zh::to_cardinal_zh;
+            if let Some((w, f_raw)) = amount.split_once('.') {
+                let mut f = f_raw.to_string();
+                while f.len() < 2 {
+                    f.push('0');
+                }
+                let f = &f[..2];
+                if f != "00" {
+                    return format!("{}{unit_main}{}{unit_sub}", czh(w.parse().unwrap_or(0)), czh(f.parse().unwrap_or(0)));
+                }
+                return format!("{}{unit_main}", czh(w.parse().unwrap_or(0)));
+            }
+            return format!("{}{unit_main}", czh(amount.parse().unwrap_or(0)));
+        }
+        return text.to_string();
+    }
     let cardinal = |n: u128| cardinal_for(n, language);
     let re = fancy_regex::Regex::new(
         r"(?i)(?<!\w)(RM|Rp|USD|EUR|GBP|MYR|IDR|\$|£|€)(?:\s?)([\d,]+(?:[\.,]\d{1,2})?)",
@@ -379,6 +438,37 @@ fn spoken_currency(text: &str, language: &str) -> String {
 fn spoken_time(text: &str, language: &str) -> String {
     // python _convert_time_to_spoken: hour minute [second] words + meridian;
     // minute always spoken. am->pagi both langs; pm->petang (ms) / sore (id).
+    if matches!(language, "zh" | "zh_my") {
+        // python _time_to_chinese: 下午/上午 + 时分, no spaces; pm by hour
+        let re = fancy_regex::Regex::new(
+            r"(?i)\b(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.|pagi|petang|siang|sore|malam|tengah\s+hari)?",
+        )
+        .unwrap();
+        if let Ok(Some(c)) = re.captures(text) {
+            let h: u32 = c.get(1).map(|m| m.as_str()).unwrap_or("0").parse().unwrap_or(0);
+            let m: u32 = c.get(2).map(|m| m.as_str()).unwrap_or("0").parse().unwrap_or(0);
+            let meridian = c.get(4).map(|g| {
+                let a = g.as_str().replace(".", "").to_lowercase();
+                if a == "am" { "上午".to_string() }
+                else if a == "pm" { if h <= 6 { "下午".to_string() } else { "晚上".to_string() } }
+                else { a }
+            });
+            let base = if m == 0 {
+                format!("{}点", crate::normalize_zh::to_cardinal_zh(h as u128))
+            } else {
+                format!(
+                    "{}点{}分",
+                    crate::normalize_zh::to_cardinal_zh(h as u128),
+                    crate::normalize_zh::to_cardinal_zh(m as u128)
+                )
+            };
+            return match meridian {
+                Some(w) => format!("{w}{base}"),
+                None => base,
+            };
+        }
+        return text.to_string();
+    }
     let cardinal = |n: u128| cardinal_for(n, language);
     let re = fancy_regex::Regex::new(
         r"(?i)\b(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.|pagi|petang|siang|sore|malam|tengah\s+hari)?",

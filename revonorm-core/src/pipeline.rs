@@ -85,13 +85,8 @@ pub fn normalize_with(
         return Ok(String::new());
     }
 
-    // Milestone 1: only the Malay path has a ported normalizer. Others error
-    // until their milestone lands — never silently fall back to Malay.
-    if code != "ms" && code != "id" && code != "en" {
-        return Err(format!(
-            "language '{code}' not ported yet (ms, id and en shipped; zh/zh_my follow)"
-        ));
-    }
+    // All five languages have ported normalizers; unsupported codes were
+    // rejected by is_supported above (never a silent Malay fallback).
 
     let pack = get_pack(&code);
     // id rewrites its written number conventions first (dotted thousands,
@@ -137,6 +132,7 @@ pub fn normalize_with(
     let out = match code.as_str() {
         "id" => crate::normalize_id::normalize_indonesian(&out),
         "en" => crate::normalize_en::normalize_english(&out),
+        "zh" | "zh_my" => crate::normalize_zh::normalize_zh(&out),
         _ => normalize_malay(&out),
     };
 

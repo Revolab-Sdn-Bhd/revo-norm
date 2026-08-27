@@ -53,12 +53,32 @@ fn base_pack(code: &'static str) -> LanguagePack {
         negative_word: "负",
         month_names: HashMap::new(), // zh dates handled in the zh normalizer
         drops_exclamation: false,
-        distance_units: Default::default(),
-        volume_units: Default::default(),
-        weight_units: Default::default(),
         duration_units: Default::default(),
         area_units: Default::default(),
-        temperature_units: Default::default(),
+        temperature_units: [
+            ("c", "摄氏度"), ("f", "华氏度"), ("k", "开尔文"),
+        ]
+        .into_iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect(),
+        distance_units: [
+            ("km", "公里"), ("m", "米"), ("cm", "厘米"), ("mm", "毫米"),
+        ]
+        .into_iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect(),
+        volume_units: [
+            ("ml", "毫升"), ("l", "升"), ("litre", "升"), ("liter", "升"),
+        ]
+        .into_iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect(),
+        weight_units: [
+            ("kg", "公斤"), ("g", "克"), ("mg", "毫克"),
+        ]
+        .into_iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect(),
         fraction_word: "per",
         times_word: "kali",
         hijri_suffix: "Hijri",
