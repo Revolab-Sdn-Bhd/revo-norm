@@ -64,6 +64,15 @@ pub fn pack() -> &'static LanguagePack {
         .into_iter()
         .collect(),
         drops_exclamation: true,
+        distance_units: Default::default(),
+        volume_units: Default::default(),
+        weight_units: Default::default(),
+        duration_units: Default::default(),
+        area_units: Default::default(),
+        temperature_units: Default::default(),
+        fraction_word: "per",
+        times_word: "kali",
+        hijri_suffix: "Hijri",
     });
     &PACK
 }

@@ -23,6 +23,29 @@ pub struct LanguagePack {
     pub month_names: HashMap<&'static str, &'static str>,
     /// "!" is dropped silently (TTS over-emphasis).
     pub drops_exclamation: bool,
+    /// Measurement unit -> spoken form (milestone 3).
+    pub distance_units: HashMap<String, String>,
+    pub volume_units: HashMap<String, String>,
+    pub weight_units: HashMap<String, String>,
+    pub duration_units: HashMap<String, String>,
+    pub area_units: HashMap<String, String>,
+    /// Temperature unit key ("c"/"f"/"k") -> spoken form.
+    pub temperature_units: HashMap<String, String>,
+    /// Fraction word ("per"), times word ("kali"), hijri suffix.
+    pub fraction_word: &'static str,
+    pub times_word: &'static str,
+    pub hijri_suffix: &'static str,
+}
+
+/// The six measurement unit tables bundled for pack construction.
+#[derive(Default)]
+pub struct UnitTables {
+    pub distance: HashMap<String, String>,
+    pub volume: HashMap<String, String>,
+    pub weight: HashMap<String, String>,
+    pub duration: HashMap<String, String>,
+    pub area: HashMap<String, String>,
+    pub temperature: HashMap<String, String>,
 }
 
 impl LanguagePack {
@@ -32,6 +55,7 @@ impl LanguagePack {
             None => ch.to_string(),
         }
     }
+
 }
 
 static REGISTRY: LazyLock<HashMap<&'static str, &'static LanguagePack>> = LazyLock::new(|| {
