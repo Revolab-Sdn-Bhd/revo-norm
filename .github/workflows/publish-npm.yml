@@ -39,6 +39,8 @@ jobs:
         run: |
           cd pkg-node && npm pkg set name="@revolab/revonorm" && cd ..
           cd pkg-web && npm pkg set name="@revolab/revonorm-web"
+          cd pkg-web && npm pkg set description="Multilingual TTS text normalization for browsers" && cd ..
+          cd pkg-node && npm pkg set description="Multilingual TTS text normalization for Node.js"
 
       - name: Smoke both variants
         run: |
