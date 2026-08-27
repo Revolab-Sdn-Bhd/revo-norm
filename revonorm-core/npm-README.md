@@ -1,12 +1,12 @@
-# @revolab/revonorm-core
+# @revolab/revonorm
 
 Text normalization for TTS — converts written text (numbers, currency, dates,
 times, symbols) into spoken words across 5 languages: `ms`, `id`, `en`, `zh`,
 `zh_my`.
 
 ```bash
-npm install @revolab/revonorm-core        # node
-npm install @revolab/revonorm-core-web    # browser (webpack/vite/esbuild)
+npm install @revolab/revonorm        # node
+npm install @revolab/revonorm-web    # browser (webpack/vite/esbuild)
 ```
 
 Both packages have the identical API — the only difference is how the wasm loads.
@@ -14,7 +14,7 @@ Both packages have the identical API — the only difference is how the wasm loa
 ## Use
 
 ```js
-const { normalize } = require('@revolab/revonorm-core');
+const { normalize } = require('@revolab/revonorm');
 
 normalize('Harga RM10.50 sahaja', 'ms');   // "Harga sepuluh ringgit lima puluh sen sahaja"
 normalize('It costs $5.50', 'en');         // "It costs five dollar fifty cents"
