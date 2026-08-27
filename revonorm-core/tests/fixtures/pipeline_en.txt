@@ -14,6 +14,7 @@ meeting at 7 pm	meeting at seven p m
 123,456 items	one hundred and twenty three thousand, four hundred and fifty six items
 you're 100% right	you are one hundred percent right
 The GUI uses JSON and NASA rockets	The gooey uses J son and NASA rockets
+5km run and 2kg weights	five kilometers run and two kilogram weights
 3/4 of the pie	three over four of the pie
 10x faster	ten times faster
 version 3.14.159	version three point fourteen point one hundred and fifty-nine

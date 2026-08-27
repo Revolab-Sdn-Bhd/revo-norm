@@ -62,7 +62,7 @@ pub fn normalize_measurements(text: &str, language: &str) -> String {
     let speak = |v: &str| -> String {
         let cleaned = v.replace(',', ".");
         if let Ok(n) = cleaned.parse::<u128>() {
-            to_cardinal(n)
+            cardinal_for(n, language)
         } else if let Ok(f) = cleaned.parse::<f64>() {
             // decimals: whole koma digits
             let s = format!("{f}");

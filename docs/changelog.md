@@ -2,7 +2,24 @@
 
 All notable changes to revo-norm are documented here.
 
-## v0.6.1 (Current)
+## v0.7.0 (Current)
+
+Rust core at full parity — the single-source-of-truth groundwork.
+
+### Added
+
+- **`revonorm-core/`**: a Rust port of the entire normalization pipeline, all five languages, consumed as **wasm** (`normalize(text, lang, options_json)`), **cdylib** (C ABI), and a **PyO3 wheel** (`from revonorm_core import normalize_text`)
+- **Parity contract, CI-enforced**: fixtures are regenerated from Python on every PR (35 ms + 20 id + 24 en + 16 zh byte-equal cases + 175 num2word) — a Python rule change without a matching Rust change fails the build
+- **Options surface** (wasm/pyo3): `profile`, `disable`, layered `pronunciations` (`{"*": {...}, "ms": {...}}` with null-deletion) — the model-specific pronunciation use case works from every consumer
+- **Verified equivalence beyond fixtures**: 81-case differential smoke (wheel vs pure-Python, all languages) and the internal consumers' call shapes exercised end-to-end
+
+### Notes
+
+- The Python package is unchanged — same API, same behavior; the wheel is a drop-in for `normalize_text(text, language=...)`
+- `tts_utils` (sound words, `add_random_commas`) stays pure-Python by design
+- Flipping consumers to the wheel is a deployment decision per consumer; output is proven identical and the parity CI keeps both locked
+
+## v0.6.1
 
 Raw-particle TTS fixes — the last of the same family as the `!`/`&`/`*` bug.
 
