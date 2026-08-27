@@ -36,11 +36,12 @@ jobs:
           cp npm-README.md pkg-web/README.md
 
       - name: Rename packages (crate name stays revonorm-core)
+        working-directory: revonorm-core
         run: |
-          cd pkg-node && npm pkg set name="@revolab/revonorm" && cd ..
-          cd pkg-web && npm pkg set name="@revolab/revonorm-web"
-          cd pkg-web && npm pkg set description="Multilingual TTS text normalization for browsers" && cd ..
-          cd pkg-node && npm pkg set description="Multilingual TTS text normalization for Node.js"
+          npm pkg set name="@revolab/revonorm" --prefix pkg-node
+          npm pkg set description="Multilingual TTS text normalization for Node.js" --prefix pkg-node
+          npm pkg set name="@revolab/revonorm-web" --prefix pkg-web
+          npm pkg set description="Multilingual TTS text normalization for browsers" --prefix pkg-web
 
       - name: Smoke both variants
         run: |
