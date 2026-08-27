@@ -21,12 +21,59 @@ static RE_NEG_SIGN: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?<![\w\-])-(?=\d)").unwrap());
 static RE_MULTI_SPACES: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\s+").unwrap());
 static RE_EXCLAIM: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"!+").unwrap());
+static RE_ENTITY_PH: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"<<<[A-Z]+_(\d+)>>>").unwrap());
+
+/// Replace entity placeholders with pure-alpha stash tokens (`entstashaa`,
+/// `entstashab`, ...) that no language pass can match — port of python
+/// _stash_placeholders. Returns (text, stash) where stash[i] holds the
+/// original placeholder string for token i.
+fn stash_placeholders(text: &str) -> (String, Vec<String>) {
+    let mut stash: Vec<String> = Vec::new();
+    let out = RE_ENTITY_PH
+        .replace_all(text, |c: &fancy_regex::Captures<str>| {
+            let idx = stash.len();
+            stash.push(c.get(0).map(|m| m.as_str().to_string()).unwrap_or_default());
+            format!("entstash{}", idx_to_letters(idx))
+        })
+        .into_owned();
+    (out, stash)
+}
+
+/// 0→aa, 1→ab, ..., 25→az, 26→ba — python's _idx_to_letters.
+fn idx_to_letters(mut n: usize) -> String {
+    let letters = b"abcdefghijklmnopqrstuvwxyz";
+    let mut out = Vec::new();
+    loop {
+        out.push(letters[n % 26] as char);
+        n = if n >= 26 { (n / 26) - 1 } else { break };
+    }
+    out.reverse();
+    out.into_iter().collect()
+}
+
+fn unstash_placeholders(text: &str, stash: &[String]) -> String {
+    let mut out = text.to_string();
+    for (i, ph) in stash.iter().enumerate() {
+        out = out.replace(&format!("entstash{}", idx_to_letters(i)), ph);
+    }
+    out
+}
 
 /// Normalize `text` for a language. `language` must be one of
 /// `supported_languages()`; anything else returns an error message the
 /// caller can surface (the Python library raises ValueError naming the code —
 /// the wasm/C callers get the same message as an Err string).
 pub fn normalize(text: &str, language: &str) -> Result<String, String> {
+    normalize_with(text, language, &crate::options::Options::default())
+}
+
+/// `normalize` with an options object (FFI callers parse from JSON).
+pub fn normalize_with(
+    text: &str,
+    language: &str,
+    options: &crate::options::Options,
+) -> Result<String, String> {
     let code = language.trim().to_lowercase();
     if !is_supported(&code) {
         let langs = crate::langpack::supported_languages().join(", ");
@@ -58,12 +105,26 @@ pub fn normalize(text: &str, language: &str) -> Result<String, String> {
         .replace_all(&out, format!(" {} ", pack.negative_word))
         .into_owned();
 
+    // Step 3 (python): entity extraction — claim entities with placeholders
+    // so downstream passes cannot mangle them; restored after normalization.
+    let (mut out, entities) = crate::entities::extract(&out);
+
+    // Step 4 (python): pronunciation mappings on protected text.
+    let pron_table = options.resolve_pronunciations(&code);
+    out = crate::pron::apply(&out, &pron_table);
+
+    // Step 5 (python): stash placeholders as pure-alpha tokens so language
+    // normalizers (mixed-alnum, number passes) cannot touch them.
+    let (out, stash) = stash_placeholders(&out);
+
     // Language normalizer pass (currency, dates, times, numbers...).
-    // Milestone 1 parity tier: python's full pipeline runs entity extraction
-    // before this pass; cases where that changes output (dates/times/URLs)
-    // are tracked in gen_fixtures.py ENTITY_CASES and asserted at the
-    // normalizer tier until milestone 2 ports the extractor.
-    out = normalize_malay(&out);
+    let out = normalize_malay(&out);
+
+    // Step 6.5: unstash back to <<<TYPE_N>>> placeholders.
+    let mut out = unstash_placeholders(&out, &stash);
+
+    // Step 7 (python): restore entities as spoken form.
+    out = crate::entities::restore(&out, &entities, &code);
 
     // Special chars: spell out symbols from the pack table.
     for (ch, spoken) in &pack.symbol_words {

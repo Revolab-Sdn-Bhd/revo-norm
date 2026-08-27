@@ -11,6 +11,9 @@
 //! Milestone 1: Malay path. en/id/zh/zh_my return a not-ported error until
 //! their milestones land — never a silent Malay fallback.
 
+pub mod entities;
+pub mod options;
+pub mod pron;
 pub mod lang;
 pub mod langpack;
 pub mod normalize;
