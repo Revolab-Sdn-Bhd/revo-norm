@@ -35,6 +35,11 @@ jobs:
           cp npm-README.md pkg-node/README.md
           cp npm-README.md pkg-web/README.md
 
+      - name: Rename packages (crate name stays revonorm-core)
+        run: |
+          cd pkg-node && npm pkg set name="@revolab/revonorm" && cd ..
+          cd pkg-web && npm pkg set name="@revolab/revonorm-web"
+
       - name: Smoke both variants
         run: |
           node -e "
@@ -63,7 +68,7 @@ jobs:
         if: ${{ !contains(github.ref, 'no-publish') }}
         run: |
           cd pkg-web
-          npm pkg set name="@revolab/revonorm-core-web"
+          npm pkg set name="@revolab/revonorm-web"
           npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
