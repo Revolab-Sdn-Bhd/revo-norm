@@ -87,18 +87,26 @@ pub fn normalize_with(
 
     // Milestone 1: only the Malay path has a ported normalizer. Others error
     // until their milestone lands — never silently fall back to Malay.
-    if code != "ms" {
+    if code != "ms" && code != "id" {
         return Err(format!(
-            "language '{code}' not ported yet (milestone 1 ships 'ms'; en/id/zh/zh_my follow)"
+            "language '{code}' not ported yet (ms and id shipped; en/zh/zh_my follow)"
         ));
     }
 
     let pack = get_pack(&code);
-    let mut out = text.to_string();
-
-    // Step 1 (python): currency suffix expansion — RM30K/RM1.5M/RM2 juta...
-    // (inside normalize_malay too for the K case; idempotent at this level)
-    out = crate::normalize::expand_all_currency_suffixes(&out);
+    // id rewrites its written number conventions first (dotted thousands,
+    // comma decimals, Rp slang) and skips the en-semantics M expansion.
+    let mut out = if code == "id" {
+        crate::normalize_id::preparse_number_formats(text)
+    } else {
+        text.to_string()
+    };
+    let suffix_out = if code == "id" {
+        crate::normalize::expand_suffixes_no_m(&out)
+    } else {
+        crate::normalize::expand_all_currency_suffixes(&out)
+    };
+    out = suffix_out;
 
     // Step 1c (python): negative signs — before number normalization.
     out = RE_NEG_SIGN
@@ -122,7 +130,11 @@ pub fn normalize_with(
     let (out, stash) = stash_placeholders(&out);
 
     // Language normalizer pass (currency, dates, times, numbers...).
-    let out = normalize_malay(&out);
+    let out = if code == "id" {
+        crate::normalize_id::normalize_indonesian(&out)
+    } else {
+        normalize_malay(&out)
+    };
 
     // Step 6.5: unstash back to <<<TYPE_N>>> placeholders.
     let mut out = unstash_placeholders(&out, &stash);

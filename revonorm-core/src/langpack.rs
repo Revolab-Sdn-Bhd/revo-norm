@@ -18,6 +18,7 @@ pub struct LanguagePack {
     /// Single digit '0'-'9' -> spoken word.
     pub digit_words: HashMap<char, &'static str>,
     /// Spoken before a digit string when '-' means negative.
+    pub currency_names: HashMap<&'static str, (&'static str, &'static str)>,
     pub negative_word: &'static str,
     /// Month number ("1".."12") -> month name.
     pub month_names: HashMap<&'static str, &'static str>,

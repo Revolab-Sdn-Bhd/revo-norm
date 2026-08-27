@@ -6,6 +6,7 @@ use crate::langpack::LanguagePack;
 pub fn pack() -> &'static LanguagePack {
     static PACK: std::sync::LazyLock<LanguagePack> = std::sync::LazyLock::new(|| LanguagePack {
         code: "en",
+        currency_names: Default::default(),
         symbol_words: [
             ('&', "and".to_string()),
             ('+', "plus".to_string()),

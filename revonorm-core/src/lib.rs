@@ -17,6 +17,7 @@ pub mod pron;
 pub mod lang;
 pub mod langpack;
 pub mod normalize;
+pub mod normalize_id;
 pub mod num2word;
 pub mod pipeline;
 pub mod shared;

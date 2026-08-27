@@ -42,6 +42,7 @@ from revo_norm.currency_utils import (
 from revo_norm import normalize_text
 from revo_norm.entity_extractor import EntityExtractor, EntityType
 from revo_norm.langpack import get_pack
+from revo_norm.normalizer_id import normalize_indonesian, preparse_number_formats
 from revo_norm.normalizer_ms import normalize_malay
 from revo_norm.num2word_ms import to_cardinal
 from revo_norm.pronunciation_mappings import (
@@ -101,6 +102,30 @@ def simulate_milestone3(text: str) -> str:
     return re.sub(r"\s+", " ", out.strip())
 
 
+
+ID_CASES = [
+    "Harga Rp1.500.000 saja",
+    "Saldo Rp5.670,23 hari ini",
+    "Rp5rb dan 5jt",
+    "Rp5M",
+    "diskon 3,5 persen",
+    "jam 3:30 sore",
+    "suhu -5 derajat",
+    "total 1.000.000 orang",
+    "pakai 5km jalan kaki",
+    "suhu 25C disini",
+    "jam 8:00 malam",
+    "tanggal 15/08/2025",
+    "Belanja RM2 juta untung",
+    "Nombor 0812-3456-7890",
+    "Baca https://situs.com/cari?q=halo",
+    "Diskon 50% hari ini",
+    "naik 3.5 poin",
+    "15/4 dari penduduk",
+    "10x lipat",
+    "1433H",
+]
+
 ALL_CASES = [
     "Harga barang ni RM10.50 sahaja",
     "Baki akaun anda ialah RM5,670.23 pada 31 Disember",
@@ -140,6 +165,40 @@ ALL_CASES = [
 ]
 
 
+
+def simulate_milestone3_id(text: str) -> str:
+    """Mirror revonorm-core's pipeline::normalize('id') steps."""
+    pack = get_pack("id")
+    out = preparse_number_formats(text)
+    # suffixes without en-M (id M = miliar, already worded by preparse)
+    out = CURRENCY_T_SUFFIX_PATTERN.sub(expand_currency_t_suffix, out)
+    out = CURRENCY_TRILIUN_PATTERN.sub(expand_currency_t_suffix, out)
+    out = CURRENCY_B_SUFFIX_PATTERN.sub(expand_currency_b_suffix, out)
+    out = CURRENCY_MILIAR_PATTERN.sub(expand_currency_b_suffix, out)
+    out = CURRENCY_JUTA_PATTERN.sub(expand_currency_m_suffix, out)
+    out = CURRENCY_K_SUFFIX_PATTERN.sub(expand_currency_k_suffix, out)
+    out = CURRENCY_RIBU_PATTERN.sub(expand_currency_k_suffix, out)
+    out = RE_NEG.sub(f" {pack.negative_word} ", out)
+    from revo_norm.shared_features import normalize_measurements
+    out = normalize_measurements(out, "id")
+    ex = EntityExtractor()
+    ms3 = [EntityType.URL, EntityType.EMAIL, EntityType.PHONE,
+           EntityType.VERSION, EntityType.CURRENCY, EntityType.DATE, EntityType.TIME,
+           EntityType.TEMPERATURE, EntityType.FRACTION, EntityType.X_KALI,
+           EntityType.IC, EntityType.HARI_BULAN, EntityType.HIJRI]
+    out, ents = ex.extract(out, enabled_entities=ms3)
+    table = resolve_pronunciations("id", profile="builtin")
+    out = apply_pronunciation_mappings(out, "id", table)
+    out, stash = _stash_placeholders(out)
+    out = normalize_indonesian(out)
+    out = _unstash_placeholders(out, stash)
+    out = ex.restore(out, "id")
+    for sym, spoken in pack.symbol_words.items():
+        out = out.replace(sym, f" {spoken} ")
+    if pack.drops_exclamation:
+        out = re.sub(r"!+", "", out)
+    return re.sub(r"\s+", " ", out.strip())
+
 def main() -> None:
     FIXDIR.mkdir(exist_ok=True)
     rng = random.Random(42)
@@ -163,6 +222,25 @@ def main() -> None:
     with open(FIXDIR / "pending_ms.txt", "w", encoding="utf-8") as f:
         for case, full, sim in pending:
             f.write(f"{case}\t{full}\t{sim}\n")
+
+    # id fixtures: same step simulation, id vocabulary
+    from revo_norm.normalizer_id import normalize_indonesian, preparse_number_formats
+    done_id, pending_id = [], []
+    for case in ID_CASES:
+        full = normalize_text(case, language="id")
+        sim = simulate_milestone3_id(case)
+        (done_id if full == sim else pending_id).append((case, full, sim))
+    with open(FIXDIR / "pipeline_id.txt", "w", encoding="utf-8") as f:
+        for case, full, _ in done_id:
+            f.write(f"{case}\t{full}\n")
+    if pending_id:
+        with open(FIXDIR / "pending_id.txt", "w", encoding="utf-8") as f:
+            for case, full, sim in pending_id:
+                f.write(f"{case}\t{full}\t{sim}\n")
+    print(
+        f"id parity: {len(done_id)} green, {len(pending_id)} pending: "
+        f"{[c for c, _, _ in pending_id]}"
+    )
 
     print(
         f"wrote {len(nums)} num2word; pipeline parity: {len(done)} green-tier, "
