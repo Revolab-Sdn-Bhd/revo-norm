@@ -4,7 +4,7 @@ Post-processing utilities for TTS applications. These functions operate on alrea
 
 ## `parse_sound_word_field`
 
-::: revo_norm.tts_utils.parse_sound_word_field
+::: revonorm.tts_utils.parse_sound_word_field
 
 Parse a user-provided sound word field into a list of `(pattern, replacement)` tuples.
 
@@ -30,7 +30,7 @@ result = parse_sound_word_field("[music]\n[breath]")
 
 ## `smart_remove_sound_words`
 
-::: revo_norm.tts_utils.smart_remove_sound_words
+::: revonorm.tts_utils.smart_remove_sound_words
 
 Remove or replace sound words (like `[laughter]`, `[applause]`) from text. Handles possessives (`'s`), quoted occurrences, and cleans up resulting whitespace and punctuation artifacts.
 
@@ -61,7 +61,7 @@ result = smart_remove_sound_words(text, words)
 
 ## `add_random_commas`
 
-::: revo_norm.tts_utils.add_random_commas
+::: revonorm.tts_utils.add_random_commas
 
 Insert random commas into long text to create natural pauses for TTS. Uses a smart algorithm that avoids inserting commas near existing punctuation, at sentence boundaries, or too close to sentence endings.
 
@@ -90,7 +90,7 @@ result = add_random_commas(short)
 
 ## `split_text_by_words`
 
-::: revo_norm.tts_utils.split_text_by_words
+::: revonorm.tts_utils.split_text_by_words
 
 Split text into chunks by word boundaries. Ensures words are never cut in half. Each chunk contains complete words and is approximately `max_chars` characters long.
 

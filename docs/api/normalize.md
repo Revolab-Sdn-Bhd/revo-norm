@@ -2,7 +2,7 @@
 
 The primary entry point for text normalization.
 
-::: revo_norm.normalize_text
+::: revonorm.compat.normalize_text
 
 ## Parameters
 

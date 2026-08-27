@@ -57,7 +57,7 @@ Config entries that look like abbreviation expansions ("YOLO" → "you only live
 
 ## `register_pronunciation_profile`
 
-::: revo_norm.pronunciation_mappings.register_pronunciation_profile
+::: revonorm.pronunciation_mappings_compat.register_pronunciation_profile
 
 Register a named mapping set at process startup — the natural home for TTS-model-specific tables and company dictionaries.
 
@@ -79,7 +79,7 @@ normalize_text("Restart nginx dan WiFi", language="ms", config=cfg)
 
 ## `pronunciations_from_file`
 
-::: revo_norm.pronunciation_mappings.pronunciations_from_file
+::: revonorm.pronunciation_mappings_compat.pronunciations_from_file
 
 Load scoped mappings from a JSON file — for deployment-driven config:
 
@@ -135,7 +135,7 @@ Handled by the generalized `expand_acronym()` rule instead:
 
 ## `add_custom_mapping` (legacy)
 
-::: revo_norm.pronunciation_mappings.add_custom_mapping
+::: revonorm.pronunciation_mappings_compat.add_custom_mapping
 
 Writes the process-global legacy table — **layer 1**. Still functional, still raises `ValueError` on expansion-looking mappings. Prefer `Config.pronunciations` in servers: it is request-scoped, layerable, and warn-only.
 
@@ -148,19 +148,19 @@ add_custom_mapping("YOLO", "you only live once")  # ❌ raises ValueError
 
 ## `get_pronunciation_mappings`
 
-::: revo_norm.pronunciation_mappings.get_pronunciation_mappings
+::: revonorm.pronunciation_mappings_compat.get_pronunciation_mappings
 
 Legacy single-layer view: legacy global + builtin profile for a language.
 
 ## `apply_pronunciation_mappings`
 
-::: revo_norm.pronunciation_mappings.apply_pronunciation_mappings
+::: revonorm.pronunciation_mappings_compat.apply_pronunciation_mappings
 
 Apply a resolved table to text — whole-word, case-insensitive, longest term first. Called internally with the resolved layers; pass `mappings=` to use directly.
 
 ## `remove_preservation_markers`
 
-::: revo_norm.pronunciation_mappings.remove_preservation_markers
+::: revonorm.pronunciation_mappings_compat.remove_preservation_markers
 
 Strip `__PRESERVED__...__` markers left by the pipeline.
 
