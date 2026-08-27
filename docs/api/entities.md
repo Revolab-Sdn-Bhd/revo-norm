@@ -18,7 +18,7 @@ With entity extraction, `"RM 450000"` is replaced with `<<<CURRENCY_1>>>` before
 
 ## `EntityExtractor`
 
-::: revo_norm.entity_extractor.EntityExtractor
+::: revonorm.compat.EntityExtractor
 
 ### Constructor
 
@@ -32,7 +32,7 @@ Creates a new extractor instance with pre-compiled patterns for all entity types
 
 ### `extract(text, enabled_entities)`
 
-::: revo_norm.entity_extractor.EntityExtractor.extract
+::: revonorm.compat.EntityExtractor.extract
 
 Extract entities from text and replace them with placeholders.
 
@@ -68,7 +68,7 @@ protected, entities = extractor.extract(
 
 ### `restore(text, language)`
 
-::: revo_norm.entity_extractor.EntityExtractor.restore
+::: revonorm.compat.EntityExtractor.restore
 
 Convert entity placeholders back to spoken form.
 
@@ -99,7 +99,7 @@ result = extractor.restore(protected, "ms")
 
 ## `EntityType`
 
-::: revo_norm.entity_extractor.EntityType
+::: revonorm.compat.EntityType
 
 Enum of all entity types that can be extracted. Each value is a lowercase string.
 
@@ -128,7 +128,7 @@ EntityType.DATE      # <EntityType.DATE: 'date'>
 
 ## `Entity`
 
-::: revo_norm.entity_extractor.Entity
+::: revonorm.compat.Entity
 
 Dataclass representing an extracted entity.
 

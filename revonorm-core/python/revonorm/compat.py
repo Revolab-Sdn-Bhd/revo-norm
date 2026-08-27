@@ -268,6 +268,17 @@ class EntityExtractor:
             protected = patterns[etype].sub(_stash, protected)
         return protected, self.entities
 
+    def restore(self, text, language="en"):
+        """Restore placeholders to the original entity text (spoken-form
+        conversion lives in the engine pipeline)."""
+        import re as _re
+
+        out = text
+        for e in reversed(self.entities):
+            ph = f"<<<{e.type.value.upper()}_{e.placeholder_id}>>>"
+            out = out.replace(ph, e.text, 1)
+        return out
+
 
 # ---------------------------------------------------------------------------
 # Language packs — registration is engine-side; expose API shapes

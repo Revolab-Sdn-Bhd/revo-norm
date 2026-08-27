@@ -2,7 +2,7 @@
 
 Feature-toggle configuration for text normalization.
 
-::: revo_norm.config.Config
+::: revonorm.compat.Config
 
 ## Feature Fields
 
@@ -43,7 +43,7 @@ cfg = Config()  # All features enabled
 
 ### `Config.from_profile(name)` {: #from-profile }
 
-::: revo_norm.config.Config.from_profile
+::: revonorm.compat.Config.from_profile
 
 Creates a Config from a named profile.
 
@@ -84,7 +84,7 @@ Raises `ValueError` for unknown profile names.
 
 ### `Config.with_disabled(features)` {: #with-disabled }
 
-::: revo_norm.config.Config.with_disabled
+::: revonorm.compat.Config.with_disabled
 
 Creates a standard Config with specific features disabled. Unknown feature names emit a warning and are ignored.
 
@@ -103,7 +103,7 @@ cfg = Config.with_disabled(["acronyms", "measurements"])
 
 ### `is_enabled(feature)` {: #is-enabled }
 
-::: revo_norm.config.Config.is_enabled
+::: revonorm.compat.Config.is_enabled
 
 Check whether a feature is enabled. Returns `True` for unknown feature names (safe default).
 
