@@ -42,7 +42,7 @@ Malay has special single-word forms for certain numbers:
 ## Cardinal Numbers
 
 ```python
-from revo_norm import normalize_text
+from revonorm import normalize_text
 
 # English
 normalize_text("42 items", language="en")
@@ -79,7 +79,7 @@ normalize_text("7,832", language="en")
 ## Ordinals
 
 ```python
-from revo_norm import normalize_text
+from revonorm import normalize_text
 
 # English ordinals
 normalize_text("1st place", language="en")
@@ -211,7 +211,7 @@ normalize_text("hubungi 03-1234-5678", language="ms")
 Number normalization is always active and cannot be disabled independently -- it is a core part of the language normalizer. To minimize processing, use the `minimal` profile:
 
 ```python
-from revo_norm import normalize_text
+from revonorm import normalize_text
 
 # Minimal profile: only spacing normalization
 result = normalize_text("42 items", language="en", profile="minimal")

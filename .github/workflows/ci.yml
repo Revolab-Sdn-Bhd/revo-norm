@@ -15,7 +15,7 @@ jobs:
 
       - uses: astral-sh/setup-uv@v5
 
-      # revo_norm is a shim over the revonorm engine wheel — build it first
+      # The revonorm engine wheel is the shipped package — build it first
       - uses: dtolnay/rust-toolchain@stable
 
       - uses: Swatinem/rust-cache@v2
@@ -35,7 +35,7 @@ jobs:
         run: uv pip install --force-reinstall --no-deps revonorm-core/dist/*.whl
 
       - name: Lint
-        run: uv run ruff check revo_norm/
+        run: uv run ruff check revonorm-core/python/revonorm/
 
       - name: Checkout private test repo
         uses: actions/checkout@v4

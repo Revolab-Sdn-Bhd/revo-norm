@@ -75,6 +75,13 @@ pub fn get_pack(language: &str) -> &'static LanguagePack {
         .unwrap_or_else(|| panic!("unsupported language: {language}"))
 }
 
+/// Non-panicking lookup for FFI boundaries: None on unknown codes.
+pub fn try_get_pack(language: &str) -> Option<&'static LanguagePack> {
+    REGISTRY
+        .get(language.trim().to_lowercase().as_str())
+        .copied()
+}
+
 /// All registered language codes (sorted for stable display).
 pub fn supported_languages() -> Vec<&'static str> {
     let mut v: Vec<&'static str> = REGISTRY.keys().copied().collect();

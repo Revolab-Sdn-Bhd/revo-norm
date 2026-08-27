@@ -34,15 +34,66 @@ fn to_cardinal_ms_py(n: u128) -> String {
     ms_cardinal(n)
 }
 
+/// Engine entity extraction: returns (protected_text, [(tag, text, id), ...])
+/// with `<<<TAG_ID>>>` placeholders — all 13 types, python's extraction order.
+/// Extract with an optional type filter: tags is a list of engine tags
+/// (URL, EMAIL, ...); empty means extract everything. Returns
+/// (protected_text, [(tag, text, id), ...]) with ids numbered in result
+/// order (python semantics: next_id increments per claimed entity).
+#[pyfunction]
+#[pyo3(name = "extract_entities")]
+#[pyo3(signature = (text, tags=None))]
+fn extract_entities_py(
+    text: &str,
+    tags: Option<Vec<String>>,
+) -> (String, Vec<(String, String, u32)>) {
+    let (protected, entities) = crate::entities::extract(text);
+    let filter: Option<std::collections::HashSet<String>> =
+        tags.map(|t| t.into_iter().collect());
+    let mut list = Vec::new();
+    let mut next_id = 1u32;
+    for e in &entities {
+        if let Some(f) = &filter {
+            if !f.contains(e.kind.tag()) {
+                continue;
+            }
+        }
+        list.push((e.kind.tag().to_string(), e.text.clone(), next_id));
+        next_id += 1;
+    }
+    (protected, list)
+}
+
+/// Engine entity speech: convert one extracted entity to its spoken form.
+#[pyfunction]
+#[pyo3(name = "entity_to_spoken")]
+fn entity_to_spoken_py(text: &str, tag: &str, language: &str) -> PyResult<String> {
+    let kind = crate::entities::entity_kind_from_tag(tag);
+    crate::entities::speak_entity(kind, text, language).map_err(PyValueError::new_err)
+}
+
 #[pyfunction]
 #[pyo3(name = "to_cardinal_id")]
-fn to_cardinal_id_py(n: u128) -> String {
-    crate::num2word::to_cardinal_id(n)
+#[pyo3(signature = (n, /))]
+fn to_cardinal_id_py(n: i64) -> PyResult<String> {
+    if n < 0 {
+        return Ok(format!("negatif {}", crate::num2word::to_cardinal_id((-n) as u128)));
+    }
+    Ok(crate::num2word::to_cardinal_id(n as u128))
 }
 
 #[pyfunction]
 #[pyo3(name = "to_cardinal_zh")]
-fn to_cardinal_zh_py(n: f64) -> String {
+fn to_cardinal_zh_py(n: f64) -> PyResult<String> {
+    if n.abs() >= 10_f64.powi(16) {
+        return Err(pyo3::exceptions::PyOverflowError::new_err(format!(
+            "Number {n} is too large (max 10^16)"
+        )));
+    }
+    Ok(to_cardinal_zh_inner(n))
+}
+
+fn to_cardinal_zh_inner(n: f64) -> String {
     if n < 0.0 {
         return format!("负{}", crate::normalize_zh::to_cardinal_zh(n.abs() as u128));
     }
@@ -72,10 +123,8 @@ fn to_cardinal_zh_py(n: f64) -> String {
 fn to_currency_zh_py(value: f64, currency: &str) -> String {
     let int_part = value.trunc() as u128;
     let cents = ((value.fract()) * 100.0).round() as i64;
-    let unit = match currency {
-        "ringgit" => "令吉",
-        _ => "元",
-    };
+    // the spoken unit IS the currency string (python: to_cardinal(n) + currency)
+    let unit = currency;
     if cents > 0 {
         format!(
             "{}{}{}分",
@@ -99,6 +148,8 @@ fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(normalize_py, m)?)?;
     m.add_function(wrap_pyfunction!(supported_languages_py, m)?)?;
     m.add_function(wrap_pyfunction!(to_cardinal_ms_py, m)?)?;
+    m.add_function(wrap_pyfunction!(extract_entities_py, m)?)?;
+    m.add_function(wrap_pyfunction!(entity_to_spoken_py, m)?)?;
     m.add_function(wrap_pyfunction!(to_cardinal_id_py, m)?)?;
     m.add_function(wrap_pyfunction!(to_cardinal_zh_py, m)?)?;
     m.add_function(wrap_pyfunction!(to_currency_zh_py, m)?)?;

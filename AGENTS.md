@@ -8,10 +8,10 @@
 
 - Install from source: `uv sync`
 - Install with dev deps: `uv sync --group dev`
-- Run linter: `uv run ruff check revo_norm/`
-- Auto-fix lint issues: `uv run ruff check revo_norm/ --fix`
-- Format code: `uv run ruff format revo_norm/`
-- Check formatting: `uv run ruff format --check revo_norm/`
+- Run linter: `uv run ruff check revonorm-core/python/revonorm/`
+- Auto-fix lint issues: `uv run ruff check revonorm-core/python/revonorm/ --fix`
+- Format code: `uv run ruff format revonorm-core/python/revonorm/`
+- Check formatting: `uv run ruff format --check revonorm-core/python/revonorm/`
 
 ## Testing Instructions
 
@@ -21,7 +21,7 @@ Tests are maintained in a separate repository.
 - Run with coverage: `uv run pytest ../revo-norm-tests/ --cov --cov-report=term-missing`
 - Run a single test class: `uv run pytest ../revo-norm-tests/<test_file>.py::TestClass -v`
 - Run a single test: `uv run pytest ../revo-norm-tests/<test_file>.py::TestClass::test_method -v`
-- Always run `uv run ruff check revo_norm/` and `uv run pytest ../revo-norm-tests/ -q` before committing.
+- Always run `uv run ruff check revonorm-core/python/revonorm/` and `uv run pytest ../revo-norm-tests/ -q` before committing.
 
 ### Rust core (`revonorm-core/`)
 
@@ -78,10 +78,8 @@ These ordering constraints MUST be preserved:
 
 ### Pipeline Flow Diagram
 
-The full text normalization flow is documented in `REPO_ANALYSIS/full_text_flow.md`.
 This file is auto-generated. **When you modify the pipeline** (add/remove steps, change ordering, add entity types), regenerate it:
 ```bash
-uv run python scripts/generate_flow.py
 ```
 Always regenerate the flow after changing `text_normalizer.py`, `entity_extractor.py`, `normalizer_en.py`, `normalizer_ms.py`, or `shared_features.py`.
 
@@ -121,8 +119,8 @@ Configuration lives in `pyproject.toml`:
 | Old Tool | New Tool | Migration Guide |
 |----------|----------|------------------|
 | **pip** | **uv** | `pip install -e .[dev]` → `uv sync --all-extras` |
-| **black** | **ruff format** | `black revo_norm/` → `uv run ruff format revo_norm/` |
-| **flake8** | **ruff check** | `flake8 revo_norm/` → `uv run ruff check revo_norm/` |
+| **black** | **ruff format** | `black revonorm-core/python/revonorm/` → `uv run ruff format revonorm-core/python/revonorm/` |
+| **flake8** | **ruff check** | `flake8 revonorm-core/python/revonorm/` → `uv run ruff check revonorm-core/python/revonorm/` |
 | **isort** | **ruff check --select I** | Auto-handled by ruff |
 | **mypy** | **ty** (optional) | Install separately: `uv add --dev ty` |
 
@@ -248,7 +246,7 @@ Run `uv sync` to ensure all dependencies are installed.
 
 ## Commit Guidelines
 
-- Run `uv run ruff check revo_norm/` and fix all issues before committing
+- Run `uv run ruff check revonorm-core/python/revonorm/` and fix all issues before committing
 - Run `uv run pytest ../revo-norm-tests/ -q` and ensure no new failures
 - Use `git mv` for file renames to preserve history
 
@@ -256,7 +254,7 @@ Run `uv sync` to ensure all dependencies are installed.
 
 Versioning follows semver, pre-1.0 (`0.x`): **patch** = bug fixes; **minor** = new backward-compatible features (a new language, a new public export); a breaking change rides in the minor bump until 1.0.
 
-- **Version is single-sourced** in `revo_norm/__init__.py` (`__version__`); `pyproject.toml` uses `dynamic = ["version"]` + `[tool.hatch.version]` to read it. Bump the one place.
+- **Version is single-sourced** in `revonorm-core/python/revonorm/__init__.py` (`__version__`); `pyproject.toml` uses `dynamic = ["version"]` + `[tool.hatch.version]` to read it. Bump the one place.
 - **Changelog** is `docs/changelog.md` (Keep a Changelog format); the top section is the release being prepared, marked `(Current)`.
 - **Language list** has one source of truth each — `SUPPORTED_LANGUAGES` (code) and `docs/languages.md`. Keep other mentions generic so they can't go stale.
 

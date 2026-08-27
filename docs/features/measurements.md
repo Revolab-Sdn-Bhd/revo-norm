@@ -64,7 +64,7 @@ Measurements are normalized before the language-specific normalizer and before a
 ### Distance
 
 ```python
-from revo_norm import normalize_text
+from revonorm import normalize_text
 
 # English
 normalize_text("5km away", language="en")
@@ -162,7 +162,7 @@ normalize_text("2.5kg of rice", language="en")
 ## How to Disable
 
 ```python
-from revo_norm import normalize_text
+from revonorm import normalize_text
 
 # Disable measurement normalization
 result = normalize_text("5km away", language="en", disable=["measurements"])

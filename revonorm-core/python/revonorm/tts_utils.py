@@ -152,7 +152,9 @@ def _is_digit_word(word: str) -> bool:
     return word.strip(",.;:!?").lower() in _DIGIT_WORDS
 
 
-def add_random_commas(text: str, min_words: int = 8, max_words: int = 15, digit_group_size: int = 4) -> str:
+def add_random_commas(
+    text: str, min_words: int = 8, max_words: int = 15, digit_group_size: int = 4
+) -> str:
     """
     Add random commas for pauses in TTS output.
 

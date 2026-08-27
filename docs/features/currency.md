@@ -120,7 +120,7 @@ This prevents the following cascading failures:
 Currency normalization **cannot be fully disabled** -- it always runs as part of the entity extraction system to protect currency symbols from being mangled by other normalizers. However, you can use a minimal profile to reduce other processing:
 
 ```python
-from revo_norm import normalize_text
+from revonorm import normalize_text
 
 # Currency always gets extracted and protected
 result = normalize_text("RM450", language="ms")

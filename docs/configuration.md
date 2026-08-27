@@ -5,7 +5,7 @@ Revo-norm provides a simple feature-toggle system with profile presets. By defau
 ## Quick Start
 
 ```python
-from revo_norm import normalize_text
+from revonorm import normalize_text
 
 # Default: all features enabled
 result = normalize_text("RM 4500 & 25C", language="ms")
@@ -121,7 +121,7 @@ These are the boolean fields on the `Config` object that can be passed in the `d
 ### Examples
 
 ```python
-from revo_norm import normalize_text
+from revonorm import normalize_text
 
 # Disable temperature and measurements for a weather script that handles these separately
 result = normalize_text(text, language="en", disable=["temperature", "measurements"])
@@ -144,8 +144,8 @@ result = normalize_text(
 For fine-grained control, create a `Config` object and pass individual feature toggles:
 
 ```python
-from revo_norm import normalize_text
-from revo_norm.config import Config
+from revonorm import normalize_text
+from revonorm.config import Config
 
 # Create a custom config
 cfg = Config()
@@ -160,7 +160,7 @@ result = normalize_text(text, language="ms", config=cfg)
 ### Config Class Methods
 
 ```python
-from revo_norm.config import Config
+from revonorm.config import Config
 
 # From profile name
 cfg = Config.from_profile("basic")
@@ -178,7 +178,7 @@ Config._feature_fields()  # Returns list of boolean field names
 ### Programmatic Feature Control
 
 ```python
-from revo_norm.config import Config
+from revonorm.config import Config
 
 cfg = Config()           # All features on (standard)
 cfg.acronyms = False     # Turn off acronym expansion
@@ -198,8 +198,8 @@ if cfg.should_run_shared_features("ms"):
 The pronunciation mappings system lets you define how specific terms should be spoken. These mappings are applied **first** in the pipeline, before any other transformations, so they always take priority.
 
 ```python
-from revo_norm import normalize_text
-from revo_norm.pronunciation_mappings import add_custom_mapping
+from revonorm import normalize_text
+from revonorm.pronunciation_mappings import add_custom_mapping
 
 # Add a custom mapping
 add_custom_mapping("YOLO", "you only live once", "en")

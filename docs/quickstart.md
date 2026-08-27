@@ -7,7 +7,7 @@ Get started with revo-norm in under 5 minutes.
 The library exposes a single entry point — `normalize_text()` — that handles the entire pipeline.
 
 ```python
-from revo_norm import normalize_text
+from revonorm import normalize_text
 ```
 
 Pass your text and specify the language code (see [Languages](languages.md) for the full list):
@@ -238,7 +238,7 @@ normalize_text("Suhu 25C hari ini", language="ms")
 Add your own pronunciation overrides. These take the highest priority in the pipeline and are applied before any other transformation.
 
 ```python
-from revo_norm import normalize_text, add_custom_mapping
+from revonorm import normalize_text, add_custom_mapping
 
 # Add a custom mapping
 add_custom_mapping("YOLO", "you only live once", "en")

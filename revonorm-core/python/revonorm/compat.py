@@ -235,48 +235,76 @@ class Entity:
 
 
 class EntityExtractor:
-    """API-compat extractor: extract() returns placeholder-protected text."""
+    """Entity extractor backed by the engine — all 13 types, python's
+    extraction order (EMAIL/URL/PHONE/VERSION/CURRENCY/DATE/TIME/...)."""
 
     def __init__(self):
         self.entities: list = []
-        self.next_id = 1
 
     def extract(self, text, enabled_entities=None):
-        """API-compat placeholder extraction (pure-python, python parity)."""
+        """Extract entities, replacing each with a `<<<TYPE_ID>>>` placeholder.
+
+        Returns (protected_text, entities). `enabled_entities` filters the
+        claimed types; ids number sequentially in the caller's list order
+        (python semantics: the extractor loops the enabled list).
+        """
         import re as _re
 
-        patterns = {
-            EntityType.EMAIL: _re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", _re.IGNORECASE),
-            EntityType.URL: _re.compile(
-                r"(?:https?://|ftp://|www\.)[^\s]+"
-                r"|\b(?:\d{1,3}\.){3}\d{1,3}(?::\d+)?(?:/[^\s]*)?"
-                r"|\b[A-Za-z0-9-]+\.[A-Za-z]{2,}(?:/[^\s]*)?",
-                _re.IGNORECASE,
-            ),
-        }
+        if enabled_entities is None:
+            protected, raw = _core.extract_entities(text)
+            self.entities = [
+                Entity(type=EntityType(t.lower()), text=x, placeholder_id=i)
+                for t, x, i in raw
+            ]
+            return protected, self.entities
+
+        tags = [getattr(e, "value", str(e)).upper() for e in enabled_entities]
+        # full engine extraction: (tag, text, engine_id) in engine order
+        _, full = _core.extract_entities(text)
+        by_tag: dict = {}
+        for t, x, i in full:
+            by_tag.setdefault(t, []).append((x, i))
+
+        # walk the caller's list; each listed type claims its engine entities
+        # in order, numbering 1..N
+        claim: dict = {}  # engine_id -> new_id
         self.entities = []
-        self.next_id = 1
-        protected = text
-        for etype in (EntityType.EMAIL, EntityType.URL):
-            def _stash(m):
-                ent = Entity(type=etype, text=m.group(0), start=m.start(),
-                             end=m.end(), placeholder_id=self.next_id)
-                self.entities.append(ent)
-                ph = f"<<<{etype.value.upper()}_{self.next_id}>>>"
-                self.next_id += 1
-                return ph
-            protected = patterns[etype].sub(_stash, protected)
+        new_id = 1
+        for t in tags:
+            for x, engine_id in by_tag.get(t, []):
+                claim[engine_id] = new_id
+                self.entities.append(
+                    Entity(type=EntityType(t.lower()), text=x, placeholder_id=new_id)
+                )
+                new_id += 1
+
+        # rebuild protected text: engine placeholders -> new ids; filtered
+        # entities restore their raw text
+        text_by_engine_id = {i: x for t, x, i in full}
+        protected = _re.sub(
+            r"<<<([A-Z_]+)_(\d+)>>>",
+            lambda m: (
+                f"<<<{m.group(1)}_{claim[int(m.group(2))]}>>>"
+                if int(m.group(2)) in claim
+                else text_by_engine_id.get(int(m.group(2)), m.group(0))
+            ),
+            _core.extract_entities(text)[0],
+        )
         return protected, self.entities
 
-    def restore(self, text, language="en"):
-        """Restore placeholders to the original entity text (spoken-form
-        conversion lives in the engine pipeline)."""
-        import re as _re
+    def _convert_entity_to_spoken(self, entity, language="en"):
+        """Convert one Entity to its spoken form via the engine."""
+        return _core.entity_to_spoken(
+            entity.text, entity.type.value.upper(), language
+        )
 
+    def restore(self, text, language="en"):
+        """Restore placeholders to spoken form via the engine."""
         out = text
         for e in reversed(self.entities):
             ph = f"<<<{e.type.value.upper()}_{e.placeholder_id}>>>"
-            out = out.replace(ph, e.text, 1)
+            spoken = _core.entity_to_spoken(e.text, e.type.value.upper(), language)
+            out = out.replace(ph, spoken, 1)
         return out
 
 
@@ -457,7 +485,6 @@ def _strip_sound_words(text: str, words) -> str:
 
 def normalize_text_detailed(text: str, language: str, profile=None,
                             disable=None, config=None) -> NormalizationResult:
-    import json as _json
     import re as _re
 
     out = normalize_text(text, language, profile, disable, config)
@@ -491,7 +518,8 @@ def resolve_pron_effective(language, profile=None, disable=None, config=None):
         flat = {k: v for k, v in flat.items() if v}
     if opts.get("pronunciation_profile", "builtin") != "none":
         from .pronunciation_mappings_compat import (
-            _BUILTIN_HONORIFICS, _BUILTIN_TECH,
+            _BUILTIN_HONORIFICS,
+            _BUILTIN_TECH,
         )
         if language in ("ms", "id"):
             flat.update(_BUILTIN_HONORIFICS)

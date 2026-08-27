@@ -36,7 +36,7 @@ All boolean fields default to `True` (standard profile).
 Creates a standard configuration with all features enabled.
 
 ```python
-from revo_norm.config import Config
+from revonorm.config import Config
 
 cfg = Config()  # All features enabled
 ```
@@ -72,7 +72,7 @@ Creates a Config from a named profile.
     `aggressive` has the same feature toggles as `standard`. The difference is that `aggressive` may populate `sound_words` with a default list.
 
 ```python
-from revo_norm.config import Config
+from revonorm.config import Config
 
 cfg = Config.from_profile("minimal")  # Spacing only
 cfg = Config.from_profile("basic")    # Core features
@@ -89,7 +89,7 @@ Raises `ValueError` for unknown profile names.
 Creates a standard Config with specific features disabled. Unknown feature names emit a warning and are ignored.
 
 ```python
-from revo_norm.config import Config
+from revonorm.config import Config
 
 # Disable acronym expansion and measurement normalization
 cfg = Config.with_disabled(["acronyms", "measurements"])
@@ -108,7 +108,7 @@ cfg = Config.with_disabled(["acronyms", "measurements"])
 Check whether a feature is enabled. Returns `True` for unknown feature names (safe default).
 
 ```python
-from revo_norm.config import Config
+from revonorm.config import Config
 
 cfg = Config.with_disabled(["acronyms"])
 cfg.is_enabled("acronyms")    # False

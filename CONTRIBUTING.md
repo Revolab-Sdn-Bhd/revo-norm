@@ -8,7 +8,7 @@ Two implementations of the same engine, locked to identical output:
 
 | Directory | What it is |
 |---|---|
-| `revo_norm/` | Pure Python — the reference implementation |
+| `revonorm-core/python/revonorm/` | Pure Python — the reference implementation |
 | `revonorm-core/` | Compiled engine, shipped as the `revonorm` (PyPI) and `@revolab/revonorm` (npm) packages |
 
 Behavior changes go in Python first — it is the source of truth. CI
@@ -28,7 +28,7 @@ uv sync --all-extras
 
 ```bash
 # Python: lint + tests
-uv run ruff check revo_norm/
+uv run ruff check revonorm-core/python/revonorm/
 uv run pytest ../revo-norm-tests/ -q        # private test repo (CI runs it for you)
 
 # Compiled engine: parity + lint
@@ -42,7 +42,7 @@ CI is the test gate for external contributors.
 
 ### Changing normalization rules
 
-1. Edit the rule in `revo_norm/` (and its language pack entry if vocabulary changed).
+1. Edit the rule in `revonorm-core/python/revonorm/` (and its language pack entry if vocabulary changed).
 2. Regenerate parity fixtures:
    ```bash
    uv run python revonorm-core/tests/gen_fixtures.py
@@ -73,7 +73,7 @@ CI is the test gate for external contributors.
 Each language is one pack of vocabulary plus one normalizer module — no core
 pipeline edits:
 
-- Python: an entry in `revo_norm/langpack.py` + a `normalizer_<code>.py`.
+- Python: an entry in `revonorm-core/python/revonorm/langpack.py` + a `normalizer_<code>.py`.
 - Compiled: `revonorm-core/src/lang/<code>.rs` + registry entry, mirroring
   the Python module exactly.
 

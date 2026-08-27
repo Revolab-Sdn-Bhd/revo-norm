@@ -17,7 +17,7 @@ Parse a user-provided sound word field into a list of `(pattern, replacement)` t
 **Returns:** `list[tuple[str, str]]` — List of `(pattern, replacement)` tuples. If no `=>` separator is present, the replacement is an empty string (meaning the pattern will be removed entirely).
 
 ```python
-from revo_norm.tts_utils import parse_sound_word_field
+from revonorm.tts_utils import parse_sound_word_field
 
 # With replacements
 result = parse_sound_word_field("[laughter] => haha\n[applause] => clap")
@@ -44,7 +44,7 @@ Remove or replace sound words (like `[laughter]`, `[applause]`) from text. Handl
 **Returns:** `str` — Text with sound words removed or replaced and whitespace cleaned up.
 
 ```python
-from revo_norm.tts_utils import parse_sound_word_field, smart_remove_sound_words
+from revonorm.tts_utils import parse_sound_word_field, smart_remove_sound_words
 
 # Remove sound words
 words = parse_sound_word_field("[laughter]\n[applause] => clapping")
@@ -76,7 +76,7 @@ Insert random commas into long text to create natural pauses for TTS. Uses a sma
 **Returns:** `str` — Text with optional commas inserted for natural pauses.
 
 ```python
-from revo_norm.tts_utils import add_random_commas
+from revonorm.tts_utils import add_random_commas
 
 text = "The quick brown fox jumps over the lazy dog and then runs across the field"
 result = add_random_commas(text)
@@ -104,7 +104,7 @@ Split text into chunks by word boundaries. Ensures words are never cut in half. 
 **Returns:** `list[str]` — List of text chunks, each containing complete words.
 
 ```python
-from revo_norm.tts_utils import split_text_by_words
+from revonorm.tts_utils import split_text_by_words
 
 chunks = split_text_by_words("the secret passage under the cottage", 20)
 # ["the secret passage", "under the cottage"]
@@ -118,8 +118,8 @@ chunks = split_text_by_words("Di halaman rumah nenek", 10)
 These utilities are designed to be used as post-processing steps after `normalize_text()`:
 
 ```python
-from revo_norm import normalize_text
-from revo_norm.tts_utils import (
+from revonorm import normalize_text
+from revonorm.tts_utils import (
     add_random_commas,
     parse_sound_word_field,
     smart_remove_sound_words,

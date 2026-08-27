@@ -92,7 +92,7 @@ Acronyms that don't match any rule are split letter-by-letter by default.
 Letter-period sequences (with dots between letters) are expanded by removing the periods and inserting spaces:
 
 ```python
-from revo_norm import normalize_text
+from revonorm import normalize_text
 
 normalize_text("I.B.M. released a new chip", language="en")
 # "I B M released a new chip"
@@ -124,7 +124,7 @@ normalize_text("state-of-the-art", language="en")
 Pronunciation mappings are applied **before** acronym expansion and have the highest priority in the pipeline. They override the default behavior for specific terms.
 
 ```python
-from revo_norm import normalize_text
+from revonorm import normalize_text
 
 # GUI -> gooey (not "G U I")
 normalize_text("Build a GUI interface", language="en")
@@ -156,8 +156,8 @@ normalize_text("iOS update", language="en")
 Mappings must represent **how a term sounds when spoken**, not what it stands for. The system validates against abbreviation expansions.
 
 ```python
-from revo_norm.pronunciation_mappings import add_custom_mapping
-from revo_norm import normalize_text
+from revonorm.pronunciation_mappings import add_custom_mapping
+from revonorm import normalize_text
 
 # Add a pronunciation mapping
 add_custom_mapping("SQL", "sequel")
@@ -191,7 +191,7 @@ Custom mappings apply globally (across all languages) and are matched as whole w
 ## How to Disable
 
 ```python
-from revo_norm import normalize_text
+from revonorm import normalize_text
 
 # Disable acronym expansion entirely
 result = normalize_text("The API is fast", language="en", disable=["acronyms"])

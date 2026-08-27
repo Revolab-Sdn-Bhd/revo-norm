@@ -20,7 +20,7 @@ Malaysian Identity Card (IC) numbers follow the format `YYMMDD-SS-NNNN` (6 digit
 ### Examples
 
 ```python
-from revo_norm import normalize_text
+from revonorm import normalize_text
 
 # English: each digit spoken individually
 normalize_text("IC: 911111-01-1111", language="en")
@@ -47,7 +47,7 @@ The `x` or `X` notation after a number indicates multiplication in Malay (e.g., 
 ### Examples
 
 ```python
-from revo_norm import normalize_text
+from revonorm import normalize_text
 
 # English
 normalize_text("10x faster", language="en")
@@ -91,7 +91,7 @@ The `HB` suffix after a number indicates "hari bulan" (day of the month) in form
 ### Examples
 
 ```python
-from revo_norm import normalize_text
+from revonorm import normalize_text
 
 # English (hari bulan kept as-is)
 normalize_text("Due on 10hb", language="en")
@@ -136,7 +136,7 @@ Hijri (Islamic calendar) years are denoted by an `H` suffix after a 3-4 digit ye
 ### Examples
 
 ```python
-from revo_norm import normalize_text
+from revonorm import normalize_text
 
 # English: digits spoken individually + "Hijri"
 normalize_text("Year 1445H", language="en")
@@ -169,7 +169,7 @@ Elongated words with 3 or more consecutive repeated characters are normalized by
 ### Examples
 
 ```python
-from revo_norm import normalize_text
+from revonorm import normalize_text
 
 normalize_text("soooo good", language="en")
 # "soo good"
@@ -202,7 +202,7 @@ result = normalize_text("soooo good", language="en", disable=["elongated"])
 You can disable multiple Malay-specific features at once:
 
 ```python
-from revo_norm import normalize_text
+from revonorm import normalize_text
 
 result = normalize_text(
     "IC: 900101-10-1234, 10x faster, 10hb, 1445H, soooo good",

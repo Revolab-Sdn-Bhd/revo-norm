@@ -18,7 +18,7 @@ Times are extracted as entities early in the pipeline to prevent the normalizer 
 ## English Output
 
 ```python
-from revo_norm import normalize_text
+from revonorm import normalize_text
 
 # Basic time (HH:MM)
 normalize_text("3:30", language="en")
@@ -49,7 +49,7 @@ normalize_text("12:00", language="en")
 Malay uses `pagi` (morning) for AM and `petang` (afternoon) for PM.
 
 ```python
-from revo_norm import normalize_text
+from revonorm import normalize_text
 
 # Basic time (HH:MM)
 normalize_text("3:30", language="ms")
@@ -85,7 +85,7 @@ normalize_text("12:00", language="ms")
 ## How to Disable
 
 ```python
-from revo_norm import normalize_text
+from revonorm import normalize_text
 
 # Disable time normalization
 result = normalize_text("3:30 pm", language="en", disable=["times"])

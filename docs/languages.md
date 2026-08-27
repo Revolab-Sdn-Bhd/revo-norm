@@ -13,7 +13,7 @@ Revo-norm supports five language codes with awareness of code-mixing patterns co
 | `zh_my` | Malaysian Chinese | Same as `zh` with colloquial currency (`$` → 块) and code-mixing support |
 
 ```python
-from revo_norm import normalize_text
+from revonorm import normalize_text
 
 result_en = normalize_text("25C outside", language="en")
 # "twenty five degrees celsius outside"
@@ -460,7 +460,7 @@ normalize_text("Build a GUI app", language="en")
 # "Build a gooey app"
 
 # Custom pronunciation
-from revo_norm.pronunciation_mappings import add_custom_mapping
+from revonorm.pronunciation_mappings import add_custom_mapping
 add_custom_mapping("YOLO", "you only live once", "en")
 normalize_text("YOLO approach", language="en")
 # "you only live once approach"
