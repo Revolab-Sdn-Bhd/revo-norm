@@ -56,3 +56,53 @@ fn empty_input_returns_empty() {
     assert_eq!(normalize("", "ms").unwrap(), "");
     assert_eq!(normalize("   ", "ms").unwrap(), "");
 }
+
+#[test]
+fn options_pronunciation_user_layer() {
+    let opts = revonorm_core::options::Options::parse(
+        r#"{"pronunciations": {"*": {"RevoPay": "revo pay"}}}"#,
+    )
+    .unwrap();
+    let got = revonorm_core::pipeline::normalize_with("top up RevoPay RM30K", "ms", &opts).unwrap();
+    assert_eq!(got, "top up revo pay tiga puluh ribu ringgit");
+}
+
+#[test]
+fn options_pronunciation_none_deletes() {
+    let opts = revonorm_core::options::Options::parse(
+        r#"{"pronunciations": {"*": {"WiFi": null}}}"#,
+    )
+    .unwrap();
+    let got = revonorm_core::pipeline::normalize_with("sambung WiFi sekarang", "ms", &opts).unwrap();
+    assert_eq!(got, "sambung WiFi sekarang", "None must delete the builtin entry");
+}
+
+#[test]
+fn options_pronunciation_profile_none() {
+    let opts = revonorm_core::options::Options::parse(r#"{"pronunciation_profile": "none"}"#).unwrap();
+    let got = revonorm_core::pipeline::normalize_with("sambung WiFi sekarang", "ms", &opts).unwrap();
+    assert_eq!(got, "sambung WiFi sekarang");
+}
+
+#[test]
+fn options_pronunciation_scoped() {
+    let opts = revonorm_core::options::Options::parse(
+        r#"{"pronunciations": {"ms": {"Dr": "Doktor Besar"}}}"#,
+    )
+    .unwrap();
+    let got = revonorm_core::pipeline::normalize_with("jumpa Dr Ali", "ms", &opts).unwrap();
+    assert!(got.contains("Doktor Besar"), "got: {got}");
+}
+
+#[test]
+fn options_unknown_field_rejected() {
+    let err = revonorm_core::options::Options::parse(r#"{"typo_field": 1}"#).unwrap_err();
+    assert!(err.contains("invalid options JSON"), "got: {err}");
+}
+
+#[test]
+fn options_builtin_honorifics_ms_only() {
+    // builtin honorifics apply to ms
+    let got = revonorm_core::pipeline::normalize("Hj Ahmad datang", "ms").unwrap();
+    assert_eq!(got, "Haji Ahmad datang");
+}

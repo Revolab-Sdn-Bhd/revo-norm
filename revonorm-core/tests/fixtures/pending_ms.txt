@@ -1,11 +1,7 @@
-RM2 bilion untung	dua ringgit bilion untung	dua bilion ringgit untung
-Nombor 03-8888 8000	Nombor kosong tiga lapan lapan lapan lapan lapan kosong kosong kosong	Nombor kosong tiga lapan lapan lapan lapan lapan ribu
-Mesyuarat jam 3:30 petang	Mesyuarat jam tiga tiga puluh petang	Mesyuarat jam tiga:tiga puluh petang
-Jam 09:00 pagi	Jam sembilan kosong pagi	Jam sembilan:kosong pagi
-Berat 10.5 kg	Berat sepuluh perpuluhan lima kilogram	Berat sepuluh perpuluhan lima kg
 Guna 5km dan 2kg	Guna lima kilometer dan dua kilogram	Guna lima K M dan dua K G
 Separuh daripada 3/4 bahagian	Separuh daripada tiga per empat bahagian	Separuh daripada tiga/empat bahagian
 10x ganda	sepuluh kali ganda	satu kosong X ganda
 Suhu 25C hari ini	Suhu dua puluh lima celcius hari ini	Suhu dua lima C hari ini
 1433H	satu empat tiga tiga Hijri	satu empat tiga tiga H
 10HB setiap tahun	sepuluh hari bulan setiap tahun	satu kosong H B setiap tahun
+Berat 10.5 kg	Berat sepuluh perpuluhan lima kilogram	Berat sepuluh perpuluhan lima kg
