@@ -2,7 +2,28 @@
 
 All notable changes to revo-norm are documented here.
 
-## v0.7.0 (Current)
+## v0.9.0 (Current)
+
+**The SSOT flip — the Rust engine drives everything.**
+
+### Changed
+
+- **Breaking (internal):** `revo_norm` is now a shim re-exporting the compiled `revonorm` engine. Public API unchanged — same imports, signatures, and output — but every normalization rule executes in Rust. Rule edits happen in `revonorm-core/src/` only; the pure-Python implementation lives in git history.
+- The full private 498-test suite passes through the engine: all languages, profiles, entity extraction, layered pronunciations, cultural cases
+
+### Added
+
+- Complete feature semantics in the engine: profile/disable gating (incl. entity-type gating with DATE/TIME protect-but-don't-speak), USSD codes, digit-by-digit contexts, elongated words, repeated-word commas, sound-words via the compat layer
+- `ADDRESS_SLASH` entity (street-prefixed `Jalan SS2/72` → spoken digits, beats fraction interpretation)
+- zh_my colloquial currency (美金/英磅/块), percentage (巴仙), meridian (早上); zh email speech (艾特/点); MM/DD date swap; hour-only meridians by hour
+- Python compat layer: `Config`/`Profile`/`Feature`, layered pronunciations (legacy-global < profile < user), entity facade, num2word functions, module-path aliases
+- CI snapshots engine output as fixtures (101 cases × 3 profiles + num2word) — regressions fail the build
+
+### Fixed
+
+- num2word: ms/id 8 (`lapan`/`delapan`) hardcoded in the shared tens/teens/hundreds path
+
+## v0.7.0
 
 Rust core at full parity — the single-source-of-truth groundwork.
 
