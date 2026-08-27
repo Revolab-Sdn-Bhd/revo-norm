@@ -104,6 +104,26 @@ def simulate_milestone3(text: str) -> str:
 
 
 
+
+ZH_CASES = [
+    "价格是RM50",
+    "温度25C",
+    "百分之50",
+    "现在3:30 pm",
+    "共有1234567人",
+    "上午9点开会",
+    "2025年8月15日",
+    "买3个",
+    "3/4的人",
+    "10x更快",
+    "suhu -5",
+    "Baca https://a.com/s?q=x",
+    "RM10.50打折",
+    "共1,234,567件",
+    "凌晨2:00出发",
+    "10000块",
+]
+
 EN_CASES = [
     "It costs $5.50",
     "Born in 1990",
@@ -268,6 +288,48 @@ def simulate_milestone3_en(text: str) -> str:
         out = re.sub(r"!+", "", out)
     return re.sub(r"\s+", " ", out.strip())
 
+
+def simulate_milestone3_zh(text: str) -> str:
+    """Mirror revonorm-core's pipeline::normalize('zh') steps."""
+    pack = get_pack("zh")
+    out = text
+    for pat, fn in [
+        (CURRENCY_T_SUFFIX_PATTERN, expand_currency_t_suffix),
+        (CURRENCY_TRILIUN_PATTERN, expand_currency_t_suffix),
+        (CURRENCY_B_SUFFIX_PATTERN, expand_currency_b_suffix),
+        (CURRENCY_MILIAR_PATTERN, expand_currency_b_suffix),
+        (CURRENCY_M_SUFFIX_PATTERN, expand_currency_m_suffix),
+        (CURRENCY_JUTA_PATTERN, expand_currency_m_suffix),
+        (CURRENCY_K_SUFFIX_PATTERN, expand_currency_k_suffix),
+        (CURRENCY_RIBU_PATTERN, expand_currency_k_suffix),
+    ]:
+        out = pat.sub(fn, out)
+    out = RE_NEG.sub(f" {pack.negative_word} ", out)
+    from revo_norm.shared_features import normalize_measurements
+    out = normalize_measurements(out, "zh")
+    ex = EntityExtractor()
+    ms3 = [EntityType.URL, EntityType.EMAIL, EntityType.PHONE,
+           EntityType.VERSION, EntityType.CURRENCY, EntityType.DATE, EntityType.TIME,
+           EntityType.TEMPERATURE, EntityType.FRACTION, EntityType.X_KALI,
+           EntityType.IC, EntityType.HARI_BULAN, EntityType.HIJRI]
+    out, ents = ex.extract(out, enabled_entities=ms3)
+    from revo_norm.text_normalizer import apply_pronunciation_overrides
+    # python skips pronunciation_overrides and letter-period for zh in
+    # shared passes? it applies overrides with zh branch (units skipped)
+    out = apply_pronunciation_overrides(out, "zh")
+    table = resolve_pronunciations("zh", profile="builtin")
+    out = apply_pronunciation_mappings(out, "zh", table)
+    out, stash = _stash_placeholders(out)
+    from revo_norm.normalizer_zh import text_normalize_zh
+    out = text_normalize_zh(out)
+    out = _unstash_placeholders(out, stash)
+    out = ex.restore(out, "zh")
+    for sym, spoken in pack.symbol_words.items():
+        out = out.replace(sym, f" {spoken} ")
+    if pack.drops_exclamation:
+        out = re.sub(r"!+", "", out)
+    return re.sub(r"\s+", " ", out.strip())
+
 def main() -> None:
     FIXDIR.mkdir(exist_ok=True)
     rng = random.Random(42)
@@ -292,6 +354,23 @@ def main() -> None:
         for case, full, sim in pending:
             f.write(f"{case}\t{full}\t{sim}\n")
 
+    # zh fixtures
+    done_zh, pending_zh = [], []
+    for case in ZH_CASES:
+        full = normalize_text(case, language="zh")
+        sim = simulate_milestone3_zh(case)
+        (done_zh if full == sim else pending_zh).append((case, full, sim))
+    with open(FIXDIR / "pipeline_zh.txt", "w", encoding="utf-8") as f:
+        for case, full, _ in done_zh:
+            f.write(f"{case}\t{full}\n")
+    if pending_zh:
+        with open(FIXDIR / "pending_zh.txt", "w", encoding="utf-8") as f:
+            for case, full, sim in pending_zh:
+                f.write(f"{case}\t{full}\t{sim}\n")
+    print(
+        f"zh parity: {len(done_zh)} green, {len(pending_zh)} pending: "
+        f"{[c for c, _, _ in pending_zh]}"
+    )
     # en fixtures
     done_en, pending_en = [], []
     for case in EN_CASES:
