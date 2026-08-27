@@ -78,6 +78,19 @@ jobs:
           pattern: '*'
           merge-multiple: true
           path: dist
+      - name: Verify wheel integrity (every artifact)
+        run: |
+          python - <<'EOF'
+          import glob, zipfile, sys
+          files = sorted(glob.glob('dist/*.whl') + glob.glob('dist/*.tar.gz'))
+          assert len(files) >= 21, f"expected >=21 artifacts, found {len(files)}"
+          for w in files:
+              if w.endswith('.whl'):
+                  with zipfile.ZipFile(w) as z:
+                      bad = z.testzip()
+                      assert bad is None, f"CORRUPT {w}: {bad}"
+          print(f"all {len(files)} artifacts pass zip integrity")
+          EOF
       - name: Smoke a wheel
         run: |
           pip install revonorm --no-index --find-links dist --force-reinstall
