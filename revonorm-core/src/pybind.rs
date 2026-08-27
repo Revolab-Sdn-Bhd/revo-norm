@@ -1,5 +1,5 @@
 //! pybind — PyO3 surface exposing the pipeline to python. Built as the
-//! `revonorm_core._core` extension module via maturin; the wasm/cdylib
+//! `revonorm._core` extension module via maturin; the wasm/cdylib
 //! targets are unaffected.
 
 use pyo3::exceptions::PyValueError;

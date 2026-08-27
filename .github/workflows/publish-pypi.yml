@@ -67,6 +67,10 @@ jobs:
   publish:
     needs: [sdist, wheels]
     runs-on: ubuntu-latest
+    permissions:
+      # trusted publishing (OIDC): no PyPI token secret
+      id-token: write
+      contents: read
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -75,9 +79,9 @@ jobs:
           path: dist
       - name: Smoke a wheel
         run: |
-          pip install revonorm-core --no-index --find-links dist --force-reinstall
+          pip install revonorm --no-index --find-links dist --force-reinstall
           python -c "
-          from revonorm_core import normalize_text
+          from revonorm import normalize_text
           out = normalize_text('Harga RM10.50 sahaja', 'ms')
           assert out == 'Harga sepuluh ringgit lima puluh sen sahaja', out
           print('wheel OK:', out)
@@ -85,8 +89,6 @@ jobs:
       - name: Publish to PyPI
         if: ${{ !contains(github.ref, 'no-publish') }}
         uses: PyO3/maturin-action@v1
-        env:
-          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
         with:
           command: upload
           args: dist/*
