@@ -3,13 +3,17 @@ requires = ["maturin>=1.5"]
 build-backend = "maturin"
 
 [project]
-name = "revo-norm-core"
-version = "0.7.6"
-description = "Rust core for revo-norm (PyO3 bindings)"
+name = "revonorm"
+description = "Multilingual TTS text normalization for ms/id/en/zh/zh_my"
+readme = "pypi-README.md"
 requires-python = ">=3.9"
+dynamic = ["version"]
+
+# Version is single-sourced from Cargo.toml; maturin reads it from there.
+# Keep the git release tag equal to it (CI enforces).
 
 [tool.maturin]
 manifest-path = "Cargo.toml"
 python-source = "python"
-module-name = "revonorm_core._core"
+module-name = "revonorm._core"
 features = ["pyffi"]
