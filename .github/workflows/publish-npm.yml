@@ -47,11 +47,17 @@ jobs:
         run: |
           node -e "
             const w = require('./pkg-node/revonorm_core.js');
-            const out = w.normalize('Harga RM10.50 sahaja', 'ms');
+            const out = w.normalize('Harga RM10.50 sahaja', 'ms', '');
             if (out !== 'Harga sepuluh ringgit lima puluh sen sahaja') {
               throw new Error('node variant mismatch: ' + out);
             }
-            console.log('node variant OK:', out);
+            const pron = w.normalize('top up RevoPay RM30K', 'ms', JSON.stringify(
+              { pronunciations: { '*': { RevoPay: 'revo pay' } } }
+            ));
+            if (pron !== 'top up revo pay tiga puluh ribu ringgit') {
+              throw new Error('pronunciation override mismatch: ' + pron);
+            }
+            console.log('node variant OK:', out, '|', pron);
           "
 
       - name: Configure npm auth
