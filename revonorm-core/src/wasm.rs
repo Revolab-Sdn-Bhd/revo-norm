@@ -7,9 +7,12 @@
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
-pub fn normalize(text: &str, language: &str) -> String {
-    match crate::pipeline::normalize(text, language) {
-        Ok(out) => out,
+pub fn normalize(text: &str, language: &str, options_json: &str) -> String {
+    match crate::options::Options::parse(options_json) {
+        Ok(opts) => match crate::pipeline::normalize_with(text, language, &opts) {
+            Ok(out) => out,
+            Err(e) => format!("__ERROR__{e}"),
+        },
         Err(e) => format!("__ERROR__{e}"),
     }
 }
