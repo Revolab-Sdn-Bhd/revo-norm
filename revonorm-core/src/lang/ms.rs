@@ -65,6 +65,51 @@ pub fn pack() -> &'static LanguagePack {
         .into_iter()
         .collect(),
         drops_exclamation: true,
+        distance_units: [
+            ("km", "kilometer"), ("m", "meter"), ("cm", "sentimeter"),
+            ("mm", "milimeter"), ("ft", "kaki"), ("in", "inci"),
+            ("yd", "ela"), ("mi", "batu"), ("batu", "batu"),
+            ("kaki", "kaki"), ("inci", "inci"),
+        ]
+        .into_iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect(),
+        volume_units: [
+            ("ml", "mililiter"), ("l", "liter"), ("gal", "gelen"),
+        ]
+        .into_iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect(),
+        weight_units: [
+            ("kg", "kilogram"), ("g", "gram"), ("mg", "miligram"),
+            ("lb", "paun"), ("oz", "auns"),
+        ]
+        .into_iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect(),
+        duration_units: [
+            ("jam", "jam"), ("minit", "minit"), ("saat", "saat"),
+            ("hour", "jam"), ("hours", "jam"), ("minute", "minit"),
+            ("minutes", "minit"), ("second", "saat"), ("seconds", "saat"),
+        ]
+        .into_iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect(),
+        area_units: [
+            ("sq ft", "kaki persegi"), ("sqft", "kaki persegi"),
+        ]
+        .into_iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect(),
+        temperature_units: [
+            ("c", "celcius"), ("f", "fahrenheit"), ("k", "kelvin"),
+        ]
+        .into_iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect(),
+        fraction_word: "per",
+        times_word: "kali",
+        hijri_suffix: "Hijri",
     });
     &PACK
 }

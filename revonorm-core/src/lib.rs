@@ -19,6 +19,7 @@ pub mod langpack;
 pub mod normalize;
 pub mod num2word;
 pub mod pipeline;
+pub mod shared;
 
 #[cfg(target_arch = "wasm32")]
 pub mod wasm;

@@ -4,7 +4,7 @@ Repo-relative: run from the repo root (`uv run python revonorm-core/tests/gen_fi
 Ground truth is ALWAYS current Python main — regenerate after any rule change
 and fix the Rust side until the suite is green.
 
-Milestone 2 ported: currency suffixes, negative signs, entity extraction
+Milestone 3 ported (adds shared features): currency suffixes, negative signs, entity extraction
 (URL/EMAIL/PHONE/VERSION/CURRENCY/DATE/TIME) with stash protection,
 pronunciation layers (builtin + user), the malay normalizer pass, entity
 restore with spoken converters, pack symbol spelling, '!' drop. The fixture
@@ -56,7 +56,7 @@ FIXDIR = HERE / "fixtures"
 RE_NEG = re.compile(r"(?<![\w\-])-(?=\d)")
 
 
-def simulate_milestone2(text: str) -> str:
+def simulate_milestone3(text: str) -> str:
     """Mirror revonorm-core's milestone-2 pipeline::normalize('ms') steps."""
     pack = get_pack("ms")
     out = text
@@ -73,11 +73,17 @@ def simulate_milestone2(text: str) -> str:
         out = pat.sub(fn, out)
     out = RE_NEG.sub(f" {pack.negative_word} ", out)
 
+    # measurements pass (milestone 3) — before extraction/normalizer
+    from revo_norm.shared_features import normalize_measurements
+    out = normalize_measurements(out, "ms")
+
     ex = EntityExtractor()
-    # restrict extraction to the entity set the rust port implements
-    ms2 = [EntityType.URL, EntityType.EMAIL, EntityType.PHONE,
-           EntityType.VERSION, EntityType.CURRENCY, EntityType.DATE, EntityType.TIME]
-    out, ents = ex.extract(out, enabled_entities=ms2)
+    # milestone-3 extraction set: milestone-2 types + shared-feature types
+    ms3 = [EntityType.URL, EntityType.EMAIL, EntityType.PHONE,
+           EntityType.VERSION, EntityType.CURRENCY, EntityType.DATE, EntityType.TIME,
+           EntityType.TEMPERATURE, EntityType.FRACTION, EntityType.X_KALI,
+           EntityType.IC, EntityType.HARI_BULAN, EntityType.HIJRI]
+    out, ents = ex.extract(out, enabled_entities=ms3)
 
     table = resolve_pronunciations("ms", profile="builtin")
     out = apply_pronunciation_mappings(out, "ms", table)
@@ -148,7 +154,7 @@ def main() -> None:
     done, pending = [], []
     for case in ALL_CASES:
         full = normalize_text(case, language="ms")
-        sim = simulate_milestone2(case)
+        sim = simulate_milestone3(case)
         (done if full == sim else pending).append((case, full, sim))
 
     with open(FIXDIR / "pipeline_ms.txt", "w", encoding="utf-8") as f:

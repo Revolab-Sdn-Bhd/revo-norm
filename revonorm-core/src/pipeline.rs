@@ -22,7 +22,7 @@ static RE_NEG_SIGN: LazyLock<Regex> =
 static RE_MULTI_SPACES: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\s+").unwrap());
 static RE_EXCLAIM: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"!+").unwrap());
 static RE_ENTITY_PH: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"<<<[A-Z]+_(\d+)>>>").unwrap());
+    LazyLock::new(|| Regex::new(r"<<<[A-Z_]+_(\d+)>>>").unwrap());
 
 /// Replace entity placeholders with pure-alpha stash tokens (`entstashaa`,
 /// `entstashab`, ...) that no language pass can match — port of python
@@ -104,6 +104,10 @@ pub fn normalize_with(
     out = RE_NEG_SIGN
         .replace_all(&out, format!(" {} ", pack.negative_word))
         .into_owned();
+
+    // Step 2.5 (python): measurements — before the language normalizer so
+    // "5km" never becomes "lima K M" (acronym split).
+    out = crate::shared::normalize_measurements(&out, &code);
 
     // Step 3 (python): entity extraction — claim entities with placeholders
     // so downstream passes cannot mangle them; restored after normalization.

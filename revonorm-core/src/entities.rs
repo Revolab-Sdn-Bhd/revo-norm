@@ -18,6 +18,13 @@ pub enum EntityType {
     Currency,
     Date,
     Time,
+    // milestone 3: shared-feature entity types
+    Temperature,
+    Fraction,
+    XKali,
+    Ic,
+    HariBulan,
+    Hijri,
 }
 
 impl EntityType {
@@ -30,6 +37,12 @@ impl EntityType {
             EntityType::Currency => "CURRENCY",
             EntityType::Date => "DATE",
             EntityType::Time => "TIME",
+            EntityType::Temperature => "TEMPERATURE",
+            EntityType::Fraction => "FRACTION",
+            EntityType::XKali => "X_KALI",
+            EntityType::Ic => "IC",
+            EntityType::HariBulan => "HARI_BULAN",
+            EntityType::Hijri => "HIJRI",
         }
     }
 }
@@ -73,7 +86,7 @@ static RE_TIME: LazyLock<Regex> = LazyLock::new(|| {
 });
 
 /// Python's extraction order (most specific first).
-const ORDER: [EntityType; 7] = [
+const ORDER: [EntityType; 13] = [
     EntityType::Url,
     EntityType::Email,
     EntityType::Phone,
@@ -81,10 +94,16 @@ const ORDER: [EntityType; 7] = [
     EntityType::Currency,
     EntityType::Date,
     EntityType::Time,
+    EntityType::Temperature,
+    EntityType::Fraction,
+    EntityType::XKali,
+    EntityType::Ic,
+    EntityType::HariBulan,
+    EntityType::Hijri,
 ];
 
-fn pattern_for(kind: EntityType) -> &'static Regex {
-    match kind {
+fn pattern_for(kind: EntityType) -> Option<&'static Regex> {
+    let re = match kind {
         EntityType::Url => &RE_URL,
         EntityType::Email => &RE_EMAIL,
         EntityType::Phone => &RE_PHONE,
@@ -92,7 +111,9 @@ fn pattern_for(kind: EntityType) -> &'static Regex {
         EntityType::Currency => &RE_CURRENCY,
         EntityType::Date => &RE_DATE,
         EntityType::Time => &RE_TIME,
-    }
+        other => return crate::shared::shared_pattern(other.tag()),
+    };
+    Some(re)
 }
 
 /// Extract entities and replace with `<<<TYPE_N>>>` placeholders.
@@ -101,7 +122,7 @@ pub fn extract(text: &str) -> (String, Vec<Entity>) {
     let mut protected = text.to_string();
     let mut next_id = 1usize;
     for kind in ORDER {
-        let re = pattern_for(kind);
+        let Some(re) = pattern_for(kind) else { continue };
         let mut out = String::with_capacity(protected.len());
         let mut last = 0usize;
         for m in re.find_iter(&protected) {
@@ -136,6 +157,9 @@ pub fn restore(text: &str, entities: &[Entity], language: &str) -> String {
 }
 
 fn convert_to_spoken(e: &Entity, language: &str) -> String {
+    if let Some(spoken) = crate::shared::shared_spoken(e.kind.tag(), &e.text, language) {
+        return spoken;
+    }
     match e.kind {
         EntityType::Phone => {
             // python: strip space/-/+ then speak every digit
@@ -153,6 +177,13 @@ fn convert_to_spoken(e: &Entity, language: &str) -> String {
         EntityType::Email => spoken_email(&e.text, language),
         EntityType::Version => spoken_version(&e.text),
         EntityType::Date => spoken_date(&e.text),
+        // unreachable: shared_spoken handled these above
+        EntityType::Temperature
+        | EntityType::Fraction
+        | EntityType::XKali
+        | EntityType::Ic
+        | EntityType::HariBulan
+        | EntityType::Hijri => e.text.clone(),
     }
 }
 

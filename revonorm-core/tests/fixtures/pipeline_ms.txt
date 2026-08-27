@@ -23,6 +23,13 @@ John & Jane	John and Jane
 Important * note	Important note
 Pasti!	Pasti
 Wow!!! Bagus	Wow Bagus
+Guna 5km dan 2kg	Guna lima kilometer dan dua kilogram
+Separuh daripada 3/4 bahagian	Separuh daripada tiga per empat bahagian
+10x ganda	sepuluh kali ganda
+Suhu 25C hari ini	Suhu dua puluh lima celcius hari ini
+1433H	satu empat tiga tiga Hijri
+10HB setiap tahun	sepuluh hari bulan setiap tahun
+Berat 10.5 kg	Berat sepuluh perpuluhan lima kilogram
 Hubungi 012-345 6789 sekarang	Hubungi kosong satu dua tiga empat lima enam tujuh lapan sembilan sekarang
 Lihat www.example.com/page/2/3	Lihat w w w dot example dot com slash page slash dua slash tiga
 Kos USD50 dan EUR30	Kos lima puluh dollar dan tiga puluh euro
