@@ -1,45 +1,73 @@
 # revonorm-core — Rust core for revo-norm
 
-One normalization logic, many SDKs. This crate is a faithful Rust port of
-the Python `revo_norm` normalizers, built once and consumed as:
+One normalization logic, many SDKs. A faithful Rust port of the Python
+`revo_norm` pipeline, built once and consumed as:
 
-- **wasm** (browser — `revolab-web` npm package uses it to expand
-  `RM10.50` → "sepuluh ringgit lima puluh sen" before phonemization)
-- **cdylib / C ABI** (C#/.NET via `DllImport`, Python via `ctypes`)
-- future PyO3 wheel
+- **wasm** (browser/node — `normalize(text, lang, options_json)`;
+  errors cross the boundary as `__ERROR__`-prefixed strings)
+- **cdylib / C ABI** (C# via `DllImport`, Python via `ctypes`)
+- **PyO3 wheel** (`pip install revonorm-core` →
+  `from revonorm_core import normalize_text`)
 
 ## Status
 
-The **Malay** path is complete and proven:
-`normalizer_ms.py` + `num2word_ms.py` + `currency_utils.py`.
+**All five languages ported and at parity**: ms, id, en, zh, zh_my —
+95 fixture cases byte-equal against the Python library, plus an
+81-case differential smoke (wheel vs pure-Python) and consumer
+call-path verification.
 
-Other languages (id/en/zh/zh_my) remain Python-only until ported —
-the porting pattern is established here and repeats per language.
+## Layout
+
+| Module | Purpose |
+|---|---|
+| `pipeline.rs` | Step order (python's): suffixes → negatives → extract → overrides → measurements → pron → stash → language pass → acronyms → restore → symbols |
+| `langpack.rs` + `lang/` | Per-language packs — symbol words, digits, months, unit tables, negative word, currency names |
+| `normalize.rs` / `_id` / `_en` / `_zh` | Language normalizer passes (self-contained, like python's) |
+| `num2word.rs` / `num2word_en.rs` | Number engines: ms/id vocab-parameterized; en inflect-compatible (107/107 cross-check) |
+| `entities.rs` | Extract → `<<<TYPE_N>>>` placeholders → restore with spoken converters |
+| `shared.rs` | Measurements pass + shared-feature entities (temperature, fraction, x-kali, IC, hari-bulan, hijri) |
+| `pron.rs` | Builtin pronunciation profile, whole-word apply |
+| `options.rs` | JSON config surface (profile, disable, pronunciation layers) |
+| `pybind.rs` | PyO3 surface (`pyffi` feature) |
 
 ## Parity contract
 
 The Rust code must behave **exactly** like the Python implementation.
-`tests/*.txt` fixtures are generated from Python
-(`tests/parity_gen.py` + the corpus generator script); every test
-suite asserts exact-match:
+`tests/fixtures/*.txt` are generated from Python
+(`uv run python revonorm-core/tests/gen_fixtures.py` from the repo
+root); `tests/parity.rs` asserts byte-equality:
 
 | Suite | Cases |
 |---|---|
-| num2word unit | 26 handpicked |
-| num2word fixtures | 199 (random to 10⁷ + magnitude boundaries) |
-| normalize targeted | 28 (currency, dates, times, %, phones, mixed-alnum — incl. Python's quirks) |
-| normalize corpus | 2,000 shuffled corpus sentences |
-| wasm corpus | the same 2,000 through the wasm build |
+| num2word ms | 175 (handpicked + boundaries + random to 10⁷) |
+| pipeline ms | 35 |
+| pipeline id | 20 |
+| pipeline en | 24 |
+| pipeline zh | 16 |
+| options/layers | error paths, pronunciation layers, profiles |
 
-Run:
+CI regenerates fixtures from Python on every PR — a Python rule change
+without a matching Rust change fails the build.
+
+## Commands
 
 ```bash
-cd revonorm-core
-cargo test                                   # native parity
-wasm-bindgen --target nodejs --out-dir pkg-node \
-  target/wasm32-unknown-unknown/release/revonorm_core.wasm   # wasm parity (see repo CI)
+cargo test --manifest-path revonorm-core/Cargo.toml   # parity
+cargo clippy --manifest-path revonorm-core/Cargo.toml -- -D warnings
+cargo build --release --manifest-path revonorm-core/Cargo.toml \
+  --target wasm32-unknown-unknown                      # wasm
+PYO3_PYTHON=$(which python) maturin develop --release \
+  --manifest-path revonorm-core/Cargo.toml             # python wheel
 ```
 
-When Python normalization rules change: regenerate fixtures from the
-updated Python, fix the Rust side until all suites pass. CI enforces
-this on every PR.
+## When Python rules change
+
+1. Regenerate: `uv run python revonorm-core/tests/gen_fixtures.py`
+2. Fix the Rust side until `cargo test` is green
+3. CI enforces this on every PR
+
+## Known tracked gaps
+
+- `add_random_commas` and tts_utils stay pure-Python (server-side
+  text hygiene, not normalization logic)
+- zh_my URL separator deliberately differs from zh (冒号 slash slash)

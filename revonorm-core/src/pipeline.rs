@@ -108,25 +108,26 @@ pub fn normalize_with(
         .replace_all(&out, format!(" {} ", pack.negative_word))
         .into_owned();
 
-    // Step 2.5 (python): measurements — before the language normalizer so
-    // "5km" never becomes "lima K M" (acronym split).
-    out = crate::shared::normalize_measurements(&out, &code);
-
     // Step 3 (python): entity extraction — claim entities with placeholders
     // so downstream passes cannot mangle them; restored after normalization.
-    let (mut out, entities) = crate::entities::extract(&out);
+    let (out, entities) = crate::entities::extract(&out);
+
+    // Step 6 (python): pronunciation overrides — BEFORE measurements, so a
+    // raw "2kg" becomes singular "2 kilogram" before the unit table runs
+    // ("two kilogram weights", not "two kilograms weights").
+    let out = crate::normalize_en::apply_pronunciation_overrides(&out, &code);
+
+    // Step 6.1 (python): measurements — after overrides, before the language
+    // normalizer so "5km" never becomes "five K M" (acronym split).
+    let out = crate::shared::normalize_measurements(&out, &code);
 
     // Step 4 (python): pronunciation mappings on protected text.
     let pron_table = options.resolve_pronunciations(&code);
-    out = crate::pron::apply(&out, &pron_table);
+    let out = crate::pron::apply(&out, &pron_table);
 
     // Step 5 (python): stash placeholders as pure-alpha tokens so language
     // normalizers (mixed-alnum, number passes) cannot touch them.
     let (out, stash) = stash_placeholders(&out);
-
-    // Step 6 (python): pronunciation overrides (latin) — before the
-    // language normalizer, like python.
-    let out = crate::normalize_en::apply_pronunciation_overrides(&out, &code);
 
     // Language normalizer pass (currency, dates, times, numbers...).
     let out = match code.as_str() {

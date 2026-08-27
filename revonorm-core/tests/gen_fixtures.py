@@ -265,6 +265,8 @@ def simulate_milestone3_en(text: str) -> str:
         out = pat.sub(fn, out)
     out = RE_NEG.sub(f" {pack.negative_word} ", out)
     from revo_norm.shared_features import normalize_measurements
+    from revo_norm.text_normalizer import apply_pronunciation_overrides
+    out = apply_pronunciation_overrides(out, "en")
     out = normalize_measurements(out, "en")
     ex = EntityExtractor()
     ms3 = [EntityType.URL, EntityType.EMAIL, EntityType.PHONE,
@@ -272,8 +274,7 @@ def simulate_milestone3_en(text: str) -> str:
            EntityType.TEMPERATURE, EntityType.FRACTION, EntityType.X_KALI,
            EntityType.IC, EntityType.HARI_BULAN, EntityType.HIJRI]
     out, ents = ex.extract(out, enabled_entities=ms3)
-    from revo_norm.text_normalizer import apply_pronunciation_overrides, replace_letter_period_sequences
-    out = apply_pronunciation_overrides(out, "en")
+    from revo_norm.text_normalizer import replace_letter_period_sequences
     table = resolve_pronunciations("en", profile="builtin")
     out = apply_pronunciation_mappings(out, "en", table)
     out, stash = _stash_placeholders(out)

@@ -23,6 +23,16 @@ Tests are maintained in a separate repository.
 - Run a single test: `uv run pytest ../revo-norm-tests/<test_file>.py::TestClass::test_method -v`
 - Always run `uv run ruff check revo_norm/` and `uv run pytest ../revo-norm-tests/ -q` before committing.
 
+### Rust core (`revonorm-core/`)
+
+A Rust port of the same pipeline, at byte parity — consumed as wasm, cdylib, and a PyO3 wheel.
+
+- Run parity tests: `cargo test --manifest-path revonorm-core/Cargo.toml`
+- Lint: `cargo clippy --manifest-path revonorm-core/Cargo.toml -- -D warnings`
+- Regenerate fixtures after any Python rule change: `uv run python revonorm-core/tests/gen_fixtures.py`, then fix Rust until tests pass (CI enforces this)
+- Build the Python wheel: `PYO3_PYTHON=$(which python) maturin develop --release --manifest-path revonorm-core/Cargo.toml`
+- See `revonorm-core/README.md` for the module map and the parity contract
+
 ## Code Architecture
 
 ### Module Map
