@@ -1,3 +1,6 @@
 target/
 pkg/
 pkg-node/
+dist/
+pkg-web/
+pkg-node/
