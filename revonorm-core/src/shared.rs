@@ -76,10 +76,29 @@ pub fn normalize_measurements(text: &str, language: &str) -> String {
     };
 
     let sub_units = |re: &Regex, table: &std::collections::HashMap<String, String>, out: String| -> String {
-        re.replace_all(&out, |c: &fancy_regex::Captures<str>| {
+        let zh = matches!(language, "zh" | "zh_my");
+        re.replace_all(&out, move |c: &fancy_regex::Captures<str>| {
             let unit = c.get(2).map(|m| m.as_str().to_lowercase()).unwrap_or_default();
             match table.get(&unit) {
-                Some(spoken) => format!("{} {spoken}", speak(c.get(1).map(|m| m.as_str()).unwrap_or("0"))),
+                Some(spoken) => {
+                    let value = c.get(1).map(|m| m.as_str()).unwrap_or("0");
+                    if zh {
+                        let v = value.replace(',', ".");
+                        if let Some((w, f)) = v.split_once('.') {
+                            let dec: String = f.chars()
+                                .map(|d| crate::normalize_zh::to_cardinal_zh(d.to_digit(10).unwrap_or(0) as u128))
+                                .collect();
+                            format!(
+                                "{}点{dec}{spoken}",
+                                crate::normalize_zh::to_cardinal_zh(w.parse().unwrap_or(0))
+                            )
+                        } else {
+                            format!("{}{spoken}", crate::normalize_zh::to_cardinal_zh(v.parse().unwrap_or(0)))
+                        }
+                    } else {
+                        format!("{} {spoken}", speak(value))
+                    }
+                }
                 None => c.get(0).map(|m| m.as_str().to_string()).unwrap_or_default(),
             }
         })

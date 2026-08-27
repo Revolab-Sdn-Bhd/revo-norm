@@ -16,6 +16,7 @@ pub mod options;
 pub mod pron;
 pub mod lang;
 pub mod langpack;
+pub mod misc_passes;
 pub mod normalize;
 pub mod normalize_en;
 pub mod normalize_zh;

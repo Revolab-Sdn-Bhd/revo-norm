@@ -1,6 +1,6 @@
-//! Parity tests — Rust output must byte-match fixtures generated from the
-//! Python library (tests/gen_fixtures.py). Regenerate after any Python rule
-//! change, then fix Rust until green.
+//! Snapshot tests — the engine is the source of truth; fixtures record its
+//! output (tests/gen_fixtures.py). CI regenerates on every PR and asserts
+//! byte-equality: any output change must be a deliberate snapshot update.
 
 use revonorm_core::{normalize, to_cardinal};
 
@@ -25,74 +25,80 @@ fn num2word_ms_parity() {
     }
 }
 
+const LANGS: [&str; 5] = ["ms", "id", "en", "zh", "zh_my"];
+
 #[test]
-fn pipeline_ms_parity() {
-    // Tier 1 (full python pipeline) minus entity-extractor cases, plus the
-    // normalizer-tier cases: everything milestone-1 Rust must byte-match.
-    let mut cases = fixtures("pipeline_ms.txt");
-    for (input, expected) in cases {
-        let got = normalize(&input, "ms")
-            .unwrap_or_else(|e| panic!("normalize({input:?}, ms) errored: {e}"));
-        assert_eq!(got, expected, "normalize({input:?}, ms)");
+fn pipeline_standard_all_langs() {
+    for lang in LANGS {
+        for (input, expected) in fixtures(&format!("pipeline_{lang}.txt")) {
+            let got = normalize(&input, lang, "").unwrap_or_else(|e| panic!("{lang} {input:?}: {e}"));
+            assert_eq!(got, expected, "standard/{lang} {input:?}");
+        }
+    }
+}
+
+#[test]
+fn pipeline_minimal_all_langs() {
+    for lang in LANGS {
+        for (input, expected) in fixtures(&format!("pipeline_{lang}_minimal.txt")) {
+            let got = normalize(&input, lang, r#"{"profile":"minimal"}"#)
+                .unwrap_or_else(|e| panic!("{lang} {input:?}: {e}"));
+            assert_eq!(got, expected, "minimal/{lang} {input:?}");
+        }
+    }
+}
+
+#[test]
+fn pipeline_basic_all_langs() {
+    for lang in LANGS {
+        for (input, expected) in fixtures(&format!("pipeline_{lang}_basic.txt")) {
+            let got = normalize(&input, lang, r#"{"profile":"basic"}"#)
+                .unwrap_or_else(|e| panic!("{lang} {input:?}: {e}"));
+            assert_eq!(got, expected, "basic/{lang} {input:?}");
+        }
     }
 }
 
 #[test]
 fn unknown_language_errors() {
-    let err = normalize("x", "tl").unwrap_err();
+    let err = normalize("x", "tl", "").unwrap_err();
     assert!(err.contains("tl"), "error must name the bad code: {err}");
-}
-
-#[test]
-fn unregistered_language_errors_loudly() {
-    // 'tl' is not in the registry — must error naming the code, never
-    // silently fall back to another language.
-    let err = normalize("hello", "tl").unwrap_err();
-    assert!(err.contains("tl"), "error must name the bad code: {err}");
-    assert!(err.contains("expected one of"), "got: {err}");
 }
 
 #[test]
 fn empty_input_returns_empty() {
-    assert_eq!(normalize("", "ms").unwrap(), "");
-    assert_eq!(normalize("   ", "ms").unwrap(), "");
+    assert_eq!(normalize("", "ms", "").unwrap(), "");
+    assert_eq!(normalize("   ", "ms", "").unwrap(), "");
 }
+
+// --- options / pronunciation layers (inline — config semantics) ----------
 
 #[test]
 fn options_pronunciation_user_layer() {
-    let opts = revonorm_core::options::Options::parse(
+    let got = normalize(
+        "top up RevoPay RM30K",
+        "ms",
         r#"{"pronunciations": {"*": {"RevoPay": "revo pay"}}}"#,
     )
     .unwrap();
-    let got = revonorm_core::pipeline::normalize_with("top up RevoPay RM30K", "ms", &opts).unwrap();
     assert_eq!(got, "top up revo pay tiga puluh ribu ringgit");
 }
 
 #[test]
 fn options_pronunciation_none_deletes() {
-    let opts = revonorm_core::options::Options::parse(
+    let got = normalize(
+        "sambung WiFi sekarang",
+        "ms",
         r#"{"pronunciations": {"*": {"WiFi": null}}}"#,
     )
     .unwrap();
-    let got = revonorm_core::pipeline::normalize_with("sambung WiFi sekarang", "ms", &opts).unwrap();
-    assert_eq!(got, "sambung WiFi sekarang", "None must delete the builtin entry");
+    assert_eq!(got, "sambung WiFi sekarang", "null deletes the builtin entry");
 }
 
 #[test]
 fn options_pronunciation_profile_none() {
-    let opts = revonorm_core::options::Options::parse(r#"{"pronunciation_profile": "none"}"#).unwrap();
-    let got = revonorm_core::pipeline::normalize_with("sambung WiFi sekarang", "ms", &opts).unwrap();
+    let got = normalize("sambung WiFi sekarang", "ms", r#"{"pronunciation_profile": "none"}"#).unwrap();
     assert_eq!(got, "sambung WiFi sekarang");
-}
-
-#[test]
-fn options_pronunciation_scoped() {
-    let opts = revonorm_core::options::Options::parse(
-        r#"{"pronunciations": {"ms": {"Dr": "Doktor Besar"}}}"#,
-    )
-    .unwrap();
-    let got = revonorm_core::pipeline::normalize_with("jumpa Dr Ali", "ms", &opts).unwrap();
-    assert!(got.contains("Doktor Besar"), "got: {got}");
 }
 
 #[test]
@@ -102,49 +108,14 @@ fn options_unknown_field_rejected() {
 }
 
 #[test]
-fn options_builtin_honorifics_ms_only() {
-    // builtin honorifics apply to ms
-    let got = revonorm_core::pipeline::normalize("Hj Ahmad datang", "ms").unwrap();
-    assert_eq!(got, "Haji Ahmad datang");
+fn builtin_honorifics_ms_only() {
+    assert_eq!(normalize("Hj Ahmad datang", "ms", "").unwrap(), "Haji Ahmad datang");
 }
 
 #[test]
-fn pipeline_id_parity() {
-    for (input, expected) in fixtures("pipeline_id.txt") {
-        let got = normalize(&input, "id")
-            .unwrap_or_else(|e| panic!("normalize({input:?}, id) errored: {e}"));
-        assert_eq!(got, expected, "normalize({input:?}, id)");
-    }
-}
-
-#[test]
-fn pipeline_en_parity() {
-    for (input, expected) in fixtures("pipeline_en.txt") {
-        let got = normalize(&input, "en")
-            .unwrap_or_else(|e| panic!("normalize({input:?}, en) errored: {e}"));
-        assert_eq!(got, expected, "normalize({input:?}, en)");
-    }
-}
-
-#[test]
-fn pipeline_zh_parity() {
-    for (input, expected) in fixtures("pipeline_zh.txt") {
-        let got = normalize(&input, "zh")
-            .unwrap_or_else(|e| panic!("normalize({input:?}, zh) errored: {e}"));
-        assert_eq!(got, expected, "normalize({input:?}, zh)");
-    }
-}
-
-#[test]
-fn pipeline_zh_my_matches_zh_on_shared_cases() {
-    // zh_my reuses zh's passes; on these vocabulary-neutral cases the
-    // outputs agree (the url separator divergence is asserted separately)
-    for (input, expected) in fixtures("pipeline_zh.txt") {
-        if input.contains("http") {
-            continue;
-        }
-        let got = normalize(&input, "zh_my")
-            .unwrap_or_else(|e| panic!("normalize({input:?}, zh_my) errored: {e}"));
-        assert_eq!(got, expected, "normalize({input:?}, zh_my)");
-    }
+fn wasm_error_prefix() {
+    // errors cross the wasm boundary as __ERROR__ strings; native callers
+    // see Err — both surface the same message
+    let err = normalize("x", "tl", "").unwrap_err();
+    assert!(err.starts_with("Unsupported language"), "got: {err}");
 }

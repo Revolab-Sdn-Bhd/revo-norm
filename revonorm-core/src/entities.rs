@@ -29,6 +29,7 @@ pub enum EntityType {
     Time,
     // milestone 3: shared-feature entity types
     Temperature,
+    AddressSlash,
     Fraction,
     XKali,
     Ic,
@@ -47,6 +48,7 @@ impl EntityType {
             EntityType::Date => "DATE",
             EntityType::Time => "TIME",
             EntityType::Temperature => "TEMPERATURE",
+            EntityType::AddressSlash => "ADDRESS_SLASH",
             EntityType::Fraction => "FRACTION",
             EntityType::XKali => "X_KALI",
             EntityType::Ic => "IC",
@@ -85,6 +87,9 @@ static RE_DATE: LazyLock<Regex> = LazyLock::new(|| {
     ];
     Regex::new(&patterns.iter().map(|p| format!("(?:{p})")).collect::<Vec<_>>().join("|")).unwrap()
 });
+static RE_ADDRESS_SLASH: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?i)\b(?:Jalan|Lorong|Taman|Bukit|Kampung|Tingkat|Lintang|Pesisir|Persiaran|Lebuh|Medan|Lengkung|Halaman)\s+(?:\S+\s+)?(\d+)\s*/\s*(\d+)\b|\b(?:Jalan|Lorong|Taman|Bukit|Kampung|Tingkat|Lintang|Pesisir|Persiaran|Lebuh|Medan|Lengkung|Halaman)\s+([A-Za-z]*\d+)\s*/\s*(\d+)\b").unwrap()
+});
 static RE_TIME: LazyLock<Regex> = LazyLock::new(|| {
     let patterns = [
         r"\b\d{1,2}:\d{2}\s*(?:pagi|petang|siang|sore|malam|tengah\s+hari)\b",
@@ -95,15 +100,16 @@ static RE_TIME: LazyLock<Regex> = LazyLock::new(|| {
 });
 
 /// Python's extraction order (most specific first).
-const ORDER: [EntityType; 13] = [
-    EntityType::Url,
+const ORDER: [EntityType; 14] = [
     EntityType::Email,
+    EntityType::Url,
     EntityType::Phone,
     EntityType::Version,
     EntityType::Currency,
     EntityType::Date,
     EntityType::Time,
     EntityType::Temperature,
+    EntityType::AddressSlash, // python: before FRACTION so addresses win
     EntityType::Fraction,
     EntityType::XKali,
     EntityType::Ic,
@@ -120,6 +126,7 @@ fn pattern_for(kind: EntityType) -> Option<&'static Regex> {
         EntityType::Currency => &RE_CURRENCY,
         EntityType::Date => &RE_DATE,
         EntityType::Time => &RE_TIME,
+        EntityType::AddressSlash => &RE_ADDRESS_SLASH,
         other => return crate::shared::shared_pattern(other.tag()),
     };
     Some(re)
@@ -127,10 +134,46 @@ fn pattern_for(kind: EntityType) -> Option<&'static Regex> {
 
 /// Extract entities and replace with `<<<TYPE_N>>>` placeholders.
 pub fn extract(text: &str) -> (String, Vec<Entity>) {
+    extract_gated(text, &crate::options::Options::default())
+}
+
+/// Feature -> entity types that only extract when the feature is on
+/// (python always_extract/speak_entities gating). URL/EMAIL/PHONE/
+/// VERSION/CURRENCY extract unconditionally.
+fn feature_for(kind: EntityType) -> Option<&'static str> {
+    match kind {
+        EntityType::Url
+        | EntityType::Email
+        | EntityType::Phone
+        | EntityType::Version
+        | EntityType::Currency => None,
+        EntityType::Date => Some("dates"),
+        EntityType::Time => Some("times"),
+        EntityType::Temperature => Some("temperature"),
+        EntityType::AddressSlash => Some("fractions"),
+        EntityType::Fraction => Some("fractions"),
+        EntityType::XKali => Some("x_kali"),
+        EntityType::Ic => Some("ic"),
+        EntityType::HariBulan => Some("hari_bulan"),
+        EntityType::Hijri => Some("hijri"),
+    }
+}
+
+/// Extraction honoring feature gates. DATE/TIME are ALWAYS extracted
+/// (python protects them from the language normalizer regardless) but only
+/// spoken when their feature is on; other gated types are never claimed
+/// when off, so their text flows to the language normalizer untouched
+/// (python parity: minimal/basic leave "25C" to the mixed-alnum pass).
+pub fn extract_gated(text: &str, options: &crate::options::Options) -> (String, Vec<Entity>) {
     let mut entities = Vec::new();
     let mut protected = text.to_string();
     let mut next_id = 1usize;
     for kind in ORDER {
+        if feature_for(kind).is_some_and(|f| !options.is_enabled(f))
+            && !matches!(kind, EntityType::Date | EntityType::Time)
+        {
+            continue;
+        }
         let Some(re) = pattern_for(kind) else { continue };
         let mut out = String::with_capacity(protected.len());
         let mut last = 0usize;
@@ -154,11 +197,33 @@ pub fn extract(text: &str) -> (String, Vec<Entity>) {
 
 /// Restore placeholders to spoken form (reverse id order, like python).
 pub fn restore(text: &str, entities: &[Entity], language: &str) -> String {
+    restore_gated(text, entities, language, &crate::options::Options::default())
+}
+
+/// Restore honoring python's speak_entities: DATE/TIME are always extracted
+/// (protected) but only converted to speech when their feature is on;
+/// otherwise they restore as the original raw text.
+pub fn restore_gated(
+    text: &str,
+    entities: &[Entity],
+    language: &str,
+    options: &crate::options::Options,
+) -> String {
     let mut result = text.to_string();
     for e in entities.iter().rev() {
         let ph = format!("<<<{}_{}>>>", e.kind.tag(), e.placeholder_id);
         if let Some(pos) = result.find(&ph) {
-            let spoken = convert_to_spoken(e, language);
+            let speak = match feature_for(e.kind) {
+                Some(f) if matches!(e.kind, EntityType::Date | EntityType::Time) => {
+                    options.is_enabled(f)
+                }
+                _ => true,
+            };
+            let spoken = if speak {
+                convert_to_spoken(e, language)
+            } else {
+                e.text.clone()
+            };
             result.replace_range(pos..pos + ph.len(), &spoken);
         }
     }
@@ -166,6 +231,26 @@ pub fn restore(text: &str, entities: &[Entity], language: &str) -> String {
 }
 
 fn convert_to_spoken(e: &Entity, language: &str) -> String {
+    if e.kind == EntityType::AddressSlash {
+        // python: prefix kept, digits spoken, "/" -> " slash "
+        let re = fancy_regex::Regex::new(r"(?i)\b((?:Jalan|Lorong|Taman|Bukit|Kampung|Tingkat|Lintang|Pesisir|Persiaran|Lebuh|Medan|Lengkung|Halaman)\s+)(?:\S+\s+)?([A-Za-z]*)(\d+)\s*/\s*(\d+)").unwrap();
+        if let Ok(Some(c)) = re.captures(&e.text) {
+            let pack = get_pack(language);
+            let prefix = c.get(1).map(|m| m.as_str()).unwrap_or("");
+            let letters = c.get(2).map(|m| m.as_str()).unwrap_or("");
+            let left = c.get(3).map(|m| m.as_str()).unwrap_or("0");
+            let right = c.get(4).map(|m| m.as_str()).unwrap_or("0");
+            let speak = |s: &str| -> String {
+                s.chars().map(|d| if d.is_ascii_digit() { pack.speak_digit(d) } else { d.to_uppercase().to_string() }).collect::<Vec<_>>().join(" ")
+            };
+            let letters_spoken: String = letters.chars().map(|c| c.to_uppercase().to_string()).collect::<Vec<_>>().join(" ");
+            let mut out = format!("{prefix}{letters_spoken} {}", speak(left));
+            out.push_str(" slash ");
+            out.push_str(&speak(right));
+            return squash_spaces(&out);
+        }
+        return e.text.clone();
+    }
     if let Some(spoken) = crate::shared::shared_spoken(e.kind.tag(), &e.text, language) {
         return spoken;
     }
@@ -188,6 +273,7 @@ fn convert_to_spoken(e: &Entity, language: &str) -> String {
         EntityType::Date => spoken_date(&e.text, language),
         // unreachable: shared_spoken handled these above
         EntityType::Temperature
+        | EntityType::AddressSlash
         | EntityType::Fraction
         | EntityType::XKali
         | EntityType::Ic
@@ -272,6 +358,23 @@ fn spoken_url(url: &str, language: &str) -> String {
 /// python email_to_spoken (latin branch).
 fn spoken_email(email: &str, language: &str) -> String {
     let pack = get_pack(language);
+    let zh = matches!(language, "zh" | "zh_my");
+    if zh {
+        // python email_to_spoken zh branch: 艾特/点/下划线/加/杠, then digits
+        let mut s = email.replace('@', "艾特");
+        s = s.replace('.', "点");
+        s = s.replace('_', "下划线");
+        s = s.replace('+', "加");
+        s = s.replace('-', "杠");
+        if let Ok(re) = fancy_regex::Regex::new(r"\d+") {
+            s = re
+                .replace_all(&s, |c: &fancy_regex::Captures<str>| {
+                    c[0].chars().map(|d| pack.speak_digit(d)).collect::<Vec<_>>().join(" ")
+                })
+                .into_owned();
+        }
+        return squash_spaces(&s);
+    }
     let spoken = email.replace('@', " at ");
     let mut spoken = spoken.replace('.', " dot ");
     spoken = spoken.replace('_', " underscore ");
@@ -303,18 +406,64 @@ fn spoken_version(version: &str, language: &str) -> String {
 
 /// python _convert_date_to_spoken (ms branch): day month-name year, each as
 /// cardinal words.
-fn spoken_date(date: &str, language: &str) -> String {
-    // slash format DD/MM/YYYY
+pub fn spoken_date(date: &str, language: &str) -> String {
+    // Format 2 first (python order): YYYY-MM-DD dash form
+    let ymd = fancy_regex::Regex::new(r"\b(\d{4})-(\d{1,2})-(\d{1,2})\b").unwrap();
+    if let Ok(Some(c)) = ymd.captures(date) {
+        let y: u128 = c.get(1).map(|m| m.as_str()).unwrap_or("0").parse().unwrap_or(0);
+        let mo = c.get(2).map(|m| m.as_str()).unwrap_or("1");
+        let d: u128 = c.get(3).map(|m| m.as_str()).unwrap_or("0").parse().unwrap_or(0);
+        if matches!(language, "zh" | "zh_my") {
+            let month = crate::normalize_zh::MONTHS_ZH
+                .get(mo.trim_start_matches('0'))
+                .cloned()
+                .unwrap_or_else(|| mo.to_string());
+            return format!(
+                "{}年{month}月{}日",
+                crate::normalize_zh::to_year_zh(y),
+                crate::normalize_zh::to_cardinal_zh(d)
+            );
+        }
+        let cardinal = |n: u128| cardinal_for(n, language);
+        let month_name = get_pack(language)
+            .month_names
+            .get(mo.trim_start_matches('0'))
+            .copied()
+            .unwrap_or(mo);
+        return format!("{} {month_name} {}", cardinal(d), cardinal(y));
+    }
+    // slash format DD/MM/YYYY (or MM/DD when month>12 — python swaps)
     let re = fancy_regex::Regex::new(r"(?<![A-Za-z0-9_])(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})(?![A-Za-z0-9_])").unwrap();
     let cardinal = |s: &str| cardinal_for(s.parse::<u128>().unwrap_or(0), language);
     if let Ok(Some(c)) = re.captures(date) {
-        let day_num: u128 = c.get(1).map(|m| m.as_str()).unwrap_or("0").parse().unwrap_or(0);
+        let mut day_str = c.get(1).map(|m| m.as_str()).unwrap_or("0").to_string();
+        let mut month_str = c.get(2).map(|m| m.as_str()).unwrap_or("1").to_string();
+        // MM/DD ambiguity: when "month" exceeds 12 the first field must be
+        // the day (python's swap in normalize_date_dmy)
+        if month_str.parse::<u32>().unwrap_or(0) > 12 && day_str.parse::<u32>().unwrap_or(0) <= 12 {
+            std::mem::swap(&mut day_str, &mut month_str);
+        }
+        let day_num: u128 = day_str.parse().unwrap_or(0);
         let year_num: u128 = c.get(3).map(|m| m.as_str()).unwrap_or("0").parse().unwrap_or(0);
+        if matches!(language, "zh" | "zh_my") {
+            // python zh: '<year 年><month 数字>月<day cardinal>日'
+            let czh = crate::normalize_zh::to_cardinal_zh;
+            let month_num = &month_str;
+            let month = crate::normalize_zh::MONTHS_ZH
+                .get(month_num.trim_start_matches('0'))
+                .cloned()
+                .unwrap_or_else(|| month_num.to_string());
+            return format!(
+                "{}年{month}月{}日",
+                crate::normalize_zh::to_year_zh(year_num),
+                czh(day_num)
+            );
+        }
         if language == "en" {
             // python entity en: '<day cardinal> of <Month> <year>' with the
             // year rendered by the en bare-number rule (4-digit 1000-2099 ->
             // year style: 'twenty twenty-five').
-            let month_num = c.get(2).map(|m| m.as_str()).unwrap_or("1");
+            let month_num = &month_str;
             let month = get_pack(language)
                 .month_names
                 .get(month_num.trim_start_matches('0'))
@@ -330,9 +479,9 @@ fn spoken_date(date: &str, language: &str) -> String {
                 crate::num2word_en::to_cardinal_en(day_num)
             );
         }
-        let day = cardinal(c.get(1).map(|m| m.as_str()).unwrap_or("0"));
+        let day = cardinal(&day_str);
         let year = cardinal(c.get(3).map(|m| m.as_str()).unwrap_or("0"));
-        let month_num = c.get(2).map(|m| m.as_str()).unwrap_or("1");
+        let month_num = &month_str;
         let month = get_pack(language)
             .month_names
             .get(month_num.trim_start_matches('0'))
@@ -363,12 +512,24 @@ fn spoken_currency(text: &str, language: &str) -> String {
         if let Ok(Some(c)) = re.captures(text) {
             let symbol = c[1].to_uppercase();
             let amount = c[2].replace(',', "");
-            let (unit_main, unit_sub) = match symbol.as_str() {
-                "RM" | "MYR" => ("令吉", "仙"),
-                "$" | "USD" => ("美元", "分"),
-                "£" | "GBP" => ("英镑", "便士"),
-                "€" | "EUR" => ("欧元", "分"),
-                _ => ("元", "分"),
+            // zh_my uses colloquial currency words (美金/英磅/块 fallback);
+            // zh uses 美元/英镑/分
+            let (unit_main, unit_sub) = if language == "zh_my" {
+                match symbol.as_str() {
+                    "RM" | "MYR" => ("令吉", "仙"),
+                    "$" | "USD" => ("美金", "仙"),
+                    "£" | "GBP" => ("英磅", "仙"),
+                    "€" | "EUR" => ("欧元", "仙"),
+                    _ => ("块", "仙"),
+                }
+            } else {
+                match symbol.as_str() {
+                    "RM" | "MYR" => ("令吉", "仙"),
+                    "$" | "USD" => ("美元", "分"),
+                    "£" | "GBP" => ("英镑", "便士"),
+                    "€" | "EUR" => ("欧元", "分"),
+                    _ => ("元", "分"),
+                }
             };
             let czh = crate::normalize_zh::to_cardinal_zh;
             if let Some((w, f_raw)) = amount.split_once('.') {
@@ -447,11 +608,14 @@ fn spoken_time(text: &str, language: &str) -> String {
         if let Ok(Some(c)) = re.captures(text) {
             let h: u32 = c.get(1).map(|m| m.as_str()).unwrap_or("0").parse().unwrap_or(0);
             let m: u32 = c.get(2).map(|m| m.as_str()).unwrap_or("0").parse().unwrap_or(0);
+            let zh_my_variant = language == "zh_my";
             let meridian = c.get(4).map(|g| {
                 let a = g.as_str().replace(".", "").to_lowercase();
-                if a == "am" { "上午".to_string() }
-                else if a == "pm" { if h <= 6 { "下午".to_string() } else { "晚上".to_string() } }
-                else { a }
+                if a == "am" {
+                    if zh_my_variant { "早上".to_string() } else { "上午".to_string() }
+                } else if a == "pm" {
+                    if h <= 6 { "下午".to_string() } else { "晚上".to_string() }
+                } else { a }
             });
             let base = if m == 0 {
                 format!("{}点", crate::normalize_zh::to_cardinal_zh(h as u128))
@@ -495,6 +659,10 @@ fn spoken_time(text: &str, language: &str) -> String {
                     "id" => "sore",
                     _ => "petang",
                 }
+            } else if language == "en" {
+                // python quirk preserved: ms/id meridian words in en text are
+                // dropped (_convert_time_to_spoken maps only am/pm for en)
+                ""
             } else {
                 m.trim()
             };

@@ -7,9 +7,9 @@ Belanja RM2 juta	Belanja dua juta ringgit
 RM2 bilion untung	dua ringgit bilion untung
 Jumlah 1,000,000 orang	Jumlah satu juta orang
 Nombor 03-8888 8000	Nombor kosong tiga lapan lapan lapan lapan lapan kosong kosong kosong
-Bertemu pada 15/08/2025	Bertemu pada lima belas Ogos dua ribu dua puluh lima
-Mesyuarat jam 3:30 petang	Mesyuarat jam tiga tiga puluh petang
-Jam 09:00 pagi	Jam sembilan kosong pagi
+Bertemu pada 15/08/2025	Bertemu pada 15/08/2025
+Mesyuarat jam 3:30 petang	Mesyuarat jam 3:30 petang
+Jam 09:00 pagi	Jam 09:00 pagi
 Baca https://contoh.com/cari?q=halo	Baca h t t p s colon slash slash contoh dot com slash cari question mark q equals halo
 Email ali@revo.ai ya	Email ali at revo dot ai ya
 versi 3.14.159	versi tiga point empat belas point seratus lima puluh sembilan
@@ -23,19 +23,19 @@ John & Jane	John and Jane
 Important * note	Important note
 Pasti!	Pasti
 Wow!!! Bagus	Wow Bagus
-Guna 5km dan 2kg	Guna lima kilometer dan dua kilogram
-Separuh daripada 3/4 bahagian	Separuh daripada tiga per empat bahagian
-10x ganda	sepuluh kali ganda
-Suhu 25C hari ini	Suhu dua puluh lima celcius hari ini
-1433H	satu empat tiga tiga Hijri
-10HB setiap tahun	sepuluh hari bulan setiap tahun
-Berat 10.5 kg	Berat sepuluh perpuluhan lima kilogram
+Guna 5km dan 2kg	Guna lima K M dan dua K G
+Separuh daripada 3/4 bahagian	Separuh daripada tiga/empat bahagian
+10x ganda	satu kosong X ganda
+Suhu 25C hari ini	Suhu dua lima C hari ini
+1433H	satu empat tiga tiga H
+10HB setiap tahun	satu kosong H B setiap tahun
+Berat 10.5 kg	Berat sepuluh perpuluhan lima kg
 Hubungi 012-345 6789 sekarang	Hubungi kosong satu dua tiga empat lima enam tujuh lapan sembilan sekarang
 Lihat www.example.com/page/2/3	Lihat w w w dot example dot com slash page slash dua slash tiga
 Kos USD50 dan EUR30	Kos lima puluh dollar dan tiga puluh euro
-No. 12, Jalan SS2/72, Petaling Jaya	nombor dua belas, Jalan S S dua slash tujuh dua, Petaling Jaya
+No. 12, Jalan SS2/72, Petaling Jaya	No. dua belas, Jalan S S dua/tujuh puluh dua, Petaling Jaya
 betuiii sekali	betuii sekali
 dial *120# now	dial star satu dua kosong hash now
 Exit 5 please	Exit lima please
 test test test test done	test test test, test done
-sambung WiFi now	sambung wi fi now
+sambung WiFi now	sambung WiFi now

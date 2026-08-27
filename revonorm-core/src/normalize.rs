@@ -87,6 +87,9 @@ static RE_DATE: LazyLock<Regex> =
 static RE_CURRENCY: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?i)(?<!\w)(RM|\$|£|€|USD|EUR|GBP|MYR)(?:\s?)([\d,]+(?:[\.,]\d{1,2})?)(?:\s+(juta|bilion|trilion|ribu|million|billion|trillion|thousand))?\b").unwrap()
 });
+static RE_TIME_HOUR_ONLY: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?i)\b(\d{1,2})\s*(am|pm|a\.m\.|p\.m\.|malam|petang|pagi|siang|tengah hari)\b").unwrap()
+});
 static RE_TIME_NO_MERIDIAN: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?i)\b(\d{1,2}):(\d{2})\b(?!\s*(?:am|pm|a\.m\.|p\.m\.|malam|petang))(?!.*%)").unwrap()
 });
@@ -327,6 +330,20 @@ pub fn normalize_malay(text: &str) -> String {
     let t = normalize_dates(&t);
     let t = normalize_currency(&t);
     let t = normalize_times(&t);
+
+    // hour-only meridian times (jumpa 3 petang / jam 3 pm) — python's
+    // _time_hour_only_re pass; must run after the HH:MM forms
+    let t = RE_TIME_HOUR_ONLY.replace_all(&t, |c: &fancy_regex::Captures<str>| {
+        let hour: u32 = c[1].parse().unwrap_or(0);
+        let m = c[2].to_lowercase().replace('.', "");
+        let word = match m.as_str() {
+            "am" => "pagi",
+            "pm" => if hour < 18 { "petang" } else { "malam" },
+            other => other,
+        };
+        format!("{} {word}", to_cardinal(hour as u128))
+    });
+
     let t = normalize_percent_decimal(&t);
 
     // dashed digit groups -> space-separated digits (03-8888 -> "0 3 8 8 8 8").

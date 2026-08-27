@@ -50,7 +50,31 @@ impl Options {
     }
 
     pub fn is_enabled(&self, feature: &str) -> bool {
-        !self.disable.iter().any(|d| d == feature)
+        self.active(feature).unwrap_or(true)
+            && !self.disable.iter().any(|d| d == feature)
+    }
+
+    /// The effective feature set: profile defaults minus disable overrides.
+    /// Mirrors python Config.from_profile + per-field False.
+    pub fn active(&self, feature: &str) -> Option<bool> {
+        const OFF_MINIMAL: &[&str] = &[
+            "abbreviations", "acronyms", "dates", "elongated", "fractions",
+            "hari_bulan", "hijri", "ic", "malay_local", "measurements",
+            "pronunciation_overrides", "special_chars", "strip_bracketed",
+            "temperature", "times", "x_kali",
+        ];
+        const OFF_BASIC: &[&str] = &[
+            "dates", "fractions", "hari_bulan", "hijri", "ic", "measurements",
+            "pronunciation_overrides", "strip_bracketed", "temperature",
+            "times", "x_kali",
+        ];
+        let off: &[&str] = match self.profile.as_deref() {
+            Some("minimal") => OFF_MINIMAL,
+            Some("basic") => OFF_BASIC,
+            // standard and aggressive: everything on
+            _ => return Some(true),
+        };
+        Some(!off.contains(&feature))
     }
 
     pub fn pronunciation_profile(&self) -> &str {
