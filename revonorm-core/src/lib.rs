@@ -25,6 +25,9 @@ pub mod num2word;
 pub mod pipeline;
 pub mod shared;
 
+#[cfg(feature = "pyffi")]
+pub mod pybind;
+
 #[cfg(target_arch = "wasm32")]
 pub mod wasm;
 
