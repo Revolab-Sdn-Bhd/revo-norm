@@ -41,6 +41,13 @@ jobs:
             console.log('node variant OK:', out);
           "
 
+      - name: Configure npm auth
+        if: ${{ !contains(github.ref, 'no-publish') }}
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" >> "$HOME/.npmrc"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Publish node variant
         if: ${{ !contains(github.ref, 'no-publish') }}
         run: npm publish pkg-node --access public
