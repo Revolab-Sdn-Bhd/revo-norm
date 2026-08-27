@@ -7,7 +7,16 @@ use fancy_regex::Regex;
 use std::sync::LazyLock;
 
 use crate::langpack::get_pack;
-use crate::num2word::to_cardinal;
+
+/// Language-aware cardinal dispatch.
+fn cardinal_for(n: u128, language: &str) -> String {
+    match language {
+        "id" => crate::num2word::to_cardinal_id(n),
+        "en" => crate::num2word_en::to_cardinal_en(n),
+        _ => crate::num2word::to_cardinal(n),
+    }
+}
+
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum EntityType {
@@ -261,7 +270,7 @@ fn spoken_email(email: &str, language: &str) -> String {
 fn spoken_version(version: &str, language: &str) -> String {
     version
         .split('.')
-        .map(|p| if language == "id" { crate::num2word::to_cardinal_id(p.parse::<u128>().unwrap_or(0)) } else { to_cardinal(p.parse::<u128>().unwrap_or(0)) })
+        .map(|p| cardinal_for(p.parse::<u128>().unwrap_or(0), language))
         .collect::<Vec<_>>()
         .join(" point ")
 }
@@ -271,18 +280,33 @@ fn spoken_version(version: &str, language: &str) -> String {
 fn spoken_date(date: &str, language: &str) -> String {
     // slash format DD/MM/YYYY
     let re = fancy_regex::Regex::new(r"(?<![A-Za-z0-9_])(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})(?![A-Za-z0-9_])").unwrap();
-    let cardinal = |s: &str| -> String {
-        let n: u128 = s.parse().unwrap_or(0);
-        if language == "id" {
-            crate::num2word::to_cardinal_id(n)
-        } else {
-            to_cardinal(n)
-        }
-    };
+    let cardinal = |s: &str| cardinal_for(s.parse::<u128>().unwrap_or(0), language);
     if let Ok(Some(c)) = re.captures(date) {
+        let day_num: u128 = c.get(1).map(|m| m.as_str()).unwrap_or("0").parse().unwrap_or(0);
+        let year_num: u128 = c.get(3).map(|m| m.as_str()).unwrap_or("0").parse().unwrap_or(0);
+        if language == "en" {
+            // python entity en: '<day cardinal> of <Month> <year>' with the
+            // year rendered by the en bare-number rule (4-digit 1000-2099 ->
+            // year style: 'twenty twenty-five').
+            let month_num = c.get(2).map(|m| m.as_str()).unwrap_or("1");
+            let month = get_pack(language)
+                .month_names
+                .get(month_num.trim_start_matches('0'))
+                .copied()
+                .unwrap_or(month_num);
+            let year_spoken = if (1000..=2099).contains(&year_num) {
+                crate::normalize_en::render_year(year_num)
+            } else {
+                crate::num2word_en::to_cardinal_en(year_num)
+            };
+            return format!(
+                "{} of {month} {year_spoken}",
+                crate::num2word_en::to_cardinal_en(day_num)
+            );
+        }
         let day = cardinal(c.get(1).map(|m| m.as_str()).unwrap_or("0"));
-        let month_num = c.get(2).map(|m| m.as_str()).unwrap_or("1");
         let year = cardinal(c.get(3).map(|m| m.as_str()).unwrap_or("0"));
+        let month_num = c.get(2).map(|m| m.as_str()).unwrap_or("1");
         let month = get_pack(language)
             .month_names
             .get(month_num.trim_start_matches('0'))
@@ -303,13 +327,7 @@ fn squash_spaces(text: &str) -> String {
 /// cents spoken as a padded 2-digit number, whole==0 skips the main unit.
 fn spoken_currency(text: &str, language: &str) -> String {
     let pack = get_pack(language);
-    let cardinal = |n: u128| -> String {
-        if language == "id" {
-            crate::num2word::to_cardinal_id(n)
-        } else {
-            to_cardinal(n)
-        }
-    };
+    let cardinal = |n: u128| cardinal_for(n, language);
     let re = fancy_regex::Regex::new(
         r"(?i)(?<!\w)(RM|Rp|USD|EUR|GBP|MYR|IDR|\$|£|€)(?:\s?)([\d,]+(?:[\.,]\d{1,2})?)",
     )
@@ -361,13 +379,7 @@ fn spoken_currency(text: &str, language: &str) -> String {
 fn spoken_time(text: &str, language: &str) -> String {
     // python _convert_time_to_spoken: hour minute [second] words + meridian;
     // minute always spoken. am->pagi both langs; pm->petang (ms) / sore (id).
-    let cardinal = |n: u128| -> String {
-        if language == "id" {
-            crate::num2word::to_cardinal_id(n)
-        } else {
-            to_cardinal(n)
-        }
-    };
+    let cardinal = |n: u128| cardinal_for(n, language);
     let re = fancy_regex::Regex::new(
         r"(?i)\b(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.|pagi|petang|siang|sore|malam|tengah\s+hari)?",
     )
@@ -386,9 +398,13 @@ fn spoken_time(text: &str, language: &str) -> String {
         if let Some(mer) = caps.get(4) {
             let m = mer.as_str();
             let word = if m.eq_ignore_ascii_case("am") || m.eq_ignore_ascii_case("a.m.") {
-                "pagi"
+                if language == "en" { "a m" } else { "pagi" }
             } else if m.eq_ignore_ascii_case("pm") || m.eq_ignore_ascii_case("p.m.") {
-                if language == "id" { "sore" } else { "petang" }
+                match language {
+                    "en" => "p m",
+                    "id" => "sore",
+                    _ => "petang",
+                }
             } else {
                 m.trim()
             };

@@ -103,6 +103,34 @@ def simulate_milestone3(text: str) -> str:
 
 
 
+
+EN_CASES = [
+    "It costs $5.50",
+    "Born in 1990",
+    "3:30 pm meeting",
+    "25C today",
+    "I'm here don't know",
+    "1st place 21st century",
+    "RM2.5 million profit",
+    "The API is fast",
+    "50% off",
+    "3.14 value",
+    "call 03-8888 now",
+    "meeting at 7 pm",
+    "15/08/2025 deadline",
+    "123,456 items",
+    "you're 100% right",
+    "The GUI uses JSON and NASA rockets",
+    "5km run and 2kg weights",
+    "3/4 of the pie",
+    "10x faster",
+    "version 3.14.159",
+    "visit https://example.com/search?q=hi",
+    "No. 5 Jalan Bukit",
+    "sdn bhd company",
+    "born 1Malaysia era",
+]
+
 ID_CASES = [
     "Harga Rp1.500.000 saja",
     "Saldo Rp5.670,23 hari ini",
@@ -199,6 +227,47 @@ def simulate_milestone3_id(text: str) -> str:
         out = re.sub(r"!+", "", out)
     return re.sub(r"\s+", " ", out.strip())
 
+
+def simulate_milestone3_en(text: str) -> str:
+    """Mirror revonorm-core's pipeline::normalize('en') steps."""
+    pack = get_pack("en")
+    out = text
+    for pat, fn in [
+        (CURRENCY_T_SUFFIX_PATTERN, expand_currency_t_suffix),
+        (CURRENCY_TRILIUN_PATTERN, expand_currency_t_suffix),
+        (CURRENCY_B_SUFFIX_PATTERN, expand_currency_b_suffix),
+        (CURRENCY_MILIAR_PATTERN, expand_currency_b_suffix),
+        (CURRENCY_M_SUFFIX_PATTERN, expand_currency_m_suffix),
+        (CURRENCY_JUTA_PATTERN, expand_currency_m_suffix),
+        (CURRENCY_K_SUFFIX_PATTERN, expand_currency_k_suffix),
+        (CURRENCY_RIBU_PATTERN, expand_currency_k_suffix),
+    ]:
+        out = pat.sub(fn, out)
+    out = RE_NEG.sub(f" {pack.negative_word} ", out)
+    from revo_norm.shared_features import normalize_measurements
+    out = normalize_measurements(out, "en")
+    ex = EntityExtractor()
+    ms3 = [EntityType.URL, EntityType.EMAIL, EntityType.PHONE,
+           EntityType.VERSION, EntityType.CURRENCY, EntityType.DATE, EntityType.TIME,
+           EntityType.TEMPERATURE, EntityType.FRACTION, EntityType.X_KALI,
+           EntityType.IC, EntityType.HARI_BULAN, EntityType.HIJRI]
+    out, ents = ex.extract(out, enabled_entities=ms3)
+    from revo_norm.text_normalizer import apply_pronunciation_overrides, replace_letter_period_sequences
+    out = apply_pronunciation_overrides(out, "en")
+    table = resolve_pronunciations("en", profile="builtin")
+    out = apply_pronunciation_mappings(out, "en", table)
+    out, stash = _stash_placeholders(out)
+    from revo_norm.normalizer_en import text_normalize
+    out = text_normalize(out)
+    out = replace_letter_period_sequences(out, process_acronyms=True)
+    out = _unstash_placeholders(out, stash)
+    out = ex.restore(out, "en")
+    for sym, spoken in pack.symbol_words.items():
+        out = out.replace(sym, f" {spoken} ")
+    if pack.drops_exclamation:
+        out = re.sub(r"!+", "", out)
+    return re.sub(r"\s+", " ", out.strip())
+
 def main() -> None:
     FIXDIR.mkdir(exist_ok=True)
     rng = random.Random(42)
@@ -223,6 +292,23 @@ def main() -> None:
         for case, full, sim in pending:
             f.write(f"{case}\t{full}\t{sim}\n")
 
+    # en fixtures
+    done_en, pending_en = [], []
+    for case in EN_CASES:
+        full = normalize_text(case, language="en")
+        sim = simulate_milestone3_en(case)
+        (done_en if full == sim else pending_en).append((case, full, sim))
+    with open(FIXDIR / "pipeline_en.txt", "w", encoding="utf-8") as f:
+        for case, full, _ in done_en:
+            f.write(f"{case}\t{full}\n")
+    if pending_en:
+        with open(FIXDIR / "pending_en.txt", "w", encoding="utf-8") as f:
+            for case, full, sim in pending_en:
+                f.write(f"{case}\t{full}\t{sim}\n")
+    print(
+        f"en parity: {len(done_en)} green, {len(pending_en)} pending: "
+        f"{[c for c, _, _ in pending_en]}"
+    )
     # id fixtures: same step simulation, id vocabulary
     from revo_norm.normalizer_id import normalize_indonesian, preparse_number_formats
     done_id, pending_id = [], []

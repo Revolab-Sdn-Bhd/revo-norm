@@ -65,14 +65,50 @@ pub fn pack() -> &'static LanguagePack {
         .into_iter()
         .collect(),
         drops_exclamation: true,
-        distance_units: Default::default(),
-        volume_units: Default::default(),
-        weight_units: Default::default(),
-        duration_units: Default::default(),
-        area_units: Default::default(),
-        temperature_units: Default::default(),
-        fraction_word: "per",
-        times_word: "kali",
+        distance_units: [
+            ("km", "kilometers"), ("m", "meters"), ("cm", "centimeters"),
+            ("mm", "millimeters"), ("ft", "feet"), ("in", "inches"),
+            ("yd", "yards"), ("mi", "miles"), ("batu", "miles"),
+            ("kaki", "feet"), ("inci", "inches"),
+        ]
+        .into_iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect(),
+        volume_units: [
+            ("ml", "milliliters"), ("l", "liters"), ("gal", "gallons"),
+        ]
+        .into_iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect(),
+        weight_units: [
+            ("kg", "kilograms"), ("g", "grams"), ("mg", "milligrams"),
+            ("lb", "pounds"), ("oz", "ounces"),
+        ]
+        .into_iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect(),
+        duration_units: [
+            ("jam", "hours"), ("minit", "minutes"), ("saat", "seconds"),
+            ("hour", "hour"), ("hours", "hours"), ("minute", "minute"),
+            ("minutes", "minutes"), ("second", "second"), ("seconds", "seconds"),
+        ]
+        .into_iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect(),
+        area_units: [
+            ("sq ft", "square feet"), ("sqft", "square feet"),
+        ]
+        .into_iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect(),
+        temperature_units: [
+            ("c", "celsius"), ("f", "fahrenheit"), ("k", "kelvin"),
+        ]
+        .into_iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect(),
+        fraction_word: "over",
+        times_word: "times",
         hijri_suffix: "Hijri",
     });
     &PACK

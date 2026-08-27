@@ -13,6 +13,16 @@ use std::sync::LazyLock;
 use crate::langpack::get_pack;
 use crate::num2word::to_cardinal;
 
+/// Language-aware cardinal dispatch.
+fn cardinal_for(n: u128, language: &str) -> String {
+    match language {
+        "id" => crate::num2word::to_cardinal_id(n),
+        "en" => crate::num2word_en::to_cardinal_en(n),
+        _ => crate::num2word::to_cardinal(n),
+    }
+}
+
+
 // --- measurement patterns (shared_features.py) ----------------------------
 static RE_DISTANCE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?i)\b(-?\d+(?:[\.,]\d+)?)\s*(km|m|cm|mm|ft|in|yd|mi|batu|kaki|inci)\b").unwrap()
@@ -42,14 +52,6 @@ static RE_HIJRI: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\b(\d{3,4})\s*[Hh]\b").unwrap());
 
 
-/// Language-aware cardinal: id uses its own vocabulary.
-fn cardinal(n: u128, language: &str) -> String {
-    if language == "id" {
-        crate::num2word::to_cardinal_id(n)
-    } else {
-        crate::num2word::to_cardinal(n)
-    }
-}
 
 /// Language-aware digit speaker from the pack.
 /// Measurements pass — before the language normalizer so "5km" never
@@ -65,10 +67,10 @@ pub fn normalize_measurements(text: &str, language: &str) -> String {
             // decimals: whole koma digits
             let s = format!("{f}");
             if let Some((w, frac)) = s.split_once('.') {
-                let digits: String = frac.chars().map(|d| cardinal(d.to_digit(10).unwrap_or(0) as u128, language)).collect::<Vec<_>>().join(" ");
-                return format!("{} perpuluhan {digits}", cardinal(w.parse().unwrap_or(0), language));
+                let digits: String = frac.chars().map(|d| cardinal_for(d.to_digit(10).unwrap_or(0) as u128, language)).collect::<Vec<_>>().join(" ");
+                return format!("{} perpuluhan {digits}", cardinal_for(w.parse().unwrap_or(0), language));
             }
-            cardinal(f as u128, language)
+            cardinal_for(f as u128, language)
         } else {
             v.to_string()
         }
@@ -101,10 +103,10 @@ pub fn spoken_temperature(text: &str, language: &str) -> String {
         let unit = c.get(2).map(|m| m.as_str().to_lowercase()).unwrap_or_default();
         if let Some(spoken) = pack.temperature_units.get(&unit) {
             if let Some((w, frac)) = value.split_once('.') {
-                let digits: String = frac.chars().map(|d| cardinal(d.to_digit(10).unwrap_or(0) as u128, language)).collect::<Vec<_>>().join(" ");
-                return format!("{} perpuluhan {digits} {spoken}", cardinal(w.parse().unwrap_or(0), language));
+                let digits: String = frac.chars().map(|d| cardinal_for(d.to_digit(10).unwrap_or(0) as u128, language)).collect::<Vec<_>>().join(" ");
+                return format!("{} perpuluhan {digits} {spoken}", cardinal_for(w.parse().unwrap_or(0), language));
             }
-            return format!("{} {spoken}", cardinal(value.parse().unwrap_or(0), language));
+            return format!("{} {spoken}", cardinal_for(value.parse().unwrap_or(0), language));
         }
     }
     text.to_string()
@@ -114,7 +116,8 @@ pub fn spoken_fraction(text: &str, language: &str) -> String {
     if let Ok(Some(c)) = RE_FRACTION.captures(text) {
         let n = c.get(1).map(|m| m.as_str()).unwrap_or("0");
         let d = c.get(2).map(|m| m.as_str()).unwrap_or("0");
-        return format!("{} per {}", cardinal(n.parse().unwrap_or(0), language), to_cardinal(d.parse().unwrap_or(0)));
+        let pack = get_pack(language);
+        return format!("{} {} {}", cardinal_for(n.parse().unwrap_or(0), language), pack.fraction_word, cardinal_for(d.parse().unwrap_or(0), language));
     }
     text.to_string()
 }
@@ -122,7 +125,8 @@ pub fn spoken_fraction(text: &str, language: &str) -> String {
 pub fn spoken_x_kali(text: &str, language: &str) -> String {
     if let Ok(Some(c)) = RE_X_KALI.captures(text) {
         let n = c.get(1).map(|m| m.as_str()).unwrap_or("0");
-        return format!("{} kali", cardinal(n.parse().unwrap_or(0), language));
+        let pack = get_pack(language);
+        return format!("{} {}", cardinal_for(n.parse().unwrap_or(0), language), pack.times_word);
     }
     text.to_string()
 }
@@ -139,7 +143,7 @@ pub fn spoken_ic(text: &str, language: &str) -> String {
 pub fn spoken_hari_bulan(text: &str, language: &str) -> String {
     if let Ok(Some(c)) = RE_HARI_BULAN.captures(text) {
         let day = c.get(1).map(|m| m.as_str()).unwrap_or("0");
-        return format!("{} hari bulan", cardinal(day.parse().unwrap_or(0), language));
+        return format!("{} hari bulan", cardinal_for(day.parse().unwrap_or(0), language));
     }
     text.to_string()
 }

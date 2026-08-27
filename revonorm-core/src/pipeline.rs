@@ -87,9 +87,9 @@ pub fn normalize_with(
 
     // Milestone 1: only the Malay path has a ported normalizer. Others error
     // until their milestone lands — never silently fall back to Malay.
-    if code != "ms" && code != "id" {
+    if code != "ms" && code != "id" && code != "en" {
         return Err(format!(
-            "language '{code}' not ported yet (ms and id shipped; en/zh/zh_my follow)"
+            "language '{code}' not ported yet (ms, id and en shipped; zh/zh_my follow)"
         ));
     }
 
@@ -129,12 +129,20 @@ pub fn normalize_with(
     // normalizers (mixed-alnum, number passes) cannot touch them.
     let (out, stash) = stash_placeholders(&out);
 
+    // Step 6 (python): pronunciation overrides (latin) — before the
+    // language normalizer, like python.
+    let out = crate::normalize_en::apply_pronunciation_overrides(&out, &code);
+
     // Language normalizer pass (currency, dates, times, numbers...).
-    let out = if code == "id" {
-        crate::normalize_id::normalize_indonesian(&out)
-    } else {
-        normalize_malay(&out)
+    let out = match code.as_str() {
+        "id" => crate::normalize_id::normalize_indonesian(&out),
+        "en" => crate::normalize_en::normalize_english(&out),
+        _ => normalize_malay(&out),
     };
+
+    // Step 6b (python): acronym expansion (letter-period, hyphen split,
+    // uppercase runs) — after the language normalizer.
+    let out = crate::normalize_en::replace_letter_period_sequences(&out);
 
     // Step 6.5: unstash back to <<<TYPE_N>>> placeholders.
     let mut out = unstash_placeholders(&out, &stash);

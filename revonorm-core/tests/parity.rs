@@ -45,9 +45,9 @@ fn unknown_language_errors() {
 
 #[test]
 fn unported_language_errors_loudly() {
-    // en is registered but not ported in milestone 1 — must error, never
-    // silently fall back to Malay.
-    let err = normalize("hello", "en").unwrap_err();
+    // zh is registered but not ported yet — must error, never silently
+    // fall back to Malay.
+    let err = normalize("hello", "zh").unwrap_err();
     assert!(err.contains("not ported"), "got: {err}");
 }
 
@@ -113,5 +113,14 @@ fn pipeline_id_parity() {
         let got = normalize(&input, "id")
             .unwrap_or_else(|e| panic!("normalize({input:?}, id) errored: {e}"));
         assert_eq!(got, expected, "normalize({input:?}, id)");
+    }
+}
+
+#[test]
+fn pipeline_en_parity() {
+    for (input, expected) in fixtures("pipeline_en.txt") {
+        let got = normalize(&input, "en")
+            .unwrap_or_else(|e| panic!("normalize({input:?}, en) errored: {e}"));
+        assert_eq!(got, expected, "normalize({input:?}, en)");
     }
 }
