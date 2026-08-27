@@ -15,7 +15,7 @@ pyo3 = { version = "0.23", optional = true }
 
 [features]
 default = []
-pyffi = ["pyo3", "pyo3/extension-module"]
+pyffi = ["pyo3", "pyo3/extension-module", "pyo3/generate-import-lib"]
 
 [target.wasm32-unknown-unknown.dependencies]
 wasm-bindgen = "0.2.127"
