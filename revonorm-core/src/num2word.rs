@@ -69,30 +69,30 @@ fn ratus(d: u8) -> Vec<&'static str> {
 
 /// tens pair -> words (puluh/belas). python: 10 sepuluh, 11 sebelas,
 /// 12+ = digit + "belas"; 20+ = digit + "puluh" + digit.
-fn puluh(block: &str) -> Vec<&'static str> {
+fn puluh(block: &str, vocab: &NumberVocab) -> Vec<&'static str> {
     let b = block.as_bytes();
     let d0 = b[0] - b'0';
     let d1 = b[1] - b'0';
     match (d0, d1) {
         (0, 0) => vec![],
-        (0, _) => vocab_digit(&MS_VOCAB, d1), // same in both
+        (0, _) => vocab_digit(vocab, d1),
         (1, 0) => vec!["sepuluh"],
         (1, 1) => vec!["sebelas"],
         (1, _) => {
-            let mut v = vocab_digit(&MS_VOCAB, d1);
+            let mut v = vocab_digit(vocab, d1);
             v.push("belas");
             v
         }
         (_, 0) => {
-            let mut v = vocab_digit(&MS_VOCAB, d0);
-            v.push("puluh");
-            v
+            let mut words = vocab_digit(vocab, d0);
+            words.push("puluh");
+            words
         }
         (_, _) => {
-            let mut v = vocab_digit(&MS_VOCAB, d0);
-            v.push("puluh");
-            v.extend(vocab_digit(&MS_VOCAB, d1));
-            v
+            let mut words = vocab_digit(vocab, d0);
+            words.push("puluh");
+            words.extend(vocab_digit(vocab, d1));
+            words
         }
     }
 }
@@ -117,11 +117,20 @@ fn spell_block(v: &NumberVocab, block: &str) -> Vec<&'static str> {
         return if d == 0 { vec![v.zero] } else { vocab_digit(v, d) };
     }
     if block.len() == 2 {
-        return puluh(block);
+        return puluh(block, v);
     }
     let b = block.as_bytes();
+    // hundreds digit words are identical across ms/id (seratus, X ratus)
     let mut out = ratus(b[0] - b'0');
-    out.extend(puluh(&block[1..3]));
+    // ...except the 8 inside "X ratus": patch lapan->delapan for id
+    if v.eight == "delapan" {
+        out = out.iter().map(|w| if *w == "lapan" { "delapan" } else { *w }).collect();
+    }
+    let mut tail = puluh(&block[1..3], v);
+    if v.eight == "delapan" {
+        tail = tail.iter().map(|w| if *w == "lapan" { "delapan" } else { *w }).collect();
+    }
+    out.extend(tail);
     out
 }
 

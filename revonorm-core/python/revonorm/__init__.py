@@ -1,28 +1,75 @@
 """revonorm — multilingual TTS text normalization.
 
-normalize_text(text, language) mirrors revo_norm's API; options map into
-the JSON the pipeline consumes.
+The full original revo_norm API surface, backed by the compiled engine:
+normalize_text + config + pronunciation layers + num2word functions +
+entity extraction + tts_utils. Consumers can switch imports from
+revo_norm to revonorm with zero code changes.
 """
 
-from ._core import normalize, supported_languages
+from . import tts_utils
+from ._core import (
+    normalize,
+    supported_languages,
+    to_cardinal_id,
+    to_cardinal_ms,
+    to_cardinal_zh,
+    to_currency_zh,
+    to_year_zh,
+)
+from .compat import (
+    SUPPORTED_LANGUAGES,
+    Config,
+    Entity,
+    EntityExtractor,
+    EntityType,
+    Feature,
+    LanguagePack,
+    NormalizationResult,
+    Profile,
+    add_custom_mapping,
+    get_pronunciation_mappings,
+    get_registered_profiles,
+    normalize_text,
+    normalize_text_detailed,
+    pronunciations_from_file,
+    register_language,
+    register_pronunciation_profile,
+)
 
-__all__ = ["normalize", "normalize_text", "supported_languages"]
+__version__ = "0.8.5"
 
-
-def normalize_text(text: str, language: str, profile: str | None = None,
-                   disable: list[str] | None = None) -> str:
-    """Normalize *text* for *language* — same signature as revo_norm.
-
-    profile/disable map into the options JSON the pipeline consumes.
-    """
-    import json
-
-    opts: dict = {}
-    if profile is not None:
-        opts["profile"] = profile
-    if disable:
-        opts["disable"] = disable
-    result = normalize(text, language, json.dumps(opts) if opts else "")
-    if result.startswith("__ERROR__"):
-        raise ValueError(result[len("__ERROR__"):])
-    return result
+__all__ = [
+    "__version__",
+    # Main API
+    "normalize_text",
+    "normalize_text_detailed",
+    "NormalizationResult",
+    "normalize",
+    # Configuration
+    "Config",
+    "Profile",
+    "Feature",
+    "SUPPORTED_LANGUAGES",
+    # Language packs
+    "LanguagePack",
+    "register_language",
+    "supported_languages",
+    # Entity extraction
+    "Entity",
+    "EntityExtractor",
+    "EntityType",
+    # Pronunciation mappings
+    "add_custom_mapping",
+    "get_pronunciation_mappings",
+    "get_registered_profiles",
+    "pronunciations_from_file",
+    "register_pronunciation_profile",
+    # num2word
+    "to_cardinal_ms",
+    "to_cardinal_id",
+    "to_cardinal_zh",
+    "to_currency_zh",
+    "to_year_zh",
+    # TTS utilities (pure python by design)
+    "tts_utils",
+]

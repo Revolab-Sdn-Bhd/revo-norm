@@ -103,65 +103,113 @@ pub fn normalize_with(
     };
     out = suffix_out;
 
+    // Step 1b (python): USSD codes (*120# -> star satu dua kosong hash).
+    out = crate::misc_passes::expand_ussd(&out, &code);
+
     // Step 1c (python): negative signs — before number normalization.
     out = RE_NEG_SIGN
         .replace_all(&out, format!(" {} ", pack.negative_word))
         .into_owned();
 
-    // Step 3 (python): entity extraction — claim entities with placeholders
-    // so downstream passes cannot mangle them; restored after normalization.
-    let (out, entities) = crate::entities::extract(&out);
+    // Step 1c-2 (python): digit-by-digit contexts (exit 5, iPhone 15).
+    out = crate::misc_passes::expand_digit_contexts(&out, &code);
+
+    // Step 3 (python): entity extraction — gated types only fire when their
+    // feature is on (python: temperature -> TEMPERATURE, fractions ->
+    // FRACTION/ADDRESS_SLASH, ...); URL/EMAIL/PHONE/VERSION/CURRENCY always.
+    let (out, entities) = crate::entities::extract_gated(&out, options);
 
     // Step 6 (python): pronunciation overrides — BEFORE measurements, so a
     // raw "2kg" becomes singular "2 kilogram" before the unit table runs
     // ("two kilogram weights", not "two kilograms weights").
-    let out = crate::normalize_en::apply_pronunciation_overrides(&out, &code);
+    let out = if options.is_enabled("pronunciation_overrides") {
+        crate::normalize_en::apply_pronunciation_overrides(&out, &code)
+    } else {
+        out
+    };
 
     // Step 6.1 (python): measurements — after overrides, before the language
     // normalizer so "5km" never becomes "five K M" (acronym split).
-    let out = crate::shared::normalize_measurements(&out, &code);
+    let out = if options.is_enabled("measurements") {
+        crate::shared::normalize_measurements(&out, &code)
+    } else {
+        out
+    };
 
-    // Step 4 (python): pronunciation mappings on protected text.
-    let pron_table = options.resolve_pronunciations(&code);
-    let out = crate::pron::apply(&out, &pron_table);
+    // Step 4 (python): pronunciation mappings — gated by
+    // pronunciation_overrides (minimal profile skips WiFi -> wi fi).
+    let out = if options.is_enabled("pronunciation_overrides") {
+        let pron_table = options.resolve_pronunciations(&code);
+        crate::pron::apply(&out, &pron_table)
+    } else {
+        out
+    };
 
     // Step 5 (python): stash placeholders as pure-alpha tokens so language
     // normalizers (mixed-alnum, number passes) cannot touch them.
     let (out, stash) = stash_placeholders(&out);
 
+    // Step 6-2 (python): elongated words (betuiii -> betuii), before the
+    // language normalizer, gated by the elongated feature.
+    let out = if options.is_enabled("elongated") {
+        crate::misc_passes::normalize_elongated(&out)
+    } else {
+        out
+    };
+
     // Language normalizer pass (currency, dates, times, numbers...).
     let out = match code.as_str() {
         "id" => crate::normalize_id::normalize_indonesian(&out),
         "en" => crate::normalize_en::normalize_english(&out),
-        "zh" | "zh_my" => crate::normalize_zh::normalize_zh(&out),
+        "zh" => crate::normalize_zh::normalize_zh(&out),
+        "zh_my" => crate::normalize_zh::normalize_zh_my(&out),
         _ => normalize_malay(&out),
     };
 
+    // Step 6-3 (python): repeated-word comma insertion — always runs, after
+    // the language normalizer ("test test test test" -> "test test test, test").
+    let out = crate::misc_passes::insert_comma_repeated(&out, 3);
+
     // Step 6b (python): acronym expansion (letter-period, hyphen split,
     // uppercase runs) — after the language normalizer.
-    let out = crate::normalize_en::replace_letter_period_sequences(&out);
+    let out = if options.is_enabled("acronyms") {
+        crate::normalize_en::replace_letter_period_sequences(&out)
+    } else {
+        out
+    };
 
     // Step 6.5: unstash back to <<<TYPE_N>>> placeholders.
     let mut out = unstash_placeholders(&out, &stash);
 
-    // Step 7 (python): restore entities as spoken form.
-    out = crate::entities::restore(&out, &entities, &code);
+    // Step 7 (python): restore entities as spoken form. DATE/TIME only speak
+    // when their feature is on (python speak_entities gating); gated types
+    // were never extracted when off, so only the always-on set + speak
+    // decision matter here.
+    out = crate::entities::restore_gated(&out, &entities, &code, options);
 
     // Special chars: spell out symbols from the pack table.
-    for (ch, spoken) in &pack.symbol_words {
-        out = out.replace(
-            &ch.to_string(),
-            &format!(" {spoken} "),
-        );
-    }
-    for (sym, spoken) in &pack.symbol_words_multi {
-        out = out.replace(sym, &format!(" {spoken} "));
-    }
+    let out = if options.is_enabled("special_chars") {
+        let mut o = out;
+        for (ch, spoken) in &pack.symbol_words {
+            o = o.replace(
+                &ch.to_string(),
+                &format!(" {spoken} "),
+            );
+        }
+        for (sym, spoken) in &pack.symbol_words_multi {
+            o = o.replace(sym, &format!(" {spoken} "));
+        }
+        o
+    } else {
+        out
+    };
 
     // Exclamation drop where the pack opts in.
-    if pack.drops_exclamation {
-        out = RE_EXCLAIM.replace_all(&out, "").into_owned();
-    }
+    let out = if pack.drops_exclamation {
+        RE_EXCLAIM.replace_all(&out, "").into_owned()
+    } else {
+        out
+    };
 
     Ok(RE_MULTI_SPACES.replace_all(out.trim(), " ").into_owned())
 }

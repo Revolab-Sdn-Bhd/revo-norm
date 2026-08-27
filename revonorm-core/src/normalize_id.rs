@@ -151,7 +151,7 @@ pub fn normalize_indonesian(text: &str) -> String {
         let m = c[2].to_lowercase().replace('.', "");
         let word = match m.as_str() {
             "am" => "pagi",
-            "pm" => "sore",
+            "pm" => if hour < 18 { "sore" } else { "malam" },
             other => other,
         };
         let _ = hour;

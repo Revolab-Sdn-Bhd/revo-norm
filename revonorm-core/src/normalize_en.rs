@@ -351,13 +351,17 @@ pub fn apply_pronunciation_overrides(text: &str, language: &str) -> String {
         }
     }
     // unit overrides (non-zh)
-    for (pat, spoken) in [
-        (r"(?i)(\d+)\s*mg\b", "milligram"),
-        (r"(?i)(\d+)\s*kg\b", "kilogram"),
-        (r"(?i)(\d+)\s*GB\b", "gigabyte"),
-    ] {
-        if let Ok(re) = fancy_regex::Regex::new(pat) {
-            out = re.replace_all(&out, format!("$1 {spoken}")).into_owned();
+    // Unit overrides are latin-only: zh/zh_my skip them so measurements
+    // ("10kg" -> 十公斤) see the raw form (python's not-in-zh gate).
+    if !matches!(language, "zh" | "zh_my") {
+        for (pat, spoken) in [
+            (r"(?i)(\d+)\s*mg\b", "milligram"),
+            (r"(?i)(\d+)\s*kg\b", "kilogram"),
+            (r"(?i)(\d+)\s*GB\b", "gigabyte"),
+        ] {
+            if let Ok(re) = fancy_regex::Regex::new(pat) {
+                out = re.replace_all(&out, format!("$1 {spoken}")).into_owned();
+            }
         }
     }
     let no_word = match language {

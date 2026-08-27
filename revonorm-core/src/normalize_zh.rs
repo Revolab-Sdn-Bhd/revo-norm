@@ -135,7 +135,7 @@ pub fn to_year_zh(year: u128) -> String {
         .collect()
 }
 
-static MONTHS_ZH: LazyLock<std::collections::HashMap<String, String>> =
+pub static MONTHS_ZH: LazyLock<std::collections::HashMap<String, String>> =
     LazyLock::new(|| {
         [
             ("1", "一"), ("2", "二"), ("3", "三"), ("4", "四"), ("5", "五"),
@@ -194,14 +194,30 @@ fn month_zh(m: &str) -> String {
     MONTHS_ZH.get(m).cloned().unwrap_or_else(|| m.to_string())
 }
 
-/// Chinese normalization pass — text_normalize_zh (also used by zh_my).
+/// Chinese normalization pass — text_normalize_zh (zh variant).
 pub fn normalize_zh(text: &str) -> String {
+    normalize_zh_variant(text, false)
+}
+
+/// zh_my variant: percentage spoken as 巴仙 (colloquial), not 百分之.
+pub fn normalize_zh_my(text: &str) -> String {
+    normalize_zh_variant(text, true)
+}
+
+fn normalize_zh_variant(text: &str, zh_my: bool) -> String {
     let t = RE_PERCENT.replace_all(text, |c: &fancy_regex::Captures<str>| {
         let num = &c[1];
+        let (pre, _post) = if zh_my { ("", "巴仙") } else { ("百分之", "") };
         if let Some((w, f)) = num.split_once('.') {
             let fw: String = f.chars().map(|d| to_cardinal_zh(d.to_digit(10).unwrap_or(0) as u128)).collect();
-            format!("百分之{}点{fw}", to_cardinal_zh(w.parse().unwrap_or(0)))
+            if zh_my {
+                return format!("{}点{fw}巴仙", to_cardinal_zh(w.parse().unwrap_or(0)));
+            }
+            format!("{pre}{}点{fw}", to_cardinal_zh(w.parse().unwrap_or(0)))
         } else {
+            if zh_my {
+                return format!("{}巴仙", to_cardinal_zh(num.parse::<f64>().unwrap_or(0.0) as u128));
+            }
             format!("百分之{}", to_cardinal_zh(num.parse::<f64>().unwrap_or(0.0) as u128))
         }
     });
