@@ -9,6 +9,7 @@ use crate::langpack::LanguagePack;
 fn base_pack(code: &'static str) -> LanguagePack {
     LanguagePack {
         code,
+        currency_names: Default::default(),
         symbol_words: [
             ('&', "和".to_string()),
             ('+', "加".to_string()),

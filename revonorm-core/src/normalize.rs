@@ -60,10 +60,16 @@ static RE_K_SUFFIX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?i)(?<!\w)(RM|Rp|\$|£|€|USD|EUR|GBP|MYR|IDR)(?:\s?)(\d+(?:\.\d+)?)K\b").unwrap()
 });
 static RE_T_SUFFIX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?i)(?<!\w)(RM|Rp|\$|£|€|USD|EUR|GBP|MYR|IDR)(?:\s?)(\d+(?:\.\d+)?)(T|triliun)\b").unwrap()
+    Regex::new(r"(?i)(?<!\w)(RM|Rp|\$|£|€|USD|EUR|GBP|MYR|IDR)(?:\s?)(\d+(?:\.\d+)?)T\b").unwrap()
+});
+static RE_TRILIUN_SUFFIX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?i)(?<!\w)(RM|Rp|\$|£|€|USD|EUR|GBP|MYR|IDR)(?:\s?)(\d+(?:\.\d+)?)\s+(?:trilion|triliun)\b").unwrap()
 });
 static RE_B_SUFFIX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?i)(?<!\w)(RM|Rp|\$|£|€|USD|EUR|GBP|MYR|IDR)(?:\s?)(\d+(?:\.\d+)?)(B|miliar)\b").unwrap()
+    Regex::new(r"(?i)(?<!\w)(RM|Rp|\$|£|€|USD|EUR|GBP|MYR|IDR)(?:\s?)(\d+(?:\.\d+)?)B\b").unwrap()
+});
+static RE_MILIAR_SUFFIX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?i)(?<!\w)(RM|Rp|\$|£|€|USD|EUR|GBP|MYR|IDR)(?:\s?)(\d+(?:\.\d+)?)\s+miliar\b").unwrap()
 });
 static RE_M_SUFFIX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?i)(?<!\w)(RM|Rp|\$|£|€|USD|EUR|GBP|MYR|IDR)(?:\s?)(\d+(?:\.\d+)?)M\b").unwrap()
@@ -129,8 +135,22 @@ fn expand_suffix(text: &str, re: &Regex, mult: f64) -> String {
 /// T/triliun -> B/miliar -> M/juta -> K/ribu.
 pub fn expand_all_currency_suffixes(text: &str) -> String {
     let t = expand_suffix(text, &RE_T_SUFFIX, 1e12);
+    let t = expand_suffix(&t, &RE_TRILIUN_SUFFIX, 1e12);
     let t = expand_suffix(&t, &RE_B_SUFFIX, 1e9);
+    let t = expand_suffix(&t, &RE_MILIAR_SUFFIX, 1e9);
     let t = expand_suffix(&t, &RE_M_SUFFIX, 1e6);
+    let t = expand_suffix(&t, &RE_JUTA_SUFFIX, 1e6);
+    let t = expand_suffix(&t, &RE_K_SUFFIX, 1e3);
+    expand_suffix(&t, &RE_RIBU_SUFFIX, 1e3)
+}
+
+/// Same, minus the en-semantics M (=million) pass — python skips it for id
+/// where preparse already rewrites Rp-slang M to "miliar".
+pub fn expand_suffixes_no_m(text: &str) -> String {
+    let t = expand_suffix(text, &RE_T_SUFFIX, 1e12);
+    let t = expand_suffix(&t, &RE_TRILIUN_SUFFIX, 1e12);
+    let t = expand_suffix(&t, &RE_B_SUFFIX, 1e9);
+    let t = expand_suffix(&t, &RE_MILIAR_SUFFIX, 1e9);
     let t = expand_suffix(&t, &RE_JUTA_SUFFIX, 1e6);
     let t = expand_suffix(&t, &RE_K_SUFFIX, 1e3);
     expand_suffix(&t, &RE_RIBU_SUFFIX, 1e3)

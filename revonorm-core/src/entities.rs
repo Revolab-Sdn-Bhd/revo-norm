@@ -171,12 +171,12 @@ fn convert_to_spoken(e: &Entity, language: &str) -> String {
                 .collect::<Vec<_>>()
                 .join(" ")
         }
-        EntityType::Currency => spoken_currency(&e.text),
-        EntityType::Time => spoken_time(&e.text),
+        EntityType::Currency => spoken_currency(&e.text, language),
+        EntityType::Time => spoken_time(&e.text, language),
         EntityType::Url => spoken_url(&e.text, language),
         EntityType::Email => spoken_email(&e.text, language),
-        EntityType::Version => spoken_version(&e.text),
-        EntityType::Date => spoken_date(&e.text),
+        EntityType::Version => spoken_version(&e.text, language),
+        EntityType::Date => spoken_date(&e.text, language),
         // unreachable: shared_spoken handled these above
         EntityType::Temperature
         | EntityType::Fraction
@@ -258,24 +258,32 @@ fn spoken_email(email: &str, language: &str) -> String {
 
 /// python _convert_version_to_spoken (latin): each part spoken as a number,
 /// joined with " point ".
-fn spoken_version(version: &str) -> String {
+fn spoken_version(version: &str, language: &str) -> String {
     version
         .split('.')
-        .map(|p| to_cardinal(p.parse::<u128>().unwrap_or(0)))
+        .map(|p| if language == "id" { crate::num2word::to_cardinal_id(p.parse::<u128>().unwrap_or(0)) } else { to_cardinal(p.parse::<u128>().unwrap_or(0)) })
         .collect::<Vec<_>>()
         .join(" point ")
 }
 
 /// python _convert_date_to_spoken (ms branch): day month-name year, each as
 /// cardinal words.
-fn spoken_date(date: &str) -> String {
+fn spoken_date(date: &str, language: &str) -> String {
     // slash format DD/MM/YYYY
     let re = fancy_regex::Regex::new(r"(?<![A-Za-z0-9_])(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})(?![A-Za-z0-9_])").unwrap();
+    let cardinal = |s: &str| -> String {
+        let n: u128 = s.parse().unwrap_or(0);
+        if language == "id" {
+            crate::num2word::to_cardinal_id(n)
+        } else {
+            to_cardinal(n)
+        }
+    };
     if let Ok(Some(c)) = re.captures(date) {
-        let day = to_cardinal(c.get(1).map(|m| m.as_str()).unwrap_or("0").parse().unwrap_or(0));
+        let day = cardinal(c.get(1).map(|m| m.as_str()).unwrap_or("0"));
         let month_num = c.get(2).map(|m| m.as_str()).unwrap_or("1");
-        let year = to_cardinal(c.get(3).map(|m| m.as_str()).unwrap_or("0").parse().unwrap_or(0));
-        let month = get_pack("ms")
+        let year = cardinal(c.get(3).map(|m| m.as_str()).unwrap_or("0"));
+        let month = get_pack(language)
             .month_names
             .get(month_num.trim_start_matches('0'))
             .copied()
@@ -291,7 +299,17 @@ fn squash_spaces(text: &str) -> String {
 
 /// python _convert_currency_to_spoken (ms branch): per-symbol unit names,
 /// cents spoken as a padded 2-digit number, whole==0 skips the main unit.
-fn spoken_currency(text: &str) -> String {
+/// python _convert_currency_to_spoken: per-symbol unit names from the pack,
+/// cents spoken as a padded 2-digit number, whole==0 skips the main unit.
+fn spoken_currency(text: &str, language: &str) -> String {
+    let pack = get_pack(language);
+    let cardinal = |n: u128| -> String {
+        if language == "id" {
+            crate::num2word::to_cardinal_id(n)
+        } else {
+            to_cardinal(n)
+        }
+    };
     let re = fancy_regex::Regex::new(
         r"(?i)(?<!\w)(RM|Rp|USD|EUR|GBP|MYR|IDR|\$|£|€)(?:\s?)([\d,]+(?:[\.,]\d{1,2})?)",
     )
@@ -307,7 +325,7 @@ fn spoken_currency(text: &str) -> String {
         .get(2)
         .map(|g| g.as_str().replace(',', ""))
         .unwrap_or_default();
-    let (unit_main, unit_sub) = match symbol.as_str() {
+    let default_units = match symbol.as_str() {
         "RM" | "MYR" => ("ringgit", "sen"),
         "RP" | "IDR" => ("rupiah", "sen"),
         "USD" | "$" => ("dollar", "cents"),
@@ -315,6 +333,11 @@ fn spoken_currency(text: &str) -> String {
         "GBP" | "£" => ("pound", "pence"),
         _ => (&symbol[..], "cents"),
     };
+    let (unit_main, unit_sub) = pack
+        .currency_names
+        .get(symbol.as_str())
+        .copied()
+        .unwrap_or(default_units);
     if let Some((whole, frac_raw)) = amount.split_once('.') {
         let mut frac = frac_raw.to_string();
         if frac.len() == 1 {
@@ -322,22 +345,29 @@ fn spoken_currency(text: &str) -> String {
         }
         let frac = &frac[..frac.len().min(2)];
         if !frac.is_empty() {
-            let frac_spoken = to_cardinal(frac.parse::<u128>().unwrap_or(0));
+            let frac_spoken = cardinal(frac.parse::<u128>().unwrap_or(0));
             if whole == "0" {
                 return format!("{frac_spoken} {unit_sub}");
             }
             return format!(
                 "{} {unit_main} {frac_spoken} {unit_sub}",
-                to_cardinal(whole.parse::<u128>().unwrap_or(0))
+                cardinal(whole.parse::<u128>().unwrap_or(0))
             );
         }
     }
-    format!("{} {unit_main}", to_cardinal(amount.parse::<u128>().unwrap_or(0)))
+    format!("{} {unit_main}", cardinal(amount.parse::<u128>().unwrap_or(0)))
 }
 
-fn spoken_time(text: &str) -> String {
-    // python _convert_time_to_spoken (ms branch): hour minute [second] words
-    // + meridian; minute always spoken ('sembilan kosong pagi').
+fn spoken_time(text: &str, language: &str) -> String {
+    // python _convert_time_to_spoken: hour minute [second] words + meridian;
+    // minute always spoken. am->pagi both langs; pm->petang (ms) / sore (id).
+    let cardinal = |n: u128| -> String {
+        if language == "id" {
+            crate::num2word::to_cardinal_id(n)
+        } else {
+            to_cardinal(n)
+        }
+    };
     let re = fancy_regex::Regex::new(
         r"(?i)\b(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.|pagi|petang|siang|sore|malam|tengah\s+hari)?",
     )
@@ -347,18 +377,18 @@ fn spoken_time(text: &str) -> String {
         let minute = caps.get(2).map(|m| m.as_str()).unwrap_or("0");
         let mut out = format!(
             "{} {}",
-            to_cardinal(hour.parse().unwrap_or(0)),
-            to_cardinal(minute.parse().unwrap_or(0))
+            cardinal(hour.parse().unwrap_or(0)),
+            cardinal(minute.parse().unwrap_or(0))
         );
         if let Some(sec) = caps.get(3) {
-            out.push_str(&format!(" {}", to_cardinal(sec.as_str().parse().unwrap_or(0))));
+            out.push_str(&format!(" {}", cardinal(sec.as_str().parse().unwrap_or(0))));
         }
         if let Some(mer) = caps.get(4) {
             let m = mer.as_str();
             let word = if m.eq_ignore_ascii_case("am") || m.eq_ignore_ascii_case("a.m.") {
                 "pagi"
             } else if m.eq_ignore_ascii_case("pm") || m.eq_ignore_ascii_case("p.m.") {
-                "petang"
+                if language == "id" { "sore" } else { "petang" }
             } else {
                 m.trim()
             };

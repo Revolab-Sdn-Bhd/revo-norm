@@ -106,3 +106,12 @@ fn options_builtin_honorifics_ms_only() {
     let got = revonorm_core::pipeline::normalize("Hj Ahmad datang", "ms").unwrap();
     assert_eq!(got, "Haji Ahmad datang");
 }
+
+#[test]
+fn pipeline_id_parity() {
+    for (input, expected) in fixtures("pipeline_id.txt") {
+        let got = normalize(&input, "id")
+            .unwrap_or_else(|e| panic!("normalize({input:?}, id) errored: {e}"));
+        assert_eq!(got, expected, "normalize({input:?}, id)");
+    }
+}

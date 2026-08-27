@@ -41,6 +41,17 @@ static RE_HARI_BULAN: LazyLock<Regex> =
 static RE_HIJRI: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\b(\d{3,4})\s*[Hh]\b").unwrap());
 
+
+/// Language-aware cardinal: id uses its own vocabulary.
+fn cardinal(n: u128, language: &str) -> String {
+    if language == "id" {
+        crate::num2word::to_cardinal_id(n)
+    } else {
+        crate::num2word::to_cardinal(n)
+    }
+}
+
+/// Language-aware digit speaker from the pack.
 /// Measurements pass — before the language normalizer so "5km" never
 /// becomes "lima K M". Values spoken via the malay cardinal engine (ms
 /// milestone); units via the pack tables.
@@ -54,10 +65,10 @@ pub fn normalize_measurements(text: &str, language: &str) -> String {
             // decimals: whole koma digits
             let s = format!("{f}");
             if let Some((w, frac)) = s.split_once('.') {
-                let digits: String = frac.chars().map(|d| to_cardinal(d.to_digit(10).unwrap_or(0) as u128)).collect::<Vec<_>>().join(" ");
-                return format!("{} perpuluhan {digits}", to_cardinal(w.parse().unwrap_or(0)));
+                let digits: String = frac.chars().map(|d| cardinal(d.to_digit(10).unwrap_or(0) as u128, language)).collect::<Vec<_>>().join(" ");
+                return format!("{} perpuluhan {digits}", cardinal(w.parse().unwrap_or(0), language));
             }
-            to_cardinal(f as u128)
+            cardinal(f as u128, language)
         } else {
             v.to_string()
         }
@@ -90,34 +101,34 @@ pub fn spoken_temperature(text: &str, language: &str) -> String {
         let unit = c.get(2).map(|m| m.as_str().to_lowercase()).unwrap_or_default();
         if let Some(spoken) = pack.temperature_units.get(&unit) {
             if let Some((w, frac)) = value.split_once('.') {
-                let digits: String = frac.chars().map(|d| to_cardinal(d.to_digit(10).unwrap_or(0) as u128)).collect::<Vec<_>>().join(" ");
-                return format!("{} perpuluhan {digits} {spoken}", to_cardinal(w.parse().unwrap_or(0)));
+                let digits: String = frac.chars().map(|d| cardinal(d.to_digit(10).unwrap_or(0) as u128, language)).collect::<Vec<_>>().join(" ");
+                return format!("{} perpuluhan {digits} {spoken}", cardinal(w.parse().unwrap_or(0), language));
             }
-            return format!("{} {spoken}", to_cardinal(value.parse().unwrap_or(0)));
+            return format!("{} {spoken}", cardinal(value.parse().unwrap_or(0), language));
         }
     }
     text.to_string()
 }
 
-pub fn spoken_fraction(text: &str) -> String {
+pub fn spoken_fraction(text: &str, language: &str) -> String {
     if let Ok(Some(c)) = RE_FRACTION.captures(text) {
         let n = c.get(1).map(|m| m.as_str()).unwrap_or("0");
         let d = c.get(2).map(|m| m.as_str()).unwrap_or("0");
-        return format!("{} per {}", to_cardinal(n.parse().unwrap_or(0)), to_cardinal(d.parse().unwrap_or(0)));
+        return format!("{} per {}", cardinal(n.parse().unwrap_or(0), language), to_cardinal(d.parse().unwrap_or(0)));
     }
     text.to_string()
 }
 
-pub fn spoken_x_kali(text: &str) -> String {
+pub fn spoken_x_kali(text: &str, language: &str) -> String {
     if let Ok(Some(c)) = RE_X_KALI.captures(text) {
         let n = c.get(1).map(|m| m.as_str()).unwrap_or("0");
-        return format!("{} kali", to_cardinal(n.parse().unwrap_or(0)));
+        return format!("{} kali", cardinal(n.parse().unwrap_or(0), language));
     }
     text.to_string()
 }
 
-pub fn spoken_ic(text: &str) -> String {
-    let pack = get_pack("ms");
+pub fn spoken_ic(text: &str, language: &str) -> String {
+    let pack = get_pack(language);
     text.chars()
         .filter(|c| c.is_ascii_digit())
         .map(|d| pack.speak_digit(d))
@@ -125,16 +136,16 @@ pub fn spoken_ic(text: &str) -> String {
         .join(" ")
 }
 
-pub fn spoken_hari_bulan(text: &str) -> String {
+pub fn spoken_hari_bulan(text: &str, language: &str) -> String {
     if let Ok(Some(c)) = RE_HARI_BULAN.captures(text) {
         let day = c.get(1).map(|m| m.as_str()).unwrap_or("0");
-        return format!("{} hari bulan", to_cardinal(day.parse().unwrap_or(0)));
+        return format!("{} hari bulan", cardinal(day.parse().unwrap_or(0), language));
     }
     text.to_string()
 }
 
-pub fn spoken_hijri(text: &str) -> String {
-    let pack = get_pack("ms");
+pub fn spoken_hijri(text: &str, language: &str) -> String {
+    let pack = get_pack(language);
     if let Ok(Some(c)) = RE_HIJRI.captures(text) {
         let year = c.get(1).map(|m| m.as_str()).unwrap_or("0");
         let digits: String = year
@@ -142,7 +153,8 @@ pub fn spoken_hijri(text: &str) -> String {
             .map(|d| pack.speak_digit(d))
             .collect::<Vec<_>>()
             .join(" ");
-        return format!("{digits} Hijri");
+        let pack2 = get_pack(language);
+        return format!("{digits} {}", pack2.hijri_suffix);
     }
     text.to_string()
 }
@@ -165,11 +177,11 @@ pub fn shared_pattern(tag: &str) -> Option<&'static Regex> {
 pub fn shared_spoken(tag: &str, text: &str, language: &str) -> Option<String> {
     Some(match tag {
         "TEMPERATURE" => spoken_temperature(text, language),
-        "FRACTION" => spoken_fraction(text),
-        "X_KALI" => spoken_x_kali(text),
-        "IC" => spoken_ic(text),
-        "HARI_BULAN" => spoken_hari_bulan(text),
-        "HIJRI" => spoken_hijri(text),
+        "FRACTION" => spoken_fraction(text, language),
+        "X_KALI" => spoken_x_kali(text, language),
+        "IC" => spoken_ic(text, language),
+        "HARI_BULAN" => spoken_hari_bulan(text, language),
+        "HIJRI" => spoken_hijri(text, language),
         _ => return None,
     })
 }
