@@ -11,7 +11,6 @@ use fancy_regex::Regex;
 use std::sync::LazyLock;
 
 use crate::langpack::get_pack;
-use crate::num2word::to_cardinal;
 
 /// Language-aware cardinal dispatch.
 fn cardinal_for(n: u128, language: &str) -> String {

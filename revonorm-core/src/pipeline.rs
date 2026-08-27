@@ -110,7 +110,7 @@ pub fn normalize_with(
 
     // Step 3 (python): entity extraction — claim entities with placeholders
     // so downstream passes cannot mangle them; restored after normalization.
-    let (mut out, entities) = crate::entities::extract(&out);
+    let (out, entities) = crate::entities::extract(&out);
 
     // Step 6 (python): pronunciation overrides — BEFORE measurements, so a
     // raw "2kg" becomes singular "2 kilogram" before the unit table runs
