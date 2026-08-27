@@ -1,0 +1,58 @@
+name: Publish npm
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+jobs:
+  npm:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: revonorm-core
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: revonorm-core
+
+      - uses: jetli/wasm-pack-action@v0.4.0
+
+      - name: Build web (bundler) variant
+        run: wasm-pack build --target bundler --out-dir pkg-web --scope revolab
+
+      - name: Build node variant
+        run: wasm-pack build --target nodejs --out-dir pkg-node --scope revolab
+
+      - name: Smoke both variants
+        run: |
+          node -e "
+            const w = require('./pkg-node/revonorm_core.js');
+            const out = w.normalize('Harga RM10.50 sahaja', 'ms');
+            if (out !== 'Harga sepuluh ringgit lima puluh sen sahaja') {
+              throw new Error('node variant mismatch: ' + out);
+            }
+            console.log('node variant OK:', out);
+          "
+
+      - name: Publish node variant
+        if: ${{ !contains(github.ref, 'no-publish') }}
+        run: npm publish pkg-node --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish web variant (bundler) as -web
+        if: ${{ !contains(github.ref, 'no-publish') }}
+        run: |
+          cd pkg-web
+          npm pkg set name="@revolab/revonorm-core-web"
+          cd ..
+          npm publish pkg-web --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
