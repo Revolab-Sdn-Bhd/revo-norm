@@ -74,7 +74,8 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: 'wheels-*|sdist'
+          # glob, not regex — one broad pattern covers wheel artifacts + sdist
+          pattern: '*'
           merge-multiple: true
           path: dist
       - name: Smoke a wheel
