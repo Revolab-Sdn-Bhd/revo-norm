@@ -30,6 +30,11 @@ jobs:
       - name: Build node variant
         run: wasm-pack build --target nodejs --out-dir pkg-node --scope revolab
 
+      - name: Install JS-only README (both variants)
+        run: |
+          cp npm-README.md pkg-node/README.md
+          cp npm-README.md pkg-web/README.md
+
       - name: Smoke both variants
         run: |
           node -e "
