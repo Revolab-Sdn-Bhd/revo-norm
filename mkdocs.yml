@@ -32,7 +32,7 @@ plugins:
   - mkdocstrings:
       handlers:
         python:
-          paths: [revo_norm]
+          paths: [revonorm-core/python]
           options:
             show_source: false
             show_root_heading: true

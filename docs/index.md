@@ -9,7 +9,7 @@ Revo Norm converts written text — numbers, currency, dates, times, abbreviatio
 ## 30-Second Quickstart
 
 ```python
-from revo_norm import normalize_text
+from revonorm import normalize_text
 
 # English
 print(normalize_text("The price is RM50K due on 15/08/2025", language="en"))

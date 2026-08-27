@@ -15,7 +15,7 @@ Setting `Config.pronunciation_overrides = False` disables all pronunciation beha
 ## Quick Start
 
 ```python
-from revo_norm import Config, normalize_text
+from revonorm import Config, normalize_text
 
 # Company personalization: your product name, your pronunciation
 cfg = Config()
@@ -62,7 +62,7 @@ Config entries that look like abbreviation expansions ("YOLO" → "you only live
 Register a named mapping set at process startup — the natural home for TTS-model-specific tables and company dictionaries.
 
 ```python
-from revo_norm import Config, normalize_text, register_pronunciation_profile
+from revonorm import Config, normalize_text, register_pronunciation_profile
 
 # Your TTS model's quirks — registered once at server startup
 register_pronunciation_profile("my-vits", {
@@ -88,7 +88,7 @@ Load scoped mappings from a JSON file — for deployment-driven config:
 ```
 
 ```python
-from revo_norm import Config, pronunciations_from_file
+from revonorm import Config, pronunciations_from_file
 
 cfg = Config()
 cfg.pronunciations = pronunciations_from_file("/etc/myapp/pronunciations.json")
@@ -140,7 +140,7 @@ Handled by the generalized `expand_acronym()` rule instead:
 Writes the process-global legacy table — **layer 1**. Still functional, still raises `ValueError` on expansion-looking mappings. Prefer `Config.pronunciations` in servers: it is request-scoped, layerable, and warn-only.
 
 ```python
-from revo_norm.pronunciation_mappings import add_custom_mapping
+from revonorm.pronunciation_mappings import add_custom_mapping
 
 add_custom_mapping("SQL", "sequel")        # ✅ pronunciation
 add_custom_mapping("YOLO", "you only live once")  # ❌ raises ValueError
@@ -169,7 +169,7 @@ Strip `__PRESERVED__...__` markers left by the pipeline.
 `normalize_text_detailed()` records every fired pronunciation replacement:
 
 ```python
-from revo_norm import normalize_text_detailed
+from revonorm import normalize_text_detailed
 
 result = normalize_text_detailed("Sambung WiFi sekarang", language="ms")
 result.mappings

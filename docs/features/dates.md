@@ -31,7 +31,7 @@ When the slash format is used and the first number is greater than 12, it is una
 ## English Output
 
 ```python
-from revo_norm import normalize_text
+from revonorm import normalize_text
 
 # Slash format (DD/MM, day > 12)
 normalize_text("15/08/2025", language="en")
@@ -68,7 +68,7 @@ Malay uses localized month names and Malay number-to-words conversion.
 | 12     | December  | Disember   |
 
 ```python
-from revo_norm import normalize_text
+from revonorm import normalize_text
 
 # Slash format (DD/MM)
 normalize_text("15/08/2025", language="ms")
@@ -86,7 +86,7 @@ normalize_text("2025-08-15", language="ms")
 ## How to Disable
 
 ```python
-from revo_norm import normalize_text
+from revonorm import normalize_text
 
 # Disable date normalization
 result = normalize_text("15/08/2025", language="en", disable=["dates"])

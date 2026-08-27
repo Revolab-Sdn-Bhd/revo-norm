@@ -49,7 +49,7 @@ uv sync
 Run this quick test to confirm revo-norm is installed correctly:
 
 ```bash
-python -c "from revo_norm import normalize_text; print(normalize_text('Hello 123', language='en'))"
+python -c "from revonorm import normalize_text; print(normalize_text('Hello 123', language='en'))"
 ```
 
 You should see output like:
@@ -89,13 +89,13 @@ uv sync --all-groups
 
 ```bash
 # Run linter
-uv run ruff check revo_norm/
+uv run ruff check revonorm-core/python/revonorm/
 
 # Auto-fix lint issues
-uv run ruff check revo_norm/ --fix
+uv run ruff check revonorm-core/python/revonorm/ --fix
 
 # Format code
-uv run ruff format revo_norm/
+uv run ruff format revonorm-core/python/revonorm/
 
 # Run tests
 uv run pytest -v
@@ -105,4 +105,4 @@ uv run pytest --cov --cov-report=term-missing
 ```
 
 !!! tip
-    Run `uv run ruff check revo_norm/` and `uv run pytest -q` before every commit to catch issues early.
+    Run `uv run ruff check revonorm-core/python/revonorm/` and `uv run pytest -q` before every commit to catch issues early.

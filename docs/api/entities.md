@@ -23,7 +23,7 @@ With entity extraction, `"RM 450000"` is replaced with `<<<CURRENCY_1>>>` before
 ### Constructor
 
 ```python
-from revo_norm.entity_extractor import EntityExtractor
+from revonorm.entity_extractor import EntityExtractor
 
 extractor = EntityExtractor()
 ```
@@ -118,7 +118,7 @@ Enum of all entity types that can be extracted. Each value is a lowercase string
 | `X_KALI` | `"x_kali"` | Multipliers (e.g., `5x`, `10X`) |
 
 ```python
-from revo_norm.entity_extractor import EntityType
+from revonorm.entity_extractor import EntityType
 
 # Access entity type values
 EntityType.URL       # <EntityType.URL: 'url'>
@@ -142,7 +142,7 @@ Dataclass representing an extracted entity.
 | `placeholder_id` | `int` | ID used for placeholder generation — defaults to `0` |
 
 ```python
-from revo_norm.entity_extractor import Entity, EntityType
+from revonorm.entity_extractor import Entity, EntityType
 
 entity = Entity(
     type=EntityType.URL,

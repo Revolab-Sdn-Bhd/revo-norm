@@ -71,8 +71,8 @@ Previously, you needed to import and call a factory function:
 
 ```python
 # OLD
-from revo_norm import normalize_text
-from revo_norm.config import standard_config
+from revonorm import normalize_text
+from revonorm.config import standard_config
 
 config = standard_config()
 result = normalize_text(text, language="en", config=config)
@@ -82,7 +82,7 @@ Now, use the `profile` parameter directly:
 
 ```python
 # NEW
-from revo_norm import normalize_text
+from revonorm import normalize_text
 
 result = normalize_text(text, language="en")                    # standard (default)
 result = normalize_text(text, language="en", profile="minimal") # minimal
@@ -133,7 +133,7 @@ The `FeatureGroup`, `FeatureLevel`, and `Profile` enums are deprecated. Use plai
 
 ```python
 # OLD
-from revo_norm.config import FeatureGroup, FeatureLevel, Profile
+from revonorm.config import FeatureGroup, FeatureLevel, Profile
 
 cfg = Config()
 cfg.with_feature(FeatureGroup.ACRONYMS, FeatureLevel.OFF)
@@ -197,7 +197,7 @@ result = normalize_text(text, language="en", disable=["temperature", "measuremen
 
 ```python
 # OLD
-from revo_norm.config import standard_config, FeatureGroup, FeatureLevel
+from revonorm.config import standard_config, FeatureGroup, FeatureLevel
 
 cfg = standard_config()
 cfg.with_feature(FeatureGroup.ACRONYMS, FeatureLevel.OFF)
@@ -205,7 +205,7 @@ cfg.with_feature(FeatureGroup.MEASUREMENTS, FeatureLevel.OFF)
 result = normalize_text(text, language="en", config=cfg)
 
 # NEW
-from revo_norm import normalize_text
+from revonorm import normalize_text
 
 result = normalize_text(text, language="en", disable=["acronyms", "measurements"])
 ```
@@ -220,7 +220,7 @@ result = normalize_text(
 )
 
 # NEW
-from revo_norm.config import Config
+from revonorm.config import Config
 
 cfg = Config()
 cfg.sound_words = ["lah", "ke"]

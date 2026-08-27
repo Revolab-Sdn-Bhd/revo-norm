@@ -5,7 +5,6 @@ module here so the names resolve to engine-visible state.
 """
 
 import re
-import warnings
 
 from .compat import (  # noqa: F401
     PRONUNCIATION_MAPPINGS,
@@ -15,8 +14,6 @@ from .compat import (  # noqa: F401
     pronunciations_from_file,
     register_pronunciation_profile,
 )
-from . import _core
-
 
 ALL_LANGUAGES = "*"
 
@@ -57,7 +54,6 @@ def resolve_pronunciations(language: str, profile: str = "builtin",
         if language in ("ms", "id"):
             merged.update(_BUILTIN_HONORIFICS)
         merged.update(_BUILTIN_TECH)
-    from .compat import _lock
     with _lock:
         base = dict(PRONUNCIATION_MAPPINGS)
     if base:

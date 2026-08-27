@@ -2,13 +2,32 @@
 
 All notable changes to revo-norm are documented here.
 
-## v0.9.0 (Current)
+## v1.0.0 (Current)
+
+**One package: `revonorm`.** The `revo_norm` Python package is deleted; the compiled engine is the sole implementation and the sole import path.
+
+### Breaking
+
+- `import revo_norm` no longer exists — use `from revonorm import normalize_text`. Same signatures, same output; the 498-test suite passes through the `revonorm` package directly.
+- The root project is a dev-only workspace (no hatch package, no registry release under `revo-norm`).
+
+### Added
+
+- Engine-exposed entity API: `EntityExtractor.extract/restore` now run the engine's full 13-type extraction (via `extract_entities`/`entity_to_spoken` pybind surface), honoring `enabled_entities` with caller-ordered ids — python's exact semantics.
+- `EntityExtractor._convert_entity_to_spoken` raises `ValueError` on unknown languages (engine gained a non-panicking pack lookup; a cross-FFI `PanicException` is now impossible from this path).
+- pybind num2word parity: `to_cardinal_id` accepts negatives (`negatif`), `to_cardinal_zh` raises `OverflowError` past 10¹⁶, `to_currency_zh` speaks the given unit verbatim.
+
+### Changed
+
+- CI lint targets `revonorm-core/python/revonorm/`; docs identifiers and mkdocs paths point at the engine package; the stale `generate_flow.py` analysis script is removed.
+
+## v0.9.0
 
 **The SSOT flip — the Rust engine drives everything.**
 
 ### Changed
 
-- **Breaking (internal):** `revo_norm` is now a shim re-exporting the compiled `revonorm` engine. Public API unchanged — same imports, signatures, and output — but every normalization rule executes in Rust. Rule edits happen in `revonorm-core/src/` only; the pure-Python implementation lives in git history.
+- **Breaking (internal):** `revonorm` is now a shim re-exporting the compiled `revonorm` engine. Public API unchanged — same imports, signatures, and output — but every normalization rule executes in Rust. Rule edits happen in `revonorm-core/src/` only; the pure-Python implementation lives in git history.
 - The full private 498-test suite passes through the engine: all languages, profiles, entity extraction, layered pronunciations, cultural cases
 
 ### Added

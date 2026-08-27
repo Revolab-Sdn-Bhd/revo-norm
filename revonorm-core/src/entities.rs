@@ -58,6 +58,44 @@ impl EntityType {
     }
 }
 
+/// Parse a pybind tag string back to its EntityType.
+pub fn entity_kind_from_tag(tag: &str) -> EntityType {
+    match tag {
+        "URL" => EntityType::Url,
+        "EMAIL" => EntityType::Email,
+        "PHONE" => EntityType::Phone,
+        "VERSION" => EntityType::Version,
+        "CURRENCY" => EntityType::Currency,
+        "DATE" => EntityType::Date,
+        "TIME" => EntityType::Time,
+        "TEMPERATURE" => EntityType::Temperature,
+        "ADDRESS_SLASH" => EntityType::AddressSlash,
+        "FRACTION" => EntityType::Fraction,
+        "X_KALI" => EntityType::XKali,
+        "IC" => EntityType::Ic,
+        "HARI_BULAN" => EntityType::HariBulan,
+        "HIJRI" => EntityType::Hijri,
+        _ => EntityType::Url,
+    }
+}
+
+/// Speak one entity (pybind surface: tag + raw text). Err on unknown
+/// language so FFI callers get a clean error, not a panic.
+pub fn speak_entity(kind: EntityType, text: &str, language: &str) -> Result<String, String> {
+    if crate::langpack::try_get_pack(language).is_none() {
+        let langs = crate::langpack::supported_languages().join(", ");
+        return Err(format!(
+            "Unsupported language: '{language}' (expected one of ({langs}))"
+        ));
+    }
+    let e = Entity {
+        kind,
+        text: text.to_string(),
+        placeholder_id: 0,
+    };
+    Ok(convert_to_spoken(&e, language))
+}
+
 pub struct Entity {
     pub kind: EntityType,
     pub text: String,

@@ -65,7 +65,7 @@ Legacy boolean flags (`sound_words_field`, `normalize_spacing`, `*_flag`, ...) w
 ### Basic usage
 
 ```python
-from revo_norm import normalize_text
+from revonorm import normalize_text
 
 # English
 result = normalize_text("The API is fast and costs $5.50", language="en")
@@ -79,7 +79,7 @@ result = normalize_text("RM30K untuk projek ML", language="ms")
 ### With a profile
 
 ```python
-from revo_norm import normalize_text
+from revonorm import normalize_text
 
 # Minimal — only whitespace cleanup
 result = normalize_text("The  API  is  fast", language="en", profile="minimal")
@@ -92,7 +92,7 @@ result = normalize_text("5km & 10kg", language="en", profile="basic")
 ### With disabled features
 
 ```python
-from revo_norm import normalize_text
+from revonorm import normalize_text
 
 # Keep acronyms as-is (no letter splitting)
 result = normalize_text("Build the API with ML", language="en", disable=["acronyms"])
