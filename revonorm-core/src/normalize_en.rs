@@ -299,7 +299,9 @@ pub fn expand_acronym(acronym: &str) -> String {
         return acronym.to_lowercase();
     }
     let rest: Vec<char> = acronym.chars().skip(1).collect::<Vec<_>>();
-    let has_vowel_in_middle = rest[1..rest.len().saturating_sub(1)].iter().any(|c| is_vowel(*c));
+    // python rest[1:-1]: guard empty middles (single/double-char rests)
+    let middle = if rest.len() > 2 { &rest[1..rest.len() - 1] } else { &[][..] };
+    let has_vowel_in_middle = middle.iter().any(|c| is_vowel(*c));
     if rest.len() >= 3
         && !rest.first().is_some_and(|c| is_vowel(*c))
         && !rest.last().is_some_and(|c| is_vowel(*c))
