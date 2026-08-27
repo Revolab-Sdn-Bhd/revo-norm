@@ -1,0 +1,19 @@
+docs(npm): usage-only README for both packages
+
+Problem this solves: the published npm README is wasm-pack's copy of
+the crate doc — module maps, parity tables, cargo commands. JS users
+see implementation internals where they need install and API usage.
+
+Approach: a new npm-README.md documents the consumer surface only —
+install for both variants, normalize with per-language examples,
+normalize_with_options with the options table, supported_languages,
+and the __ERROR__ error convention. The publish workflow now copies
+it over the generated README inside both pkg variants before npm
+publish runs.
+
+Notable decision: the README stays registry-neutral by documenting
+node and -web together; the only stated difference is how the wasm
+loads, since the JS API is byte-identical across variants.
+
+Verification: every example was executed against the built node
+package; all 8 documented outputs match exactly.
