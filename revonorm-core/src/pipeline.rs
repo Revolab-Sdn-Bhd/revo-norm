@@ -64,7 +64,13 @@ fn unstash_placeholders(text: &str, stash: &[String]) -> String {
 /// `supported_languages()`; anything else returns an error message the
 /// caller can surface (the Python library raises ValueError naming the code —
 /// the wasm/C callers get the same message as an Err string).
-pub fn normalize(text: &str, language: &str) -> Result<String, String> {
+pub fn normalize(text: &str, language: &str, options_json: &str) -> Result<String, String> {
+    let opts = crate::options::Options::parse(options_json)?;
+    normalize_with(text, language, &opts)
+}
+
+/// Two-arg form: default options.
+pub fn normalize_default(text: &str, language: &str) -> Result<String, String> {
     normalize_with(text, language, &crate::options::Options::default())
 }
 

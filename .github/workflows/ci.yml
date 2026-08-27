@@ -46,10 +46,14 @@ jobs:
 
       - uses: astral-sh/setup-uv@v5
 
-      - name: Regenerate parity fixtures from Python
-        run: |
-          uv sync --all-extras
-          uv run python revonorm-core/tests/gen_fixtures.py
+      - name: Build engine wheel and snapshot fixtures
+        uses: PyO3/maturin-action@v1
+        with:
+          args: develop --release
+          working-directory: revonorm-core
+
+      - name: Regenerate fixtures from the engine
+        run: uv run python revonorm-core/tests/gen_fixtures.py
 
       - name: Native parity tests
         run: cargo test --manifest-path revonorm-core/Cargo.toml

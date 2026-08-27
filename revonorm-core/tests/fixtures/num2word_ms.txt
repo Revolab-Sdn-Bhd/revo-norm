@@ -23,6 +23,12 @@
 10000000	sepuluh juta
 1000000000	satu bilion
 1000000000000	satu trilion
+8	lapan
+18	lapan belas
+28	dua puluh lapan
+88	lapan puluh lapan
+108	seratus lapan
+888	lapan ratus lapan puluh lapan
 1867826	satu juta lapan ratus enam puluh tujuh ribu lapan ratus dua puluh enam
 419611	empat ratus sembilan belas ribu enam ratus sebelas
 4614227	empat juta enam ratus empat belas ribu dua ratus dua puluh tujuh

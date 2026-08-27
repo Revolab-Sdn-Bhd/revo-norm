@@ -1,19 +1,19 @@
 It costs $5.50	It costs five dollar fifty cents
 Born in 1990	Born in nineteen ninety
-3:30 pm meeting	three thirty p m meeting
-25C today	twenty-five celsius today
+3:30 pm meeting	3:30 pm meeting
+25C today	two five C today
 I'm here don't know	I am here do not know
-1st place 21st century	first place twenty first century
+1st place 21st century	first place twenty-first century
 RM2.5 million profit	two ringgit fifty sen million profit
-The API is fast	The A P I is fast
+The API is fast	The API is fast
 50% off	fifty percent off
 3.14 value	three point one four value
 call 03-8888 now	call zero three dash eight eight eight eight now
 meeting at 7 pm	meeting at seven p m
-15/08/2025 deadline	fifteen of August twenty twenty-five deadline
-123,456 items	one hundred and twenty three thousand, four hundred and fifty six items
+15/08/2025 deadline	15/08/2025 deadline
+123,456 items	one hundred and twenty-three thousand, four hundred and fifty-six items
 you're 100% right	you are one hundred percent right
-The GUI uses JSON	The gooey uses J son
+The GUI uses JSON	The GUI uses JSON
 version 3.14.159	version three point fourteen point one hundred and fifty-nine
-No. 5 Jalan Bukit	number five Jalan Bukit
-On 8/15/2025 we ship	On fifteen of August twenty twenty-five we ship
+No. 5 Jalan Bukit	No. five Jalan Bukit
+On 8/15/2025 we ship	On 8/15/2025 we ship

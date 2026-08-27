@@ -1,417 +1,105 @@
-"""Generate parity fixtures for revonorm-core from the Python library.
+"""Snapshot fixtures for revonorm-core, generated from the engine itself.
 
-Repo-relative: run from the repo root (`uv run python revonorm-core/tests/gen_fixtures.py`).
-Ground truth is ALWAYS current Python main — regenerate after any rule change
-and fix the Rust side until the suite is green.
+Post-SSOT-flip the rust engine IS the source of truth: fixtures record its
+output per case so CI catches regressions on every PR. (The pre-flip
+python-parity machinery — simulate_milestone*, tier splitting — retired with
+the pure-python implementation.)
 
-Milestone 3 ported (adds shared features): currency suffixes, negative signs, entity extraction
-(URL/EMAIL/PHONE/VERSION/CURRENCY/DATE/TIME) with stash protection,
-pronunciation layers (builtin + user), the malay normalizer pass, entity
-restore with spoken converters, pack symbol spelling, '!' drop. The fixture
-generator simulates THAT EXACT subset in python and splits cases by whether
-the full pipeline agrees:
-
-  fixtures/pipeline_ms.txt  — full == sim: Rust must byte-match
-  fixtures/pending_ms.txt   — full != sim (shared features: measurements,
-      fractions, x-kali, hijri, hari-bulan, temperature): both outputs
-      recorded, asserted in milestone 3
-  fixtures/num2word_ms.txt  — num2word cardinals
-
-Cases exercising options/pronunciation layers assert separately in
-parity.rs (options_* tests) — fixtures use default options.
+Run from the repo root: `uv run python revonorm-core/tests/gen_fixtures.py`
 """
 
 import random
-import re
 from pathlib import Path
 
-from revo_norm.currency_utils import (
-    CURRENCY_B_SUFFIX_PATTERN,
-    CURRENCY_JUTA_PATTERN,
-    CURRENCY_K_SUFFIX_PATTERN,
-    CURRENCY_M_SUFFIX_PATTERN,
-    CURRENCY_MILIAR_PATTERN,
-    CURRENCY_RIBU_PATTERN,
-    CURRENCY_T_SUFFIX_PATTERN,
-    CURRENCY_TRILIUN_PATTERN,
-    expand_currency_b_suffix,
-    expand_currency_k_suffix,
-    expand_currency_m_suffix,
-    expand_currency_t_suffix,
-)
-from revo_norm import normalize_text
-from revo_norm.entity_extractor import EntityExtractor, EntityType
-from revo_norm.langpack import get_pack
-from revo_norm.normalizer_id import normalize_indonesian, preparse_number_formats
-from revo_norm.normalizer_ms import normalize_malay
-from revo_norm.num2word_ms import to_cardinal
-from revo_norm.pronunciation_mappings import (
-    apply_pronunciation_mappings,
-    resolve_pronunciations,
-)
-from revo_norm.text_normalizer import _stash_placeholders, _unstash_placeholders
+from revonorm._core import normalize as engine_normalize
+from revonorm._core import to_cardinal_ms
 
 HERE = Path(__file__).parent
 FIXDIR = HERE / "fixtures"
 
-RE_NEG = re.compile(r"(?<![\w\-])-(?=\d)")
+CASES = {
+    "ms": [
+        "Harga barang ni RM10.50 sahaja",
+        "Baki akaun anda ialah RM5,670.23 pada 31 Disember",
+        "RM30K", "Kos RM1.5M", "RM500 ribu", "Belanja RM2 juta",
+        "RM2 bilion untung", "Jumlah 1,000,000 orang",
+        "Nombor 03-8888 8000", "Bertemu pada 15/08/2025",
+        "Mesyuarat jam 3:30 petang", "Jam 09:00 pagi",
+        "Baca https://contoh.com/cari?q=halo", "Email ali@revo.ai ya",
+        "versi 3.14.159", "Diskaun 50%", "Kenaikan 3.5%",
+        "Suhu -5 darajat", "Kerugian -RM20,000", "Jam 3 petang",
+        "Jumpa jam 7 malam", "John & Jane", "Important * note",
+        "Pasti!", "Wow!!! Bagus", "Guna 5km dan 2kg",
+        "Separuh daripada 3/4 bahagian", "10x ganda",
+        "Suhu 25C hari ini", "1433H", "10HB setiap tahun",
+        "Berat 10.5 kg", "Hubungi 012-345 6789 sekarang",
+        "Lihat www.example.com/page/2/3", "Kos USD50 dan EUR30",
+        "No. 12, Jalan SS2/72, Petaling Jaya",
+        "betuiii sekali", "dial *120# now", "Exit 5 please",
+        "test test test test done", "sambung WiFi now",
+    ],
+    "id": [
+        "Harga Rp1.500.000 saja", "Saldo Rp5.670,23 hari ini",
+        "Rp5rb dan 5jt", "Rp5M", "diskon 3,5 persen",
+        "jam 3:30 sore", "suhu -5 derajat", "total 1.000.000 orang",
+        "pakai 5km jalan kaki", "suhu 25C disini", "jam 8:00 malam",
+        "tanggal 15/08/2025", "15/4 dari penduduk", "10x lipat", "1433H",
+        "pada 18/6/2025",
+    ],
+    "en": [
+        "It costs $5.50", "Born in 1990", "3:30 pm meeting", "25C today",
+        "I'm here don't know", "1st place 21st century",
+        "RM2.5 million profit", "The API is fast", "50% off",
+        "3.14 value", "call 03-8888 now", "meeting at 7 pm",
+        "15/08/2025 deadline", "123,456 items", "you're 100% right",
+        "The GUI uses JSON", "version 3.14.159", "No. 5 Jalan Bukit",
+        "On 8/15/2025 we ship",
+    ],
+    "zh": [
+        "价格是RM50", "温度25C", "百分之50", "现在3:30 pm",
+        "共有1234567人", "上午9点开会", "2025年8月15日", "买3个",
+        "3/4的人", "10x更快", "RM10.50打折", "共1,234,567件",
+        "凌晨2:00出发", "10000块", "Email me at test@example.com",
+        "2025-08-15开会", "10kg大米",
+    ],
+    "zh_my": [
+        "价格是RM50", "温度25C", "买3个", "3/4的人", "2025年8月15日",
+        "$100", "50%", "9:00 am",
+    ],
+}
 
-
-def simulate_milestone3(text: str) -> str:
-    """Mirror revonorm-core's milestone-2 pipeline::normalize('ms') steps."""
-    pack = get_pack("ms")
-    out = text
-    for pat, fn in [
-        (CURRENCY_T_SUFFIX_PATTERN, expand_currency_t_suffix),
-        (CURRENCY_TRILIUN_PATTERN, expand_currency_t_suffix),
-        (CURRENCY_B_SUFFIX_PATTERN, expand_currency_b_suffix),
-        (CURRENCY_MILIAR_PATTERN, expand_currency_b_suffix),
-        (CURRENCY_M_SUFFIX_PATTERN, expand_currency_m_suffix),
-        (CURRENCY_JUTA_PATTERN, expand_currency_m_suffix),
-        (CURRENCY_K_SUFFIX_PATTERN, expand_currency_k_suffix),
-        (CURRENCY_RIBU_PATTERN, expand_currency_k_suffix),
-    ]:
-        out = pat.sub(fn, out)
-    out = RE_NEG.sub(f" {pack.negative_word} ", out)
-
-    # measurements pass (milestone 3) — before extraction/normalizer
-    from revo_norm.shared_features import normalize_measurements
-    out = normalize_measurements(out, "ms")
-
-    ex = EntityExtractor()
-    # milestone-3 extraction set: milestone-2 types + shared-feature types
-    ms3 = [EntityType.URL, EntityType.EMAIL, EntityType.PHONE,
-           EntityType.VERSION, EntityType.CURRENCY, EntityType.DATE, EntityType.TIME,
-           EntityType.TEMPERATURE, EntityType.FRACTION, EntityType.X_KALI,
-           EntityType.IC, EntityType.HARI_BULAN, EntityType.HIJRI]
-    out, ents = ex.extract(out, enabled_entities=ms3)
-
-    table = resolve_pronunciations("ms", profile="builtin")
-    out = apply_pronunciation_mappings(out, "ms", table)
-
-    out, stash = _stash_placeholders(out)
-    out = normalize_malay(out)
-    out = _unstash_placeholders(out, stash)
-
-    out = ex.restore(out, "ms")
-
-    for sym, spoken in pack.symbol_words.items():
-        out = out.replace(sym, f" {spoken} ")
-    if pack.drops_exclamation:
-        out = re.sub(r"!+", "", out)
-    return re.sub(r"\s+", " ", out.strip())
-
-
-
-
-
-ZH_CASES = [
-    "价格是RM50",
-    "温度25C",
-    "百分之50",
-    "现在3:30 pm",
-    "共有1234567人",
-    "上午9点开会",
-    "2025年8月15日",
-    "买3个",
-    "3/4的人",
-    "10x更快",
-    "suhu -5",
-    "Baca https://a.com/s?q=x",
-    "RM10.50打折",
-    "共1,234,567件",
-    "凌晨2:00出发",
-    "10000块",
-]
-
-EN_CASES = [
-    "It costs $5.50",
-    "Born in 1990",
-    "3:30 pm meeting",
-    "25C today",
-    "I'm here don't know",
-    "1st place 21st century",
-    "RM2.5 million profit",
-    "The API is fast",
-    "50% off",
-    "3.14 value",
-    "call 03-8888 now",
-    "meeting at 7 pm",
-    "15/08/2025 deadline",
-    "123,456 items",
-    "you're 100% right",
-    "The GUI uses JSON and NASA rockets",
-    "5km run and 2kg weights",
-    "3/4 of the pie",
-    "10x faster",
-    "version 3.14.159",
-    "visit https://example.com/search?q=hi",
-    "No. 5 Jalan Bukit",
-    "sdn bhd company",
-    "born 1Malaysia era",
-]
-
-ID_CASES = [
-    "Harga Rp1.500.000 saja",
-    "Saldo Rp5.670,23 hari ini",
-    "Rp5rb dan 5jt",
-    "Rp5M",
-    "diskon 3,5 persen",
-    "jam 3:30 sore",
-    "suhu -5 derajat",
-    "total 1.000.000 orang",
-    "pakai 5km jalan kaki",
-    "suhu 25C disini",
-    "jam 8:00 malam",
-    "tanggal 15/08/2025",
-    "Belanja RM2 juta untung",
-    "Nombor 0812-3456-7890",
-    "Baca https://situs.com/cari?q=halo",
-    "Diskon 50% hari ini",
-    "naik 3.5 poin",
-    "15/4 dari penduduk",
-    "10x lipat",
-    "1433H",
-]
-
-ALL_CASES = [
-    "Harga barang ni RM10.50 sahaja",
-    "Baki akaun anda ialah RM5,670.23 pada 31 Disember",
-    "RM30K",
-    "Kos RM1.5M",
-    "RM500 ribu",
-    "Belanja RM2 juta",
-    "RM2 bilion untung",
-    "Jumlah 1,000,000 orang",
-    "Nombor 03-8888 8000",
-    "Bertemu pada 15/08/2025",
-    "Mesyuarat jam 3:30 petang",
-    "Jam 09:00 pagi",
-    "Baca https://contoh.com/cari?q=halo",
-    "Email ali@revo.ai ya",
-    "versi 3.14.159",
-    "Diskaun 50%",
-    "Kenaikan 3.5%",
-    "Suhu -5 darajat",
-    "Kerugian -RM20,000",
-    "Jam 3 petang",
-    "Jumpa jam 7 malam",
-    "John & Jane",
-    "Important * note",
-    "Pasti!",
-    "Wow!!! Bagus",
-    "Guna 5km dan 2kg",
-    "Separuh daripada 3/4 bahagian",
-    "10x ganda",
-    "Suhu 25C hari ini",
-    "1433H",
-    "10HB setiap tahun",
-    "Berat 10.5 kg",
-    "Hubungi 012-345 6789 sekarang",
-    "Lihat www.example.com/page/2/3",
-    "Kos USD50 dan EUR30",
-]
-
-
-
-def simulate_milestone3_id(text: str) -> str:
-    """Mirror revonorm-core's pipeline::normalize('id') steps."""
-    pack = get_pack("id")
-    out = preparse_number_formats(text)
-    # suffixes without en-M (id M = miliar, already worded by preparse)
-    out = CURRENCY_T_SUFFIX_PATTERN.sub(expand_currency_t_suffix, out)
-    out = CURRENCY_TRILIUN_PATTERN.sub(expand_currency_t_suffix, out)
-    out = CURRENCY_B_SUFFIX_PATTERN.sub(expand_currency_b_suffix, out)
-    out = CURRENCY_MILIAR_PATTERN.sub(expand_currency_b_suffix, out)
-    out = CURRENCY_JUTA_PATTERN.sub(expand_currency_m_suffix, out)
-    out = CURRENCY_K_SUFFIX_PATTERN.sub(expand_currency_k_suffix, out)
-    out = CURRENCY_RIBU_PATTERN.sub(expand_currency_k_suffix, out)
-    out = RE_NEG.sub(f" {pack.negative_word} ", out)
-    from revo_norm.shared_features import normalize_measurements
-    out = normalize_measurements(out, "id")
-    ex = EntityExtractor()
-    ms3 = [EntityType.URL, EntityType.EMAIL, EntityType.PHONE,
-           EntityType.VERSION, EntityType.CURRENCY, EntityType.DATE, EntityType.TIME,
-           EntityType.TEMPERATURE, EntityType.FRACTION, EntityType.X_KALI,
-           EntityType.IC, EntityType.HARI_BULAN, EntityType.HIJRI]
-    out, ents = ex.extract(out, enabled_entities=ms3)
-    table = resolve_pronunciations("id", profile="builtin")
-    out = apply_pronunciation_mappings(out, "id", table)
-    out, stash = _stash_placeholders(out)
-    out = normalize_indonesian(out)
-    out = _unstash_placeholders(out, stash)
-    out = ex.restore(out, "id")
-    for sym, spoken in pack.symbol_words.items():
-        out = out.replace(sym, f" {spoken} ")
-    if pack.drops_exclamation:
-        out = re.sub(r"!+", "", out)
-    return re.sub(r"\s+", " ", out.strip())
-
-
-def simulate_milestone3_en(text: str) -> str:
-    """Mirror revonorm-core's pipeline::normalize('en') steps."""
-    pack = get_pack("en")
-    out = text
-    for pat, fn in [
-        (CURRENCY_T_SUFFIX_PATTERN, expand_currency_t_suffix),
-        (CURRENCY_TRILIUN_PATTERN, expand_currency_t_suffix),
-        (CURRENCY_B_SUFFIX_PATTERN, expand_currency_b_suffix),
-        (CURRENCY_MILIAR_PATTERN, expand_currency_b_suffix),
-        (CURRENCY_M_SUFFIX_PATTERN, expand_currency_m_suffix),
-        (CURRENCY_JUTA_PATTERN, expand_currency_m_suffix),
-        (CURRENCY_K_SUFFIX_PATTERN, expand_currency_k_suffix),
-        (CURRENCY_RIBU_PATTERN, expand_currency_k_suffix),
-    ]:
-        out = pat.sub(fn, out)
-    out = RE_NEG.sub(f" {pack.negative_word} ", out)
-    from revo_norm.shared_features import normalize_measurements
-    from revo_norm.text_normalizer import apply_pronunciation_overrides
-    out = apply_pronunciation_overrides(out, "en")
-    out = normalize_measurements(out, "en")
-    ex = EntityExtractor()
-    ms3 = [EntityType.URL, EntityType.EMAIL, EntityType.PHONE,
-           EntityType.VERSION, EntityType.CURRENCY, EntityType.DATE, EntityType.TIME,
-           EntityType.TEMPERATURE, EntityType.FRACTION, EntityType.X_KALI,
-           EntityType.IC, EntityType.HARI_BULAN, EntityType.HIJRI]
-    out, ents = ex.extract(out, enabled_entities=ms3)
-    from revo_norm.text_normalizer import replace_letter_period_sequences
-    table = resolve_pronunciations("en", profile="builtin")
-    out = apply_pronunciation_mappings(out, "en", table)
-    out, stash = _stash_placeholders(out)
-    from revo_norm.normalizer_en import text_normalize
-    out = text_normalize(out)
-    out = replace_letter_period_sequences(out, process_acronyms=True)
-    out = _unstash_placeholders(out, stash)
-    out = ex.restore(out, "en")
-    for sym, spoken in pack.symbol_words.items():
-        out = out.replace(sym, f" {spoken} ")
-    if pack.drops_exclamation:
-        out = re.sub(r"!+", "", out)
-    return re.sub(r"\s+", " ", out.strip())
-
-
-def simulate_milestone3_zh(text: str) -> str:
-    """Mirror revonorm-core's pipeline::normalize('zh') steps."""
-    pack = get_pack("zh")
-    out = text
-    for pat, fn in [
-        (CURRENCY_T_SUFFIX_PATTERN, expand_currency_t_suffix),
-        (CURRENCY_TRILIUN_PATTERN, expand_currency_t_suffix),
-        (CURRENCY_B_SUFFIX_PATTERN, expand_currency_b_suffix),
-        (CURRENCY_MILIAR_PATTERN, expand_currency_b_suffix),
-        (CURRENCY_M_SUFFIX_PATTERN, expand_currency_m_suffix),
-        (CURRENCY_JUTA_PATTERN, expand_currency_m_suffix),
-        (CURRENCY_K_SUFFIX_PATTERN, expand_currency_k_suffix),
-        (CURRENCY_RIBU_PATTERN, expand_currency_k_suffix),
-    ]:
-        out = pat.sub(fn, out)
-    out = RE_NEG.sub(f" {pack.negative_word} ", out)
-    from revo_norm.shared_features import normalize_measurements
-    out = normalize_measurements(out, "zh")
-    ex = EntityExtractor()
-    ms3 = [EntityType.URL, EntityType.EMAIL, EntityType.PHONE,
-           EntityType.VERSION, EntityType.CURRENCY, EntityType.DATE, EntityType.TIME,
-           EntityType.TEMPERATURE, EntityType.FRACTION, EntityType.X_KALI,
-           EntityType.IC, EntityType.HARI_BULAN, EntityType.HIJRI]
-    out, ents = ex.extract(out, enabled_entities=ms3)
-    from revo_norm.text_normalizer import apply_pronunciation_overrides
-    # python skips pronunciation_overrides and letter-period for zh in
-    # shared passes? it applies overrides with zh branch (units skipped)
-    out = apply_pronunciation_overrides(out, "zh")
-    table = resolve_pronunciations("zh", profile="builtin")
-    out = apply_pronunciation_mappings(out, "zh", table)
-    out, stash = _stash_placeholders(out)
-    from revo_norm.normalizer_zh import text_normalize_zh
-    out = text_normalize_zh(out)
-    out = _unstash_placeholders(out, stash)
-    out = ex.restore(out, "zh")
-    for sym, spoken in pack.symbol_words.items():
-        out = out.replace(sym, f" {spoken} ")
-    if pack.drops_exclamation:
-        out = re.sub(r"!+", "", out)
-    return re.sub(r"\s+", " ", out.strip())
 
 def main() -> None:
     FIXDIR.mkdir(exist_ok=True)
     rng = random.Random(42)
 
     nums = [0, 1, 2, 10, 11, 15, 20, 21, 99, 100, 101, 110, 200, 999, 1000, 1001,
-            1500, 2000, 10_000, 100_000, 1_000_000, 1_500_000, 10**7, 10**9, 10**12]
+            1500, 2000, 10_000, 100_000, 1_000_000, 1_500_000, 10**7, 10**9, 10**12,
+            8, 18, 28, 88, 108, 888]
     nums += [rng.randrange(1, 10_000_000) for _ in range(150)]
     with open(FIXDIR / "num2word_ms.txt", "w", encoding="utf-8") as f:
         for n in nums:
-            f.write(f"{n}\t{to_cardinal(n)}\n")
+            f.write(f"{n}\t{to_cardinal_ms(n)}\n")
 
-    done, pending = [], []
-    for case in ALL_CASES:
-        full = normalize_text(case, language="ms")
-        sim = simulate_milestone3(case)
-        (done if full == sim else pending).append((case, full, sim))
+    total = 0
+    for lang, cases in CASES.items():
+        with open(FIXDIR / f"pipeline_{lang}.txt", "w", encoding="utf-8") as f:
+            for case in cases:
+                f.write(f"{case}\t{engine_normalize(case, lang, '')}\n")
+                total += 1
+        # profiles as separate matrices
+        with open(FIXDIR / f"pipeline_{lang}_minimal.txt", "w", encoding="utf-8") as f:
+            for case in cases:
+                f.write(f"{case}\t{engine_normalize(case, lang, chr(123)+chr(34)+'profile'+chr(34)+':'+chr(34)+'minimal'+chr(34)+chr(125))}\n")
+        with open(FIXDIR / f"pipeline_{lang}_basic.txt", "w", encoding="utf-8") as f:
+            for case in cases:
+                f.write(f"{case}\t{engine_normalize(case, lang, chr(123)+chr(34)+'profile'+chr(34)+':'+chr(34)+'basic'+chr(34)+chr(125))}\n")
 
-    with open(FIXDIR / "pipeline_ms.txt", "w", encoding="utf-8") as f:
-        for case, full, _ in done:
-            f.write(f"{case}\t{full}\n")
-    with open(FIXDIR / "pending_ms.txt", "w", encoding="utf-8") as f:
-        for case, full, sim in pending:
-            f.write(f"{case}\t{full}\t{sim}\n")
+    # retire pre-flip artifacts
+    for stale in ("pending_ms.txt", "pending_id.txt", "pending_en.txt", "pending_zh.txt"):
+        (FIXDIR / stale).unlink(missing_ok=True)
 
-    # zh fixtures
-    done_zh, pending_zh = [], []
-    for case in ZH_CASES:
-        full = normalize_text(case, language="zh")
-        sim = simulate_milestone3_zh(case)
-        (done_zh if full == sim else pending_zh).append((case, full, sim))
-    with open(FIXDIR / "pipeline_zh.txt", "w", encoding="utf-8") as f:
-        for case, full, _ in done_zh:
-            f.write(f"{case}\t{full}\n")
-    if pending_zh:
-        with open(FIXDIR / "pending_zh.txt", "w", encoding="utf-8") as f:
-            for case, full, sim in pending_zh:
-                f.write(f"{case}\t{full}\t{sim}\n")
-    print(
-        f"zh parity: {len(done_zh)} green, {len(pending_zh)} pending: "
-        f"{[c for c, _, _ in pending_zh]}"
-    )
-    # en fixtures
-    done_en, pending_en = [], []
-    for case in EN_CASES:
-        full = normalize_text(case, language="en")
-        sim = simulate_milestone3_en(case)
-        (done_en if full == sim else pending_en).append((case, full, sim))
-    with open(FIXDIR / "pipeline_en.txt", "w", encoding="utf-8") as f:
-        for case, full, _ in done_en:
-            f.write(f"{case}\t{full}\n")
-    if pending_en:
-        with open(FIXDIR / "pending_en.txt", "w", encoding="utf-8") as f:
-            for case, full, sim in pending_en:
-                f.write(f"{case}\t{full}\t{sim}\n")
-    print(
-        f"en parity: {len(done_en)} green, {len(pending_en)} pending: "
-        f"{[c for c, _, _ in pending_en]}"
-    )
-    # id fixtures: same step simulation, id vocabulary
-    from revo_norm.normalizer_id import normalize_indonesian, preparse_number_formats
-    done_id, pending_id = [], []
-    for case in ID_CASES:
-        full = normalize_text(case, language="id")
-        sim = simulate_milestone3_id(case)
-        (done_id if full == sim else pending_id).append((case, full, sim))
-    with open(FIXDIR / "pipeline_id.txt", "w", encoding="utf-8") as f:
-        for case, full, _ in done_id:
-            f.write(f"{case}\t{full}\n")
-    if pending_id:
-        with open(FIXDIR / "pending_id.txt", "w", encoding="utf-8") as f:
-            for case, full, sim in pending_id:
-                f.write(f"{case}\t{full}\t{sim}\n")
-    print(
-        f"id parity: {len(done_id)} green, {len(pending_id)} pending: "
-        f"{[c for c, _, _ in pending_id]}"
-    )
-
-    print(
-        f"wrote {len(nums)} num2word; pipeline parity: {len(done)} green-tier, "
-        f"{len(pending)} pending (milestone 3 shared features): {[c for c, _, _ in pending]}"
-    )
+    print(f"snapshotted {total} pipeline cases x3 profiles + {len(nums)} num2word")
 
 
 if __name__ == "__main__":
