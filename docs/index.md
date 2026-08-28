@@ -1,6 +1,6 @@
 # Revo Norm
 
-Text normalization for Text-to-Speech, built for **English** and **Malay** (Bahasa Melayu).
+Text normalization for Text-to-Speech, built for **English**, **Malay** (Bahasa Melayu), **Indonesian** (Bahasa Indonesia), and **Chinese** (Standard and Malaysian).
 
 Revo Norm converts written text — numbers, currency, dates, times, abbreviations, acronyms, and more — into natural spoken form so your TTS engine reads it the way a human would say it.
 
@@ -19,6 +19,14 @@ print(normalize_text("The price is RM50K due on 15/08/2025", language="en"))
 print(normalize_text("Suhu 25C hari ini", language="ms"))
 # "Suhu dua puluh lima celcius hari ini"
 
+# Indonesian — dotted thousands, rupiah, jt = juta
+print(normalize_text("Harga Rp1.500.000 untuk 5 unit", language="id"))
+# "Harga satu juta lima ratus ribu rupiah untuk lima unit"
+
+# Chinese — colloquial currency and code-mixing
+print(normalize_text("花了 $100 买 5km 外的东西", language="zh_my"))
+# "花了 一百美金 买 五公里 外的东西"
+
 # Minimal — just fix spacing
 print(normalize_text("Hello   world", language="en", profile="minimal"))
 # "Hello world"
@@ -36,7 +44,7 @@ print(normalize_text("Hello   world", language="en", profile="minimal"))
 - **Measurements** — `5km`, `10kg`, `3GB`
 - **Entity protection** — currency, URLs, emails, and dates shielded from cascading transforms
 - **Pronunciation mappings** — custom overrides with highest pipeline priority (`GUI` → "gooey")
-- **Multilingual** — one `language` parameter selects the normalizer (see [Languages](languages.md))
+- **Multilingual** — `en`, `ms`, `id`, `zh`, `zh_my`; one `language` parameter selects the normalizer (see [Languages](languages.md))
 - **Configurable profiles** — `minimal`, `basic`, `standard`, `aggressive` presets
 
 ## Installation

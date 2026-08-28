@@ -16,10 +16,10 @@ Revo-norm supports five language codes with awareness of code-mixing patterns co
 from revonorm import normalize_text
 
 result_en = normalize_text("25C outside", language="en")
-# "twenty five degrees celsius outside"
+# "twenty-five celsius outside"
 
 result_ms = normalize_text("25C di luar", language="ms")
-# "dua puluh lima darjah selsius di luar"
+# "dua puluh lima celcius di luar"
 
 result_zh = normalize_text("25C", language="zh")
 # "二十五摄氏度"
@@ -99,7 +99,7 @@ normalize_text("1,000,000 dollars at 3.5%", language="en")
 # "one million dollars at three point five percent"
 
 normalize_text("The price is $45.99", language="en")
-# "The price is forty five dollar ninety nine cent"
+# "The price is forty-five dollar ninety-nine cents"
 ```
 
 ### Years
@@ -115,7 +115,7 @@ normalize_text("Born in 1990, graduated 2012", language="en")
 
 ```python
 normalize_text("Meeting on 15/08/2025 at 3:30 pm", language="en")
-# "Meeting on fifteenth of August, two thousand and twenty five at three thirty p m"
+# "Meeting on fifteen of August twenty twenty-five at three thirty p m"
 ```
 
 ---
@@ -195,24 +195,6 @@ normalize_text("Jumpa pukul 8:30 pagi", language="ms")
 # "Jumpa pukul lapan tiga puluh pagi"
 ```
 
-### Malaysian Identity Card Numbers (IC)
-
-Malaysian IC numbers (12 digits in `YYMMDD-SS-XXXX` format) are normalized to spoken form:
-
-```python
-normalize_text("No IC: 901231-10-5678", language="ms")
-# The IC number is expanded digit by digit with structural grouping
-```
-
-### Elongated Words
-
-Common in informal Malay text, repeated characters are reduced:
-
-```python
-normalize_text("Sedihhh sangat laa", language="ms")
-# "Sedih sangat la"
-```
-
 ### Measurements
 
 Unit abbreviations are expanded to their spoken Malay forms:
@@ -229,14 +211,79 @@ normalize_text("Kadar 3.5% setahun", language="ms")
 # "Kadar tiga perpuluhan lima peratus setahun"
 ```
 
-### Hijri Calendar
+### Malaysian Identity Card Numbers (IC)
 
-Islamic/Hijri year conversion is supported:
+Malaysian IC numbers (12 digits in `YYMMDD-SS-XXXX` format) are normalized to spoken form:
 
 ```python
-normalize_text("Tahun Hijri 1446", language="ms")
-# Hijri year converted to spoken form
+normalize_text("No IC: 901231-10-5678", language="ms")
+# "No I C: sembilan kosong satu dua tiga satu satu kosong lima enam tujuh lapan"
 ```
+
+Both dashed (`901231-10-5678`) and undashed (`901231105678`) forms are recognized; the undashed form must be exactly 12 digits in the 6-2-4 grouping. Each digit is spoken individually. Disable with `disable=["ic"]`.
+
+### X-Kali Multiplier
+
+The `x` or `X` after a number indicates multiplication ("times" / "kali"), common in product descriptions:
+
+```python
+normalize_text("10x lebih cepat", language="ms")
+# "sepuluh kali lebih cepat"
+
+normalize_text("3X bonus", language="ms")
+# "tiga kali bonus"
+
+normalize_text("5 x magnification", language="en")
+# "five times magnification"
+```
+
+Matched at word boundaries only: `10extra` is not converted. Disable with `disable=["x_kali"]`.
+
+### Hari Bulan (Day of Month)
+
+The `HB` suffix after a day number (1-31) means "hari bulan" (day of the month), used in formal and legal Malay:
+
+```python
+normalize_text("Tamat pada 10hb", language="ms")
+# "Tamat pada sepuluh hari bulan"
+
+normalize_text("Due on 10hb", language="en")
+# "Due on ten hari bulan"
+```
+
+`10HB`, `10Hb`, `10hb`, and `10 HB` are all recognized. Days outside 1-31 (e.g., `32hb`) are not matched. Disable with `disable=["hari_bulan"]`.
+
+### Hijri Years
+
+Hijri (Islamic calendar) years are denoted by an `H` suffix after a 3-4 digit year. They are spoken digit-by-digit followed by "Hijri":
+
+```python
+normalize_text("Tahun 1445H", language="ms")
+# "Tahun satu empat empat lima Hijri"
+
+normalize_text("Tahun 1445H", language="id")
+# "Tahun satu empat empat lima Hijriah"
+```
+
+Only 3-4 digit years match; `12H` is not converted. Disable with `disable=["hijri"]`.
+
+### Elongated Words
+
+Repeated characters (3 or more) are reduced to 2, common in informal Malay social media text:
+
+```python
+normalize_text("Sedihhh sangat laa", language="ms")
+# "Sedihh sangat laa"
+
+normalize_text("teruuuus", language="ms")
+# "teruus"
+```
+
+Words that are all uppercase (acronyms), contain digits, or start with the Malay ordinal prefix `ke-` are preserved. Disable with `disable=["elongated"]`.
+
+### Malay-Local Feature Interactions
+
+When several of these features appear together they are processed independently — `10x 5hb` yields `sepuluh kali lima hari bulan`. The `minimal` profile disables all of them at once.
 
 ---
 
@@ -301,6 +348,39 @@ and `pm` maps to `sore`:
 ```python
 normalize_text("rapat 7:30 pagi, selesai 3:30 sore", language="id")
 # "rapat tujuh tiga puluh pagi, selesai tiga tiga puluh sore"
+
+normalize_text("rapat 3:30 pm", language="id")
+# "rapat tiga tiga puluh sore"
+```
+
+### Measurements
+
+Units are spoken with Indonesian number words, so dotted-thousands values
+inside measurements work end to end:
+
+```python
+normalize_text("Berat 5kg, tinggi 150cm", language="id")
+# "Berat lima kilogram, tinggi seratus lima puluh sentimeter"
+
+normalize_text("berat 10.000,50 kg", language="id")
+# "berat sepuluh ribu koma lima nol kilogram"
+```
+
+### Malay-Local Features in Indonesian
+
+The Malaysian-local features — IC numbers, x-kali, hari bulan, Hijri years,
+elongated words — run for `id` too, with Indonesian digit words and `Hijriah`
+for the Hijri suffix:
+
+```python
+normalize_text("IC: 911111-01-1111", language="id")
+# "I C: sembilan satu satu satu satu satu nol satu satu satu satu satu"
+
+normalize_text("10x lebih cepat", language="id")
+# "sepuluh kali lebih cepat"
+
+normalize_text("Tahun 1445H", language="id")
+# "Tahun satu empat empat lima Hijriah"
 ```
 
 ---
@@ -339,9 +419,17 @@ normalize_text("2025", language="zh")  # "二零二五"
 normalize_text("1999", language="zh")  # "一九九九"
 ```
 
-### Decimals, Percentages and Fraction
+### Decimals, Percentages and Fractions
+
+Decimals use 点, percentages use 百分之, and common fractions use 分之:
 
 ```python
+normalize_text("3.14", language="zh")     # "三点一四"
+normalize_text("50%", language="zh")      # "百分之五十"
+normalize_text("1/4", language="zh")      # "四分之一"
+normalize_text("3/4", language="zh")      # "四分之三"
+
+# zh_my speaks percentages colloquially with 巴仙
 normalize_text("一年3.3%的利率。", language="zh") # "一年百分之三点三的利率。"
 normalize_text("一年3.3%的利率。", language="zh_my") # "一年三点三巴仙的利率。"
 normalize_text("一年1/4的收益。", language="zh") # "一年四分之一的收益。"
@@ -352,17 +440,21 @@ normalize_text("一年1/4的收益。", language="zh") # "一年四分之一的�
 | Symbol | zh (main unit) | zh (sub unit) | zh_my (main unit) | zh_my (sub unit)
 |--------|----|-------|
 | `RM, MYR` | 令吉 | 仙 | 令吉 | 仙 |
-| `$` | 美元 | 分 | 块 | 仙 |
-| `USD` | 美元 | 分 | 美元 | 仙 |
-| `£, GBP` | 英镑 | 便士 | 英镑 | 仙 |
+| `$` | 美元 | 分 | 美金 | 仙 |
+| `USD` | 美元 | 分 | 美金 | 仙 |
+| `£, GBP` | 英镑 | 便士 | 英磅 | 仙 |
 | `€, EUR` | 欧元 | 分 | 欧元 | 仙 |
 
 ```python
 normalize_text("RM100.50", language="zh")    # "一百令吉五十仙"
-normalize_text("$100.50", language="zh")         # "一百美元五十分"
-normalize_text("$50.20", language="zh_my")      # "一百块二十仙"
-normalize_text("USD50.20", language="zh_my")     # "五十美元二十仙"
+normalize_text("$100.50", language="zh")     # "一百美元五十分"
+normalize_text("£100.50", language="zh")     # "一百英镑五十便士"
+normalize_text("$50.20", language="zh_my")   # "五十美金二十仙"
+normalize_text("USD50.20", language="zh_my") # "五十美金二十仙"
+normalize_text("£100.50", language="zh_my")  # "一百英磅五十仙"
 ```
+
+Magnitude suffixes expand before conversion, so `RM30K` becomes `三万令吉` and `RM1M` becomes `一百万令吉` in both `zh` and `zh_my`. Comma-grouped numbers (`1,000,000`) become full Chinese cardinals (`一百万`).
 
 ### Dates
 
@@ -371,6 +463,7 @@ Dates use Chinese year (digit-by-digit), month, and day names:
 ```python
 normalize_text("15/08/2025", language="zh")   # "二零二五年八月十五日"
 normalize_text("2025-12-25", language="zh")    # "二零二五年十二月二十五日"
+normalize_text("2025-08-15", language="zh")    # "二零二五年八月十五日"
 ```
 
 ### Times
@@ -381,7 +474,19 @@ Time expressions use 上午/下午 (AM/PM) with 点 and 分:
 normalize_text("3:30 pm", language="zh")    # "下午三点三十分"
 normalize_text("9:00 am", language="zh")    # "上午九点"
 normalize_text("14:30", language="zh")      # "十四点三十分"
-normalize_text("早上13:15", language="zh")   # "早上十三点十五分" 
+normalize_text("00:00", language="zh")      # "零点"
+normalize_text("12:00", language="zh")      # "十二点"
+normalize_text("3:00", language="zh")       # "三点"
+normalize_text("早上13:15", language="zh")   # "早上十三点十五分"
+```
+
+### Ordinals
+
+The 第 prefix converts a following digit into a Chinese ordinal:
+
+```python
+normalize_text("第3", language="zh")     # "第三"
+normalize_text("第1名", language="zh")   # "第一名"
 ```
 
 ### Temperature and Measurements
@@ -389,10 +494,15 @@ normalize_text("早上13:15", language="zh")   # "早上十三点十五分"
 ```python
 normalize_text("25C", language="zh")      # "二十五摄氏度"
 normalize_text("36.5C", language="zh")    # "三十六点五摄氏度"
+normalize_text("-5C", language="zh")      # "负 五摄氏度"
 normalize_text("5km", language="zh")      # "五公里"
+normalize_text("1.5km", language="zh")    # "一点五公里"
 normalize_text("10kg", language="zh")     # "十公斤"
 normalize_text("200ml", language="zh")    # "二百毫升"
+normalize_text("3.14米", language="zh")   # "三点一四米"
 ```
+
+Area units (`sq ft`) are not yet converted for Chinese — `1000 sq ft` stays as `一零零零 sq ft`.
 
 ### Malaysian Identity Card Numbers (IC)
 
@@ -407,7 +517,7 @@ normalize_text("No IC: 901231-10-5678", language="zh")  # 九 零 一 二 三 �
 All config flags (`disable`, `profile`) work consistently for Chinese:
 
 ```python
-normalize_text("25C", language="zh", disable=["temperature"])  # "25C"
+normalize_text("25C", language="zh", disable=["temperature"])  # "二 五 C"
 normalize_text("25C", language="zh", profile="minimal")         # "25C"
 normalize_text("25C", language="zh", profile="standard")        # "二十五摄氏度"
 ```
@@ -423,11 +533,11 @@ The library assumes **DD/MM/YYYY** format (common in Malaysia and most of the wo
 ```python
 # Unambiguous: day > 12
 normalize_text("15/08/2025", language="en")
-# "fifteenth of August, two thousand and twenty five" (correct)
+# "fifteen of August twenty twenty-five"
 
 # Ambiguous: both <= 12
 normalize_text("05/06/2025", language="en")
-# Treated as 5th of June (DD/MM), not June 5th (MM/DD)
+# "five of June twenty twenty-five" -- read as 5 June (DD/MM), not 6 May
 ```
 
 If your source text uses US date format (MM/DD/YYYY), consider pre-processing dates before passing them to revo-norm.
@@ -443,7 +553,7 @@ normalize_text("Harga RM 450", language="ms")
 
 # As part of a word or acronym -- protected by pronunciation mappings
 normalize_text("The RM team", language="en")
-# "The R M team" (split as acronym)
+# "The R M team" -- split as an acronym
 ```
 
 ### All-Caps Tech Terms (AI, ML, LLM)
@@ -459,10 +569,13 @@ normalize_text("Train ML models with AI", language="en")
 normalize_text("Build a GUI app", language="en")
 # "Build a gooey app"
 
-# Custom pronunciation
-from revonorm.pronunciation_mappings import add_custom_mapping
-add_custom_mapping("YOLO", "you only live once", "en")
-normalize_text("YOLO approach", language="en")
+# Custom pronunciation -- request-scoped via Config
+from revonorm import Config
+normalize_text(
+    "YOLO approach",
+    language="en",
+    config=Config(pronunciations={"YOLO": "you only live once"}),
+)
 # "you only live once approach"
 ```
 
