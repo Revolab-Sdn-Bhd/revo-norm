@@ -1,0 +1,71 @@
+# Test-review gate.
+#
+# PRs from the issue-fixer open with `needs-test-review`. The ticket
+# creator reviews the unit tests in the PR diff and comments
+# `/tests-approved`; this workflow verifies the commenter is the
+# issue creator (or khursani8), then removes the label. Branch
+# protection blocks merge while the label is present — the required
+# status check `test-review / gate` also reports pending until then,
+# so merge is mechanically impossible before approval.
+
+name: test-review-gate
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request:
+    types: [opened, labeled, unlabeled, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    # only PRs carry the label; issue_comment fires for issues too
+    if: >-
+      github.event_name == 'pull_request' ||
+      github.event.issue.pull_request != null
+    steps:
+      - name: Handle /tests-approved command
+        if: github.event_name == 'issue_comment'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.issue.pull_request.html_url }}
+          COMMENTER: ${{ github.event.comment.user.login }}
+        run: |
+          set -euo pipefail
+          BODY="${{ github.event.comment.body }}"
+          if [[ "$BODY" != /tests-approved* ]]; then
+            echo "not a command; nothing to do"
+            exit 0
+          fi
+          # who created the linked issue?
+          ISSUE_URL=$(gh pr view "$PR_URL" --json body --jq '.body' \
+            | grep -oE 'Closes #[0-9]+' | head -1 | grep -oE '[0-9]+')
+          CREATOR=$(gh issue view "$ISSUE_URL" --json author --jq '.author.login')
+          if [[ "$COMMENTER" != "$CREATOR" && "$COMMENTER" != "khursani8" ]]; then
+            echo "::error::$COMMENTER is not the ticket creator ($CREATOR) — only the creator or khursani8 can approve tests."
+            exit 1
+          fi
+          gh pr edit "$PR_URL" --remove-label needs-test-review
+          gh pr comment "$PR_URL" --body "Unit tests approved by @$COMMENTER (ticket #$ISSUE_URL creator). Label removed — mergeable once checks are green."
+
+      - name: Report gate status for branch protection
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${PR_NUMBER:-}" ]]; then
+            echo "no PR context"; exit 0
+          fi
+          LABELS=$(gh pr view "$PR_NUMBER" --json labels --jq '[.[].name] | index("needs-test-review") != null' 2>/dev/null || echo "false")
+          if [[ "$LABELS" == "true" ]]; then
+            echo "::error::needs-test-review label present — tests not yet approved."
+            exit 1
+          fi
+          echo "test review satisfied."
