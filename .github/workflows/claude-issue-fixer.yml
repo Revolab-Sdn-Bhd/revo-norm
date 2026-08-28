@@ -1,0 +1,159 @@
+# Claude-driven issue auto-fixer.
+#
+# EVERY new issue triggers Claude Code headless with
+# --dangerously-skip-permissions against a fresh checkout: it resolves
+# the issue (Rust engine + tests) and opens a PR labeled
+# `needs-test-review`. The ticket creator reviews the unit tests and
+# comments /tests-approved; the test-review workflow then removes the
+# label. Branch protection (see docs/CONTRIBUTING flow) requires the
+# label absent + checks green before merge.
+#
+# Pattern adapted from exp-manager's claude-issue-fixer (#243).
+#
+# Required repo secrets (NOT yet configured — see PR body):
+#   ANTHROPIC_AUTH_TOKEN + ANTHROPIC_BASE_URL — same values as
+#   exp-manager's setup (GLM proxy).
+# Required runner: self-hosted Linux X64 (the hgx box) must be
+# registered for THIS repo — verify on the first issue.
+
+name: claude-issue-fixer
+
+on:
+  issues:
+    types: [opened, labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: claude-issue-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  fix:
+    # Actor gate: khursani8 OPENING an issue, or khursani8 LABELING any
+    # issue (= "work on this one, whoever filed it"). `no-autofix` opts
+    # out — labeling with it must NOT spawn a run (the `labeled` event
+    # fires for ANY label, including the opt-out).
+    if: >-
+      github.event.sender.login == 'khursani8' &&
+      !contains(github.event.label.name, 'no-autofix')
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 60
+
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      ISSUE_NUMBER: ${{ github.event.issue.number }}
+      ISSUE_TITLE: ${{ github.event.issue.title }}
+      ISSUE_BODY: ${{ github.event.issue.body }}
+      # Never let the agent re-trigger CI loops from its own pushes.
+      CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1"
+      # The runner's systemd PATH misses uv/cargo/nvm — front-load them.
+      PATH: >-
+        /home/sani/.local/bin:/home/sani/.cargo/bin:/home/sani/.nvm/versions/node/v24.14.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+    steps:
+      - name: Check out default branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # the agent commits and pushes a branch
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Run Claude on the issue
+        env:
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.ANTHROPIC_AUTH_TOKEN }}
+          ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
+          # Model pinning (mirrors exp-manager): without these, claude
+          # requests default Anthropic model IDs against the GLM gateway
+          # and every call 404s.
+          ANTHROPIC_DEFAULT_SONNET_MODEL: glm-5.2
+          ANTHROPIC_DEFAULT_OPUS_MODEL: glm-5.2
+          ANTHROPIC_DEFAULT_HAIKU_MODEL: glm-4.5-air
+        run: |
+          set -euo pipefail
+          BRANCH="claude/issue-${ISSUE_NUMBER}"
+          git config user.name "claude-bot"
+          git config user.email "actions@github.com"
+          # Self-hosted runners REUSE the work folder: start clean from main.
+          git fetch origin main
+          git checkout -B "$BRANCH" origin/main
+
+          ISSUE_FILE="$RUNNER_TEMP/issue.md"
+          {
+            echo "# Issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}"
+            echo
+            printf '%s' "${ISSUE_BODY:-<empty body>}"
+          } > "$ISSUE_FILE"
+
+          cat > "$RUNNER_TEMP/prompt.md" <<'PROMPT_EOF'
+          You are resolving a GitHub issue in the repository you are
+          checked out in. Work autonomously — no human is available.
+
+          ## The issue
+          Read $(RUNNER_TEMP)/issue.md — it contains the full issue
+          title and body. That is your specification.
+
+          ## Repo architecture (read AGENTS.md at the root FIRST)
+          - ONE implementation: the Rust engine in revonorm-core/src/.
+            The python package revonorm-core/python/revonorm/ is a thin
+            compat layer over the compiled engine. There is NO separate
+            python implementation — all logic edits happen in Rust.
+          - revonorm-core/tests/fixtures/*.txt are SNAPSHOTS of engine
+            output: if your change alters normalization output, you MUST
+            regenerate them:
+              cd revonorm-core && rm -rf dist && \
+              PYO3_PYTHON=$(which python) maturin build --release --out dist && \
+              cd .. && uv pip install --force-reinstall --no-deps revonorm-core/dist/*.whl && \
+              uv run python revonorm-core/tests/gen_fixtures.py
+            Then cd revonorm-core && cargo test --test parity must pass.
+
+          ## Required verification (ALL must pass before you finish)
+          1. cargo test --manifest-path revonorm-core/Cargo.toml
+          2. cargo clippy --manifest-path revonorm-core/Cargo.toml -- -D warnings
+          3. uv run ruff check revonorm-core/python/revonorm/
+          4. Build+install the wheel (commands above), then:
+             uv run pytest ../revo-norm-tests/ -q
+             (the private suite is at /home/sani/work/revo-norm-tests
+              on this runner — use that path if ../revo-norm-tests
+              does not resolve from the checkout)
+
+          ## Commit + PR conventions
+          - Conventional commits, subject <= 50 chars, heredoc bodies.
+          - Do NOT push to main. Work on the branch you are given.
+          - git push -u origin HEAD, then:
+            gh pr create --base main --title <subject> \
+              --body <evidence: what changed, tests run, results>
+            Reference "Closes #<number>". NEVER --draft.
+          - Label the PR `needs-test-review`:
+            gh pr edit --add-label needs-test-review
+          - Comment on the issue: "Working PR: <pr url>. Unit tests
+            need review by the ticket creator: comment /tests-approved
+            on the PR when satisfied."
+
+          ## Hard rules
+          - If tests cannot pass, do NOT open a PR — comment on the
+            issue with the failure output instead.
+          - Never force-push, never touch main, never modify files
+            under .github/.
+
+          PROMPT_EOF
+          sed -i "s|\$(RUNNER_TEMP)|${RUNNER_TEMP}|g" "$RUNNER_TEMP/prompt.md"
+
+          claude -p --dangerously-skip-permissions \
+            --settings '{"disableAllHooks": true}' \
+            < "$RUNNER_TEMP/prompt.md"
+
+      - name: Fail loudly if no PR was opened
+        if: always()
+        run: |
+          set -euo pipefail
+          if gh pr list --head "claude/issue-${ISSUE_NUMBER}" --json number --jq 'length' | grep -q '^0$'; then
+            echo "::error::Claude finished without opening a PR for issue #${ISSUE_NUMBER}. Check the job log and the issue comments."
+            exit 1
+          fi
+          echo "PR opened for issue #${ISSUE_NUMBER}."
