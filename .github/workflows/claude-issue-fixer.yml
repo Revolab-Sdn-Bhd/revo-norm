@@ -33,12 +33,12 @@ concurrency:
 
 jobs:
   fix:
-    # Actor gate: khursani8 OPENING an issue, or khursani8 LABELING any
+    # Actor gate: khursanirevo OPENING an issue, or khursanirevo LABELING any
     # issue (= "work on this one, whoever filed it"). `no-autofix` opts
     # out — labeling with it must NOT spawn a run (the `labeled` event
     # fires for ANY label, including the opt-out).
     if: >-
-      github.event.sender.login == 'khursani8' &&
+      github.event.sender.login == 'khursanirevo' &&
       !contains(github.event.label.name, 'no-autofix')
     runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 60

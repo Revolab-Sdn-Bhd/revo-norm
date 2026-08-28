@@ -3,7 +3,7 @@
 # PRs from the issue-fixer open with `needs-test-review`. The ticket
 # creator reviews the unit tests in the PR diff and comments
 # `/tests-approved`; this workflow verifies the commenter is the
-# issue creator (or khursani8), then removes the label. Branch
+# issue creator (or khursanirevo), then removes the label. Branch
 # protection blocks merge while the label is present — the required
 # status check `test-review / gate` also reports pending until then,
 # so merge is mechanically impossible before approval.
@@ -46,8 +46,8 @@ jobs:
           ISSUE_URL=$(gh pr view "$PR_URL" --json body --jq '.body' \
             | grep -oE 'Closes #[0-9]+' | head -1 | grep -oE '[0-9]+')
           CREATOR=$(gh issue view "$ISSUE_URL" --json author --jq '.author.login')
-          if [[ "$COMMENTER" != "$CREATOR" && "$COMMENTER" != "khursani8" ]]; then
-            echo "::error::$COMMENTER is not the ticket creator ($CREATOR) — only the creator or khursani8 can approve tests."
+          if [[ "$COMMENTER" != "$CREATOR" && "$COMMENTER" != "khursanirevo" ]]; then
+            echo "::error::$COMMENTER is not the ticket creator ($CREATOR) — only the creator or khursanirevo can approve tests."
             exit 1
           fi
           gh pr edit "$PR_URL" --remove-label needs-test-review
