@@ -53,7 +53,7 @@ CASES = {
         "3.14 value", "call 03-8888 now", "meeting at 7 pm",
         "15/08/2025 deadline", "123,456 items", "you're 100% right",
         "The GUI uses JSON", "version 3.14.159", "No. 5 Jalan Bukit",
-        "On 8/15/2025 we ship",
+        "On 8/15/2025 we ship", "Visit www.revo.ai",
     ],
     "zh": [
         "价格是RM50", "温度25C", "百分之50", "现在3:30 pm",
