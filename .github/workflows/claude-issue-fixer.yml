@@ -96,7 +96,13 @@ jobs:
 
           ## The issue
           Read $(RUNNER_TEMP)/issue.md — it contains the full issue
-          title and body. That is your specification.
+          title and body. That is your specification. Issues come from
+          repo templates (normalization-change / new-language /
+          bug-report): treat the "Input -> expected output" rows as a
+          literal contract — each row becomes a snapshot case; never
+          deviate from a stated expected output; "Edge cases" rows are
+          must-NOT-change constraints. "?" cells mean ask in the PR,
+          not guess.
 
           ## Repo architecture (read AGENTS.md at the root FIRST)
           - ONE implementation: the Rust engine in revonorm-core/src/.
