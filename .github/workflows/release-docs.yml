@@ -1,0 +1,137 @@
+# Release docs + changelog hook.
+#
+# Every new vX.Y.Z tag (the publish workflows already fired on it) gets
+# a second pass: Claude reads the release diff, writes the proper
+# changelog entry tracing what this version is, refreshes any docs the
+# diff made stale (README examples, API pages, feature pages), and
+# opens a PR — main is locked, so even the docs bot goes through
+# review. The PR carries `docs-update` (NOT needs-test-review: no unit
+# tests to gate) and references the tag.
+#
+# Adapted from exp-manager's nightly-release Claude pattern.
+
+name: release-docs
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: release-docs-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  docs:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 30
+
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ github.ref_name }}
+      CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1"
+      PATH: >-
+        /home/sani/.local/bin:/home/sani/.cargo/bin:/home/sani/.nvm/versions/node/v24.14.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+    steps:
+      - name: Check out the tag
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history: the agent diffs tag..previous-tag
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Draft changelog + docs with Claude
+        env:
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.ANTHROPIC_AUTH_TOKEN }}
+          ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
+          ANTHROPIC_DEFAULT_SONNET_MODEL: glm-5.2
+          ANTHROPIC_DEFAULT_OPUS_MODEL: glm-5.2
+          ANTHROPIC_DEFAULT_HAIKU_MODEL: glm-4.5-air
+        run: |
+          set -euo pipefail
+          BRANCH="claude/docs-${TAG}"
+          git config user.name "claude-bot"
+          git config user.email "actions@github.com"
+          git fetch origin main
+          # Docs land AFTER the release; branch from current main, not the tag.
+          git checkout -B "$BRANCH" origin/main
+
+          PREV_TAG="$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || true)"
+
+          cat > "$RUNNER_TEMP/prompt.md" <<'PROMPT_EOF'
+          You are the release documentation bot. Release tag: $(TAG)
+          (previous: $(PREV_TAG) or "none — first release"). Work
+          autonomously; open exactly one PR.
+
+          ## The release diff
+          git log --oneline $(PREV_TAG)..$(TAG)   (or ..$(TAG) if no prev)
+          git diff --stat $(PREV_TAG)..$(TAG)
+          PR merge subjects carry the narrative; inner squash subjects
+          are noise. Resolve ambiguity from the PRs, not the commits.
+
+          ## Job 1 — the changelog entry (docs/changelog.md)
+          1. If a `## vX.Y.Z` section already exists (the release PR
+             wrote it), VERIFY it against the diff: complete? accurate?
+             Fix gaps; do not rewrite voice.
+          2. If missing, prepend it. Read the existing entries first —
+             they are narrative (bold thesis line, grouped ### Added/
+             Changed/Fixed/Breaking with issue/PR references), NOT
+             commit-subject bullets. Match that voice and density.
+          3. Remove `(Current)` from the previous section's heading and
+             put it on this one.
+
+          ## Job 2 — stale docs refresh
+          Check every user-facing surface the diff touched; update what
+          the release made wrong:
+          - README.md install/usage examples (output strings must match
+            the engine — verify against revonorm-core/tests/fixtures/
+            when unsure)
+          - docs/api/*.md (signatures, behavior, removed params)
+          - docs/features/*.md (example outputs)
+          - docs/quickstart.md, docs/index.md
+          Only touch what the diff actually made stale. No rewrites,
+          no reformatting, no scope creep.
+
+          ## Job 3 — the PR
+          1. Commit with subject: docs: changelog + refresh for vX.Y.Z
+          2. git push -u origin HEAD
+          3. gh pr create --base main --title "docs: changelog +
+             refresh for $(TAG)" --body <evidence: the changelog entry
+             headline, every doc file changed and why, the tag diffstat>.
+             Reference the release: "Documents $(TAG)."
+          4. Label it `docs-update` (NOT needs-test-review — no unit
+             tests gate a docs change):
+             gh pr edit --add-label docs-update
+
+          ## Hard rules
+          - NEVER modify code under revonorm-core/src/, tests, or
+            .github/ — docs and changelog only.
+          - If the changelog is already complete AND no docs are stale,
+            do NOT open an empty PR: comment on the PR you would have
+            targeted, or if none exists, say so in the job log and exit 0.
+          - Never force-push, never touch main directly.
+
+          PROMPT_EOF
+          sed -i "s|\$(TAG)|${TAG}|g; s|\$(PREV_TAG)|${PREV_TAG:-v0.0.0}|g" \
+            "$RUNNER_TEMP/prompt.md"
+
+          claude -p --dangerously-skip-permissions \
+            --settings '{"disableAllHooks": true}' \
+            < "$RUNNER_TEMP/prompt.md"
+
+      - name: Report outcome
+        if: always()
+        run: |
+          set -euo pipefail
+          PRS=$(gh pr list --head "claude/docs-${TAG}" --json number --jq 'length')
+          if [ "$PRS" -gt 0 ]; then
+            echo "Docs PR opened for ${TAG}."
+          else
+            echo "No docs PR for ${TAG} — agent either found nothing stale (see log) or failed."
+          fi
