@@ -13,10 +13,6 @@ Dates are extracted as entities early in the pipeline to prevent the fraction no
 | DD/MM/YYYY | `15/08/2025` | Day first when day > 12 |
 | MM/DD/YYYY | `08/15/2025` | Month first when month <= 12 |
 | YYYY-MM-DD | `2025-08-15` | ISO format |
-| DD Month YYYY | `15 August 2025` | Full or abbreviated month names |
-| Month DD, YYYY | `August 15, 2025` | Full or abbreviated month names |
-
-Month abbreviations are also recognized: `Jan`, `Feb`, `Mar`, `Apr`, `May`, `Jun`, `Jul`, `Aug`, `Sep`, `Oct`, `Nov`, `Dec`.
 
 ## DD/MM vs MM/DD Ambiguity
 
@@ -35,15 +31,15 @@ from revonorm import normalize_text
 
 # Slash format (DD/MM, day > 12)
 normalize_text("15/08/2025", language="en")
-# "fifteen of August two thousand twenty five"
+# "fifteen of August twenty twenty-five"
 
 # Slash format (MM/DD, ambiguous)
 normalize_text("08/15/2025", language="en")
-# "August fifteen, two thousand twenty five"
+# "fifteen of August twenty twenty-five"
 
 # ISO format (YYYY-MM-DD)
 normalize_text("2025-08-15", language="en")
-# "August the fifteenth, two thousand twenty five"
+# "fifteen August two thousand and twenty-five"
 ```
 
 ## Malay Output
@@ -76,11 +72,65 @@ normalize_text("15/08/2025", language="ms")
 
 # Slash format (MM/DD, ambiguous)
 normalize_text("08/15/2025", language="ms")
-# "Ogos lima belas, dua ribu dua puluh lima"
+# "lima belas Ogos dua ribu dua puluh lima"
 
 # ISO format (YYYY-MM-DD)
 normalize_text("2025-08-15", language="ms")
 # "lima belas Ogos dua ribu dua puluh lima"
+```
+
+## Indonesian Output
+
+Indonesian uses localized month names and Indonesian number-to-words conversion. `15/08/2025`, `08/15/2025`, and `2025-08-15` all resolve to the same spoken date.
+
+### Indonesian Month Names
+
+| Number | English    | Indonesian |
+|--------|-----------|------------|
+| 01     | January   | Januari    |
+| 02     | February  | Februari   |
+| 03     | March     | Maret      |
+| 04     | April     | April      |
+| 05     | May       | Mei        |
+| 06     | June      | Juni       |
+| 07     | July      | Juli       |
+| 08     | August    | Agustus    |
+| 09     | September | September  |
+| 10     | October   | Oktober    |
+| 11     | November  | November   |
+| 12     | December  | Desember   |
+
+```python
+from revonorm import normalize_text
+
+# Slash format (DD/MM)
+normalize_text("15/08/2025", language="id")
+# "lima belas Agustus dua ribu dua puluh lima"
+
+# Slash format (MM/DD)
+normalize_text("08/15/2025", language="id")
+# "lima belas Agustus dua ribu dua puluh lima"
+
+# ISO format (YYYY-MM-DD)
+normalize_text("2025-08-15", language="id")
+# "lima belas Agustus dua ribu dua puluh lima"
+```
+
+## Chinese Output
+
+Chinese reads the year digit-by-digit, then the month and day as Chinese number words with the 日 suffix:
+
+```python
+from revonorm import normalize_text
+
+normalize_text("15/08/2025", language="zh")
+# "二零二五年八月十五日"
+
+normalize_text("2025-12-25", language="zh")
+# "二零二五年十二月二十五日"
+
+normalize_text("2025-08-15", language="zh")
+# "二零二五年八月十五日"
 ```
 
 ## How to Disable
@@ -103,7 +153,6 @@ When dates are disabled, they are still extracted from the text to protect them 
 
 - **Two-digit years**: `15/08/25` is matched, but four-digit years produce better spoken output.
 - **Single-digit day/month**: `5/8/2025` is recognized the same as `05/08/2025`.
-- **Month name variations**: Both `Aug` and `August` are recognized. The full name is used in output.
-- **Trailing dot on month**: `Aug. 15, 2025` is recognized.
+- **Month name variations**: `15 August 2025` and `August 15, 2025` are documented formats; the currently verified converters are the slash and ISO forms above.
 - **Date vs fraction conflict**: Dates are extracted before fractions run, so `15/08/2025` is never misinterpreted as a fraction.
 - **Dates in URLs**: URL extraction runs before date extraction, so dates inside URLs are handled as part of the URL, not as standalone dates.

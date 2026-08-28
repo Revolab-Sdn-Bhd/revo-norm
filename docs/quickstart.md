@@ -22,10 +22,25 @@ print(result)
 result = normalize_text("RM450 untuk projek ini", language="ms")
 print(result)
 # "empat ratus lima puluh ringgit untuk projek ini"
+
+# Indonesian
+result = normalize_text("Harga total Rp2jt untuk 10 unit", language="id")
+print(result)
+# "Harga total dua juta rupiah untuk sepuluh unit"
+
+# Chinese (Standard)
+result = normalize_text("会议在 15/08/2025 下午 3:30", language="zh")
+print(result)
+# "会议在 二零二五年八月十五日 下午 三点三十分"
+
+# Malaysian Chinese (colloquial currency, code-mixing)
+result = normalize_text("花了 $100 买 5km 外的东西", language="zh_my")
+print(result)
+# "花了 一百美金 买 五公里 外的东西"
 ```
 
 !!! note
-    Malay text often mixes in English terms (code-mixing). Revo-norm handles this naturally — English terms in Malay sentences are preserved unless a specific normalization rule applies.
+    Malay text often mixes in English terms (code-mixing). Revo-norm handles this naturally — English terms in Malay sentences are preserved unless a specific normalization rule applies. See [Languages](languages.md) for per-language specifics.
 
 ## Configuration Profiles
 
@@ -129,6 +144,14 @@ normalize_text("The budget is RM50K", language="en")
 normalize_text("Harga RM450", language="ms")
 # "Harga empat ratus lima puluh ringgit"
 
+# Indonesian — rupiah with money shorthand (jt = juta)
+normalize_text("Dana Rp2jt", language="id")
+# "Dana dua juta rupiah"
+
+# Chinese — magnitude suffix expands first
+normalize_text("RM30K", language="zh")
+# "三万令吉"
+
 # Large suffixes (M = million, B = billion, T = trillion)
 normalize_text("Revenue hit $1.5M", language="en")
 # "Revenue hit one million, five hundred thousand dollar"
@@ -143,7 +166,15 @@ normalize_text("Due on 15/08/2025", language="en")
 
 # ISO format (YYYY-MM-DD)
 normalize_text("Deadline: 2025-08-15", language="en")
-# "Deadline: August the fifteenth, twenty twenty-five"
+# "Deadline: fifteen August two thousand and twenty-five"
+
+# Indonesian — localized month names
+normalize_text("pada 15/08/2025", language="id")
+# "pada lima belas Agustus dua ribu dua puluh lima"
+
+# Chinese — digit-by-digit year, month and day names
+normalize_text("15/08/2025", language="zh")
+# "二零二五年八月十五日"
 ```
 
 !!! warning
@@ -159,6 +190,14 @@ normalize_text("Meeting at 3:30 pm", language="en")
 # 24-hour format
 normalize_text("Departs at 14:00", language="en")
 # "Departs at fourteen zero"
+
+# Indonesian — pm maps to sore
+normalize_text("rapat 3:30 pm", language="id")
+# "rapat tiga tiga puluh sore"
+
+# Chinese — 上午/下午 with 点 and 分
+normalize_text("3:30 pm", language="zh")
+# "下午三点三十分"
 ```
 
 ### Acronyms
@@ -187,6 +226,10 @@ normalize_text("It is 25C outside", language="en")
 # Fahrenheit
 normalize_text("Temperature is 98F", language="en")
 # "Temperature is ninety-eight fahrenheit"
+
+# Chinese
+normalize_text("25C", language="zh")
+# "二十五摄氏度"
 ```
 
 ### Fractions
@@ -199,6 +242,10 @@ normalize_text("Pour 3/4 cup of water", language="en")
 # Other fractions
 normalize_text("Use 1/2 teaspoon", language="en")
 # "Use one over two teaspoon"
+
+# Chinese uses 分之
+normalize_text("3/4", language="zh")
+# "四分之三"
 ```
 
 ### Measurements
@@ -215,22 +262,24 @@ normalize_text("Buy 10kg of rice", language="en")
 # Data
 normalize_text("Download 3GB file", language="en")
 # "Download three gigabyte file"
+
+# Chinese
+normalize_text("5km", language="zh")
+# "五公里"
 ```
 
-### Malay-Specific
+### Malay-Local Features
+
+The Malaysian-local features (IC numbers, x-kali, hari bulan, Hijri years, elongated words) run for `ms`, `id`, and `en`. See [Languages](languages.md) for the full list.
 
 ```python
-# Currency in Malay
-normalize_text("RM450 untuk projek ini", language="ms")
-# "empat ratus lima puluh ringgit untuk projek ini"
-
-# X-kali multiplier (Malay)
+# X-kali multiplier
 normalize_text("5x ganda", language="ms")
 # "lima kali ganda"
 
-# Temperature in Malay
-normalize_text("Suhu 25C hari ini", language="ms")
-# "Suhu dua puluh lima celcius hari ini"
+# Hari bulan (day of month)
+normalize_text("Tamat pada 10hb", language="ms")
+# "Tamat pada sepuluh hari bulan"
 ```
 
 ### Custom Pronunciation Mappings
@@ -238,17 +287,18 @@ normalize_text("Suhu 25C hari ini", language="ms")
 Add your own pronunciation overrides. These take the highest priority in the pipeline and are applied before any other transformation.
 
 ```python
-from revonorm import normalize_text, add_custom_mapping
+from revonorm import Config, normalize_text
 
-# Add a custom mapping
-add_custom_mapping("YOLO", "you only live once", "en")
-
-normalize_text("YOLO approach", language="en")
+normalize_text(
+    "YOLO approach",
+    language="en",
+    config=Config(pronunciations={"YOLO": "you only live once"}),
+)
 # "you only live once approach"
 ```
 
-!!! warning
-    `add_custom_mapping()` modifies module-level state and is **not thread-safe**. Add all custom mappings at application startup, before any calls to `normalize_text()`.
+!!! note
+    Mappings must describe how a term **sounds**, not what it expands to — the engine rejects expansion-looking values like `"you only live once"` for `YOLO` when passed through `add_custom_mapping()`. Request-scoped `Config(pronunciations=...)` is the supported path; it skips that check, is thread-safe, and needs no global state.
 
 ## Next Steps
 

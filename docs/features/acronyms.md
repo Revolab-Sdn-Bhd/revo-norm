@@ -142,9 +142,9 @@ normalize_text("GIF format", language="en")
 normalize_text("IEEE standard", language="en")
 # "I triple E standard"
 
-# WiFi -> why fi (not "W I F I")
+# WiFi -> wi fi (not "W I F I")
 normalize_text("Connect to WiFi", language="en")
-# "Connect to why fi"
+# "Connect to wi fi"
 
 # iOS -> I O S (not "i O S")
 normalize_text("iOS update", language="en")
@@ -179,7 +179,7 @@ Custom mappings apply globally (across all languages) and are matched as whole w
 | ASCII  | as key       |
 | IEEE   | I triple E   |
 | GIF    | gif          |
-| WiFi   | why fi       |
+| WiFi   | wi fi        |
 | iOS    | I O S        |
 | bias   | bai yers     |
 | Hj     | Haji         |

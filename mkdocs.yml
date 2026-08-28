@@ -71,7 +71,6 @@ nav:
     - Numbers: features/numbers.md
     - Acronyms: features/acronyms.md
     - Measurements: features/measurements.md
-    - Malay Features: features/malay.md
   - Configuration: configuration.md
   - Languages: languages.md
   - Migration Guide: migration.md
