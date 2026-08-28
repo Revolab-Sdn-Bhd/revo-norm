@@ -17,3 +17,4 @@ The GUI uses JSON	The gooey uses J son
 version 3.14.159	version three point fourteen point one hundred and fifty-nine
 No. 5 Jalan Bukit	number five Jalan Bukit
 On 8/15/2025 we ship	On fifteen of August twenty twenty-five we ship
+Visit www.revo.ai	Visit w w w dot revo dot ai
