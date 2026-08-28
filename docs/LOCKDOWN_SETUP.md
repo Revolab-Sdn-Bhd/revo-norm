@@ -50,7 +50,7 @@ impossible. The ticket creator comments `/tests-approved` → label removed
 ```
 user files issue
       │
-      ▼  (actor-gated: khursani8 opens, or labels any issue)
+      ▼  (actor-gated: khursanirevo opens, or labels any issue)
 claude-issue-fixer runs on hgx box
   claude -p --dangerously-skip-permissions
   edits Rust + regenerates fixtures + adds tests
@@ -61,7 +61,7 @@ PR opened: claude/issue-N, labeled needs-test-review, "Closes #N"
       │
       ▼
 ticket creator reviews the unit tests in the diff
-      │  comments /tests-approved (creator or khursani8 only)
+      │  comments /tests-approved (creator or khursanirevo only)
       ▼
 label removed → test-review / gate passes
       │
