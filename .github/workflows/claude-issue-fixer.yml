@@ -144,6 +144,10 @@ jobs:
           ## Hard rules
           - If tests cannot pass, do NOT open a PR — comment on the
             issue with the failure output instead.
+          - NEVER modify version headings in docs/changelog.md. Changelog
+            entries are written ONLY by the tag-triggered release-docs
+            bot; there is no vX.Y.Z until a tag exists. A docs-only PR
+            that invents a version heading reopens this exact bug.
           - Never force-push, never touch main, never modify files
             under .github/.
 
