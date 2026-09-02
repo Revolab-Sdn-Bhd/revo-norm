@@ -2,11 +2,11 @@
 
 All notable changes to revo-norm are documented here.
 
-## v1.0.1 (Current)
+## v1.0.0 (Current)
 
-**Docs: full id/zh coverage.** The non-en/ms languages are no longer only covered on `docs/languages.md`.
+**One package: `revonorm`.** The `revo_norm` Python package is deleted; the compiled engine is the sole implementation and the sole import path.
 
-### Changed
+### Docs
 
 - Feature pages (`currency`, `dates`, `times`, `numbers`, `measurements`) cover `id` and `zh`/`zh_my` alongside `en`/`ms`: rupiah and its `rb`/`jt`/`M`/`T` shorthand, Indonesian month names and `pagi`/`siang`/`sore`/`malam` meridians, dotted-thousands number conventions, Chinese unit words, colloquial `zh_my` currency (美金/英磅/块), and Chinese 第-ordinals, percentages, and fractions.
 - `docs/features/` now holds cross-language feature pages only. `features/malay.md` is folded into the **Malay Specifics** section of `docs/languages.md` and deleted, along with its nav entry.
@@ -17,10 +17,6 @@ All notable changes to revo-norm are documented here.
 
 - Stale example outputs corrected against engine behavior: zh_my `$`/`USD` → 美金 (not 块/美元), `£` sub-unit → 便士, `00:00`/`12:00` → `zero zero`/`twelve zero` (not "midnight"/"noon"), `15/08/2025` → `fifteen of August twenty twenty-five`, `WiFi` → `wi fi`, `$45.99` → `forty-five dollar ninety-nine cents`, `disable=["measurements"]` → `five K M away`.
 - Documented two engine limitations instead of misdocumenting them: `100th` and `Aug. 15, 2025` are not converted; Indonesian multi-digit comma fractions (`3,14`) read as two numbers unless preceded by a dotted group.
-
-## v1.0.0
-
-**One package: `revonorm`.** The `revo_norm` Python package is deleted; the compiled engine is the sole implementation and the sole import path.
 
 ### Breaking
 
