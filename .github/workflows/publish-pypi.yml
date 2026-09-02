@@ -64,7 +64,11 @@ jobs:
         # while passing zipfile.testzip in CI — the corruption is in
         # the archive framing, not the entries. A zipfile round-trip
         # writes a clean central directory with nothing after the EOCD.
-        run: python ../../scripts/normalize_wheels.py
+        # Absolute path via the runner env: the job's working-directory
+        # made every relative form fail across four attempts.
+        env:
+          NORMALIZE_SCRIPT: ${{ github.workspace }}/scripts/normalize_wheels.py
+        run: python "$NORMALIZE_SCRIPT"
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4

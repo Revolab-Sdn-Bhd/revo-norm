@@ -69,11 +69,21 @@ jobs:
             exit 1
           fi
 
-      - name: Push the annotated tag
+      - name: Push the annotated tag (with a PAT so workflows fire)
+        env:
+          # Pushes made with GITHUB_TOKEN do not trigger other
+          # workflows (GitHub event-loop guard) — the publish chain
+          # never received the tag events. The PAT lifts that.
+          PUSH_TOKEN: ${{ secrets.RELEASE_PAT }}
         run: |
           set -euo pipefail
           TAG="${{ steps.ver.outputs.version }}"
           # head of main = the release PR's merge commit
           git tag -a "${TAG}" -m "release: ${TAG}" origin/main
-          git push origin "${TAG}"
-          echo "Tagged ${TAG} — publish-npm / publish-pypi / release-docs now fire."
+          if [ -n "${PUSH_TOKEN}" ]; then
+            git push "https://x-access-token:${PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "${TAG}"
+          else
+            git push origin "${TAG}"
+            echo "::warning::RELEASE_PAT not set — tag pushed with GITHUB_TOKEN; publish workflows will NOT fire. Dispatch them manually."
+          fi
+          echo "Tagged ${TAG} — publish-npm / publish-pypi / release-docs fire on the push."
