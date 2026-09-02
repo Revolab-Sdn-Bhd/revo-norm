@@ -1,6 +1,6 @@
 [package]
 name = "revonorm-core"
-version = "1.0.0"
+version = "1.1.0"
 edition = "2024"
 description = "Multilingual TTS text normalization for ms/id/en/zh/zh_my"
 repository = "https://github.com/Revolab-Sdn-Bhd/revo-norm"
