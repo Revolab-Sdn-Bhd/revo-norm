@@ -2,7 +2,26 @@
 
 All notable changes to revo-norm are documented here.
 
-## v1.0.0 (Current)
+## v1.1.0 (Current)
+
+**The repo drives itself — the engine doesn't change.** Every user-facing surface (engine, wheel, public API, docs) is untouched; this release ships the automation that takes an issue to a reviewed PR and a merge to a tagged, published release.
+
+### Added
+
+- **Issue-to-PR pipeline**: an issue filed by `khursanirevo` (or labeled) runs the fixer agent on the self-hosted box — it edits the Rust core, regenerates fixtures, runs every gate locally (wheel build, private 498 suite, ruff, cargo, clippy), and opens a PR that closes the issue. If a local gate fails, no PR opens; the failure is posted as a comment on the issue instead (#53).
+- **Human test-review gate**: `/tests-approved` from the issue creator (or `khursanirevo`) strips the `needs-test-review` label; the gate workflow fails while the label is present, so wiring it as a required status check makes pre-approval merge impossible (#53). `docs/LOCKDOWN_SETUP.md` records the one-time admin setup (#53).
+- **Issue templates as agent contracts**: bug report, new language, and normalization-change templates whose fields are literal — expected-output rows become snapshot cases, edge-case rows are must-NOT-change constraints, `?` means the agent asks in the PR instead of guessing. Blank issues are disabled (#56).
+- **Tag-triggered docs hook**: on a tag push, one PR refreshes exactly what the diff made stale (changelog entry in the repo's narrative voice, README/api/features/quickstart) — labeled `docs-update`, branched from `main`, scope-locked away from `src/` and `.github/`; a no-op exits clean with no empty PR (#59).
+- **Automated releases**: a nightly workflow gates the accumulated tree and drafts this very `chore(release)` PR (version bump + changelog, feat→minor / fix→patch); a RED gate files a `release blocked` issue and cuts nothing. On merge, the tag workflow verifies PR-title version == Cargo version, then pushes `vX.Y.Z`; publish-npm/pypi/release-docs fire on the tag (#63).
+
+### Fixed
+
+- Actor gating is `khursanirevo`-only; `docs/LOCKDOWN_SETUP.md` matches (#58).
+- Gate steps run with `GH_REPO` set (#61); the release gate reads the wheel from its actual path (#65).
+- The changelog no longer invents a version that was never tagged — the v1.0.1 heading claim was retracted into v1.0.0, where that docs work actually shipped (#62).
+- `www.revo.ai` URL speech pinned as an en fixture case across all three profiles — a regression guard on existing behavior, not a behavior change (#57).
+
+## v1.0.0
 
 **One package: `revonorm`.** The `revo_norm` Python package is deleted; the compiled engine is the sole implementation and the sole import path.
 
