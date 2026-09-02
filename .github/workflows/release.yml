@@ -70,8 +70,10 @@ jobs:
           # The exact CI test-job gate: wheel build+install, private
           # suite, lint — plus the rust-core gate.
           uv sync --all-extras
+          cd revonorm-core
           PYO3_PYTHON="$(uv run python -c 'import sys; print(sys.executable)')" \
-            maturin build --release --out dist --manifest-path revonorm-core/Cargo.toml
+            maturin build --release --out dist
+          cd ..
           uv pip install --force-reinstall --no-deps revonorm-core/dist/*.whl
           uv run ruff check revonorm-core/python/revonorm/
           cargo test --manifest-path revonorm-core/Cargo.toml
