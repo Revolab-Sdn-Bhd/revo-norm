@@ -61,26 +61,10 @@ jobs:
       - name: Rebuild wheel archives canonically
         # The manylinux x86_64 docker build has twice produced wheels
         # PyPI rejects with 'ZIP archive not accepted: Trailing data'
-        # while passing zipfile.testzip locally in CI — the corruption
-        # is in the archive framing, not the entries. Rewriting every
-        # wheel through a zipfile round-trip emits a standards-clean
-        # central directory with nothing after the EOCD record.
-        run: |
-          python - <<'PYEOF'
-          import glob, os, shutil, tempfile, zipfile
-          for w in glob.glob('revonorm-core/dist/*.whl'):
-              with tempfile.TemporaryDirectory() as td:
-                  with zipfile.ZipFile(w) as z:
-                      z.extractall(td)
-                  tmp = w + '.tmp'
-                  with zipfile.ZipFile(tmp, 'w', zipfile.ZIP_DEFLATED) as z:
-                      for root, _, files in os.walk(td):
-                          for f in sorted(files):
-                              full = os.path.join(root, f)
-                              z.write(full, os.path.relpath(full, td))
-              os.replace(tmp, w)
-              print(f'normalized {w}')
-          PYEOF
+        # while passing zipfile.testzip in CI — the corruption is in
+        # the archive framing, not the entries. A zipfile round-trip
+        # writes a clean central directory with nothing after the EOCD.
+        run: python scripts/normalize_wheels.py
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
