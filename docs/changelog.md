@@ -2,7 +2,16 @@
 
 All notable changes to revo-norm are documented here.
 
-## v1.1.0 (Current)
+## v1.1.1 (Current)
+
+**The release chain unblocks itself — the engine doesn't change.** Two CI fixes stand between a green gate and a published wheel: the ubuntu wheel PyPI rejects is now rewritten canonically before upload, and the self-hosted runner stops dying on its own leftover tests clone. v1.1.0 is a burned partial on PyPI (6/21 files, no cp312/cp313); PyPI never overwrites filenames, so this patch ships the complete set that 1.1.0 promised.
+
+### Fixed
+
+- **PyPI upload**: the manylinux docker image's archive writer leaves trailing bytes after the zip EOCD — `400 Invalid distribution file. ZIP archive not accepted: Trailing data` on ubuntu-x86_64, reproducibly across reruns, while the in-CI `zipfile.testzip` gate passes the same wheel because it validates entries, not archive framing. Every wheel now round-trips through python `zipfile` (extract → re-zip `ZIP_DEFLATED` → replace) before upload, writing a canonical central directory with nothing after the EOCD. The same signature burned v0.8.2 and v0.8.5 as partials before it was isolated (#67).
+- **Release gate on reused runners**: `/tmp` persists across dispatches on the self-hosted box, so a second release run died at `destination path '/tmp/revo-norm-tests' already exists`. The gate clears the stale clone before checking out the tests repo (#68).
+
+## v1.1.0
 
 **The repo drives itself — the engine doesn't change.** Every user-facing surface (engine, wheel, public API, docs) is untouched; this release ships the automation that takes an issue to a reviewed PR and a merge to a tagged, published release.
 
