@@ -64,7 +64,7 @@ jobs:
         # while passing zipfile.testzip in CI — the corruption is in
         # the archive framing, not the entries. A zipfile round-trip
         # writes a clean central directory with nothing after the EOCD.
-        run: python scripts/normalize_wheels.py
+        run: python ../../scripts/normalize_wheels.py
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
