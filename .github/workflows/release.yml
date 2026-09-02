@@ -79,6 +79,7 @@ jobs:
           cargo test --manifest-path revonorm-core/Cargo.toml
           cargo clippy --manifest-path revonorm-core/Cargo.toml -- -D warnings
 
+          rm -rf /tmp/revo-norm-tests   # self-hosted runners reuse /tmp
           git clone --depth 1 \
             "https://x-access-token:${{ secrets.PRIVATE_TESTS_TOKEN }}@github.com/Revolab-Sdn-Bhd/revo-norm-tests.git" \
             /tmp/revo-norm-tests
