@@ -1,0 +1,79 @@
+# Tag pusher: when a release PR merges, tag its version automatically.
+#
+# The nightly release bot cannot tag (main is locked; the release goes
+# through a PR). This companion watches release PR merges, verifies the
+# tree, and pushes the annotated vX.Y.Z — which fires publish-npm /
+# publish-pypi / release-docs. The tag must equal the Cargo version;
+# the version-guard job fails the workflow otherwise.
+
+name: release-tag
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    if: >-
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.title, 'chore(release): bump to v')
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 15
+
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      PATH: >-
+        /home/sani/.local/bin:/home/sani/.cargo/bin:/home/sani/.nvm/versions/node/v24.14.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+    steps:
+      - name: Check out the merge commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from the PR title
+        id: ver
+        run: |
+          set -euo pipefail
+          VER="${{ github.event.pull_request.title }}"
+          VER="${VER##*bump to }"    # strip prefix
+          VER="${VER%%\)*}"           # tolerate trailing paren
+          case "$VER" in
+            v[0-9]*.[0-9]*.[0-9]*) ;;
+            *) echo "::error::could not parse version from title: $VER"; exit 1 ;;
+          esac
+          echo "version=${VER}" >> "$GITHUB_OUTPUT"
+          echo "Parsed ${VER}"
+
+      - name: Tag must equal Cargo.toml version
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.ver.outputs.version }}"
+          CARGO_V="$(grep -m1 '^version' revonorm-core/Cargo.toml | sed 's/version = "\(.*\)"/\1/')"
+          if [ "${TAG#v}" != "${CARGO_V}" ]; then
+            echo "::error::PR title ${TAG} != Cargo.toml ${CARGO_V}"
+            exit 1
+          fi
+          echo "Versions aligned: ${TAG}"
+
+      - name: Tag must not already exist
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.ver.outputs.version }}"
+          if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
+            echo "::error::${TAG} already exists — not re-tagging."
+            exit 1
+          fi
+
+      - name: Push the annotated tag
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.ver.outputs.version }}"
+          # head of main = the release PR's merge commit
+          git tag -a "${TAG}" -m "release: ${TAG}" origin/main
+          git push origin "${TAG}"
+          echo "Tagged ${TAG} — publish-npm / publish-pypi / release-docs now fire."

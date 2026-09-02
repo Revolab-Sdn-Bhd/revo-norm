@@ -1,0 +1,165 @@
+# Nightly release assessment (exp-manager nightly-release pattern,
+# adapted: the release goes through a PR — main is locked).
+#
+# Once a day: are the merges since the last tag worth shipping?
+#   - Nothing new since the tag → exit quietly.
+#   - Only docs/ci/test commits → no release, exit quietly.
+#   - feat/fix commits → run the full gate (the same suites CI runs).
+#     GREEN → Claude drafts a release PR: version bump (Cargo.toml +
+#     __init__.py in lockstep) + the narrative changelog entry.
+#     You review + merge; release-tag.yml then pushes vX.Y.Z, which
+#     fires publish-npm / publish-pypi / release-docs.
+#   - RED → opens a "release blocked" issue with the failure.
+
+name: release
+
+on:
+  schedule:
+    - cron: "23 18 * * *"   # 02:23 local, off the :00 mark
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  assess:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 90
+
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1"
+      PATH: >-
+        /home/sani/.local/bin:/home/sani/.cargo/bin:/home/sani/.nvm/versions/node/v24.14.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+    steps:
+      - name: Check out default branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # tags + history for since-last-tag diffing
+
+      - name: Nothing to release?
+        id: check
+        run: |
+          set -euo pipefail
+          LAST_TAG="$(git describe --tags --abbrev=0)"
+          COUNT="$(git rev-list "${LAST_TAG}..HEAD" --count)"
+          echo "last_tag=${LAST_TAG}" >> "$GITHUB_OUTPUT"
+          echo "count=${COUNT}" >> "$GITHUB_OUTPUT"
+          echo "Commits since ${LAST_TAG}: ${COUNT}"
+          if [ "${COUNT}" -gt 0 ]; then
+            # any user-facing commits? (feat/fix per conventional commits)
+            FACES="$(git log "${LAST_TAG}..HEAD" --oneline --grep '^feat' --grep '^fix' --grep '^[a-z]*(feat\|fix)' -E | wc -l)"
+            echo "user_facing=${FACES}" >> "$GITHUB_OUTPUT"
+            echo "User-facing (feat/fix): ${FACES}"
+          else
+            echo "user_facing=0" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run the release gate
+        if: steps.check.outputs.user_facing != '0'
+        run: |
+          set -euo pipefail
+          # The exact CI test-job gate: wheel build+install, private
+          # suite, lint — plus the rust-core gate.
+          uv sync --all-extras
+          PYO3_PYTHON="$(uv run python -c 'import sys; print(sys.executable)')" \
+            maturin build --release --out dist --manifest-path revonorm-core/Cargo.toml
+          uv pip install --force-reinstall --no-deps revonorm-core/dist/*.whl
+          uv run ruff check revonorm-core/python/revonorm/
+          cargo test --manifest-path revonorm-core/Cargo.toml
+          cargo clippy --manifest-path revonorm-core/Cargo.toml -- -D warnings
+
+          git clone --depth 1 \
+            "https://x-access-token:${{ secrets.PRIVATE_TESTS_TOKEN }}@github.com/Revolab-Sdn-Bhd/revo-norm-tests.git" \
+            /tmp/revo-norm-tests
+          uv run pytest /tmp/revo-norm-tests/ -q
+          echo "Gate passed: tree is releasable."
+
+      - name: Draft the release PR with Claude
+        if: steps.check.outputs.user_facing != '0'
+        env:
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.ANTHROPIC_AUTH_TOKEN }}
+          ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
+          ANTHROPIC_DEFAULT_SONNET_MODEL: glm-5.2
+          ANTHROPIC_DEFAULT_OPUS_MODEL: glm-5.2
+          ANTHROPIC_DEFAULT_HAIKU_MODEL: glm-4.5-air
+          LAST_TAG: ${{ steps.check.outputs.last_tag }}
+        run: |
+          set -euo pipefail
+          npm install -g @anthropic-ai/claude-code
+
+          BRANCH="claude/release-next"
+          git config user.name "claude-bot"
+          git config user.email "actions@github.com"
+          git checkout -B "$BRANCH" origin/main
+
+          cat > "$RUNNER_TEMP/prompt.md" <<'PROMPT_EOF'
+          You are the release bot. The gate already passed on this
+          exact tree (wheel + 498-test private suite + ruff + cargo +
+          clippy all green) — do NOT re-run them. Your job: draft the
+          release PR.
+
+          ## Inputs
+          - Last release tag: $(LAST_TAG)
+          - Commit range: `git log $(LAST_TAG)..HEAD --oneline`;
+            resolve narrative from PR MERGE subjects, not inner
+            squashes. Read AGENTS.md first for repo conventions.
+
+          ## Decide the bump (conventional commits)
+          - Any `feat:` → MINOR (1.0.0 → 1.0.1 is WRONG; 1.0.0 →
+            1.1.0. This repo is post-1.0: feat = minor, fix = patch.)
+          - Only `fix:` → PATCH
+
+          ## The PR contents (docs-only changes to three files)
+          1. revonorm-core/Cargo.toml — `version = "X.Y.Z"`
+          2. revonorm-core/python/revonorm/__init__.py —
+             `__version__ = "X.Y.Z"` (lockstep with Cargo; the
+             version-guard job fails any tag that disagrees)
+          3. docs/changelog.md — prepend `## vX.Y.Z (Current)` with a
+             narrative entry matching the existing voice: bold thesis
+             line, ### Added/Changed/Fixed with issue/PR references.
+             NOT commit-subject bullets. Move `(Current)` off the
+             previous heading.
+          Nothing else. No doc refreshes — the tag-triggered
+          release-docs bot does those after the tag exists.
+
+          ## Open the PR
+          1. Commit subject exactly: `chore(release): bump to vX.Y.Z`
+          2. git push -u origin HEAD
+          3. gh pr create --base main --title "chore(release): bump
+             to vX.Y.Z" --body <evidence: the bump decision and why,
+             the changelog headline, the gate results>. Reference
+             nothing (no issue).
+          4. Do NOT add needs-test-review — a release PR has no unit
+             tests to review; it needs only the normal 1 approval.
+
+          ## Hard rules
+          - NEVER modify anything beyond those three files.
+          - NEVER touch main directly, never force-push, never tag —
+            tagging happens automatically after the PR merges.
+          PROMPT_EOF
+          sed -i "s|\$(LAST_TAG)|${LAST_TAG}|g" "$RUNNER_TEMP/prompt.md"
+
+          claude -p --dangerously-skip-permissions \
+            --settings '{"disableAllHooks": true}' \
+            < "$RUNNER_TEMP/prompt.md"
+
+      - name: Open issue when the gate is red
+        if: failure()
+        run: |
+          set -euo pipefail
+          TITLE="Nightly release blocked: gate failed"
+          gh issue list --state open --search "in:title ${TITLE}" --json number --jq 'length' | grep -q '^0$' \
+            && gh issue create --title "${TITLE}" \
+                 --body "The nightly release gate failed on \`${GITHUB_SHA::12}\` — no version was cut. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+              || gh issue comment \
+                   "$(gh issue list --state open --search "in:title ${TITLE}" --json number --jq '.[0].number')" \
+                   --body "Gate failed again: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
