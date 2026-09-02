@@ -4,7 +4,9 @@
 The manylinux x86_64 docker build has produced wheels PyPI rejects with
 'ZIP archive not accepted: Trailing data' while passing testzip (which
 checks entries, not framing). A zipfile round-trip writes a clean
-central directory. Run from the repo root; rewrites in place.
+central directory. Paths anchor to the repo root (this script's
+parent's parent), so the invoking job's working directory is
+irrelevant; rewrites in place.
 """
 
 import glob
@@ -12,8 +14,10 @@ import os
 import tempfile
 import zipfile
 
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
 count = 0
-for wheel in glob.glob("revonorm-core/dist/*.whl"):
+for wheel in glob.glob(os.path.join(REPO_ROOT, "revonorm-core", "dist", "*.whl")):
     with tempfile.TemporaryDirectory() as td:
         with zipfile.ZipFile(wheel) as z:
             z.extractall(td)
