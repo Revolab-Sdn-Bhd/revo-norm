@@ -2,7 +2,15 @@
 
 All notable changes to revo-norm are documented here.
 
-## v1.1.1 (Current)
+## v1.1.2 (Current)
+
+**The fix that shipped in v1.1.1 never ran — the engine doesn't change.** The trailing-data rewrite was a bash heredoc; Windows runners parse step bodies with PowerShell and died at the `<<` operator before any wheel was touched, so PyPI 1.1.1 burned as another partial. The rewrite now lives in `scripts/normalize_wheels.py`, and this patch ships the complete wheel set that both 1.1.0 and 1.1.1 promised.
+
+### Fixed
+
+- **Wheel rewrite across the OS matrix**: the canonical-rewrite step from #67 used a bash heredoc, and PowerShell — the shell Windows runners use for step bodies — cannot parse `<<`; the publish job died on the spot, no wheel was normalized, and PyPI rejected the ubuntu wheel with the same trailing-data error. The logic now lives in `scripts/normalize_wheels.py`, invoked as a plain `python scripts/normalize_wheels.py` that runs identically on every OS in the matrix — verified locally: the script rewrites the wheel and `twine check` passes the result (#70).
+
+## v1.1.1
 
 **The release chain unblocks itself — the engine doesn't change.** Two CI fixes stand between a green gate and a published wheel: the ubuntu wheel PyPI rejects is now rewritten canonically before upload, and the self-hosted runner stops dying on its own leftover tests clone. v1.1.0 is a burned partial on PyPI (6/21 files, no cp312/cp313); PyPI never overwrites filenames, so this patch ships the complete set that 1.1.0 promised.
 
