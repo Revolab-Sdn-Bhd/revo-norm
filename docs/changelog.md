@@ -2,7 +2,15 @@
 
 All notable changes to revo-norm are documented here.
 
-## v1.1.3 (Current)
+## v1.1.4 (Current)
+
+**#72 fixed the script's paths but not the step that runs it — the engine doesn't change.** The publish job still invoked `python scripts/normalize_wheels.py` with `working-directory: revonorm-core`, so all five OS matrix jobs looked for `revonorm-core/scripts/normalize_wheels.py`, hit ENOENT, and exited before normalizing — PyPI 1.1.3 burned as partial #4, shipping the same raw docker wheels. This patch ships the complete, canonicalized wheel set that 1.1.2 promised and 1.1.3 failed to deliver.
+
+### Fixed
+
+- **Wheel-normalizer invocation**: the rewrite step from #72 anchored the script's *internal* paths but left the invocation as `python scripts/normalize_wheels.py`, which resolves to `revonorm-core/scripts/normalize_wheels.py` under the wheels matrix's `working-directory: revonorm-core` — ENOENT on every OS, zero wheels normalized, and PyPI 1.1.3 shipped raw, failing identically. The step now invokes `python ../../scripts/normalize_wheels.py`, resolving from the job's actual working directory, while the script's repo-root anchoring keeps the dist glob correct regardless (#74).
+
+## v1.1.3
 
 **The script that v1.1.2 shipped never ran — the engine doesn't change.** The rewrite step invoked `python scripts/normalize_wheels.py` while the wheels matrix sets `working-directory: revonorm-core`, so every runner exited before normalizing and PyPI 1.1.2 shipped the same raw docker wheels. This patch ships the complete, canonicalized wheel set that 1.1.2 promised.
 
