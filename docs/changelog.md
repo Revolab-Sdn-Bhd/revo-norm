@@ -2,7 +2,16 @@
 
 All notable changes to revo-norm are documented here.
 
-## v1.1.4 (Current)
+## v1.2.0 (Current)
+
+**Six tags, zero GitHub Releases — the engine doesn't change.** The release chain ended one step short: tags reached the registries and the docs PR, but the Releases page stayed empty, and the `GITHUB_TOKEN` tag push never fired the publish workflows in the first place. This release closes both gaps inside the tag workflow — the tag goes out under a PAT so the chain fires, and the GitHub Release is cut from this very changelog.
+
+### Added
+
+- **GitHub Releases on every tag**: six tags shipped and the Releases page never got an entry — the chain went tag → registries → docs and stopped. After pushing `vX.Y.Z`, the tag workflow now extracts that version's `## vX.Y.Z` section from `docs/changelog.md` (awk, bounded by the next `## v` heading) and creates the Release with `gh release create --verify-tag`; a missing section falls back to the tag message with a `::warning` instead of a silently empty page (#77).
+- **Tag push under `RELEASE_PAT`**: tags were pushed with `GITHUB_TOKEN`, whose pushes GitHub's event-loop guard silently drops as workflow triggers — publish-npm / publish-pypi / release-docs never received a tag event, so every release to date needed manual dispatch. The pusher now uses the `RELEASE_PAT` secret, falling back to `GITHUB_TOKEN` with a loud `::warning` to dispatch the publishes manually if the secret is gone (#77).
+
+## v1.1.4
 
 **#72 fixed the script's paths but not the step that runs it — the engine doesn't change.** The publish job still invoked `python scripts/normalize_wheels.py` with `working-directory: revonorm-core`, so all five OS matrix jobs looked for `revonorm-core/scripts/normalize_wheels.py`, hit ENOENT, and exited before normalizing — PyPI 1.1.3 burned as partial #4, shipping the same raw docker wheels. This patch ships the complete, canonicalized wheel set that 1.1.2 promised and 1.1.3 failed to deliver.
 
