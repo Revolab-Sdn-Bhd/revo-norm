@@ -280,7 +280,13 @@ pub fn expand_acronym(acronym: &str) -> String {
     if SPLIT.contains(&acronym) {
         return acronym.chars().map(|c| c.to_string()).collect::<Vec<_>>().join(" ");
     }
-    const ALWAYS_SPELL: &[&str] = &["UITM", "UKM", "USM", "UTM", "UPNM", "IIUM", "UM", "UPM"];
+    // Malaysian universities, plus organisations and places whose letters are
+    // always said one by one. Without them the vowel-density and C-V-C
+    // heuristics below read KLIA as "klia" and MPOB as "M pob".
+    const ALWAYS_SPELL: &[&str] = &[
+        "UITM", "UKM", "USM", "UTM", "UPNM", "IIUM", "UM", "UPM", "KLIA", "MPOB", "CCRIS",
+        "RRIM", "KWAP", "LTAT", "SPAD",
+    ];
     if ALWAYS_SPELL.contains(&acronym) {
         return acronym.chars().map(|c| c.to_string()).collect::<Vec<_>>().join(" ");
     }

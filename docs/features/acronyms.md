@@ -57,6 +57,23 @@ These Malaysian university and organization acronyms are always spelled letter-b
 | IIUM    | I I U M   |
 | UM      | U M       |
 | UPM     | U P M     |
+| KLIA    | K L I A   |
+| MPOB    | M P O B   |
+| CCRIS   | C C R I S |
+| RRIM    | R R I M   |
+| KWAP    | K W A P   |
+| LTAT    | L T A T   |
+| SPAD    | S P A D   |
+
+The last seven are there because the heuristics below would otherwise read
+them as words: `KLIA` has a 50% vowel ratio, so the pronounceable-word rule
+lowercases it, and `MPOB`, `CCRIS` and `RRIM` have a consonant-vowel-consonant
+tail, so the C-V-C rule says `M pob`, `C cris`, `R rim`. Malaysians say the
+letters.
+
+Note that this list is for initialisms only. Organisations genuinely said as
+words -- MARA, FAMA, PERKESO, SOCSO, JAKIM, PIAM -- are already handled by the
+vowel-density rule and must stay out of it.
 
 ### Pronounceable Word Detection
 

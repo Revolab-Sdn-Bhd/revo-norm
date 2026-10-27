@@ -33,6 +33,17 @@ CASES = {
         "Separuh daripada 3/4 bahagian", "10x ganda",
         "Suhu 25C hari ini", "1433H", "10HB setiap tahun",
         "Berat 10.5 kg", "Hubungi 012-345 6789 sekarang",
+        # Abbreviations: spelled out, said as a word, and the Malaysian
+        # organisations the vowel heuristics used to get wrong.
+        "Rekod NCD dan KWSP encik dah disemak",
+        "Semakan CCRIS tunjuk tunggakan",
+        "Harga sawit dari MPOB minggu ni",
+        "Flight sampai KLIA pukul 3 petang",
+        "Caruman KWAP dengan LTAT",
+        "Bantuan MARA dan subsidi FAMA",
+        "Daftar PERKESO sebelum SOCSO tutup",
+        "Keputusan SPM dan permohonan UPU",
+
         "Lihat www.example.com/page/2/3", "Kos USD50 dan EUR30",
         "No. 12, Jalan SS2/72, Petaling Jaya",
         "betuiii sekali", "dial *120# now", "Exit 5 please",

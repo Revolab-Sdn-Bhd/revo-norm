@@ -31,6 +31,14 @@ Suhu 25C hari ini	Suhu dua puluh lima celcius hari ini
 10HB setiap tahun	sepuluh hari bulan setiap tahun
 Berat 10.5 kg	Berat sepuluh perpuluhan lima kilogram
 Hubungi 012-345 6789 sekarang	Hubungi kosong satu dua tiga empat lima enam tujuh lapan sembilan sekarang
+Rekod NCD dan KWSP encik dah disemak	Rekod N C D dan K W S P encik dah disemak
+Semakan CCRIS tunjuk tunggakan	Semakan C C R I S tunjuk tunggakan
+Harga sawit dari MPOB minggu ni	Harga sawit dari M P O B minggu ni
+Flight sampai KLIA pukul 3 petang	Flight sampai K L I A pukul tiga petang
+Caruman KWAP dengan LTAT	Caruman K W A P dengan L T A T
+Bantuan MARA dan subsidi FAMA	Bantuan mara dan subsidi fama
+Daftar PERKESO sebelum SOCSO tutup	Daftar perkeso sebelum socso tutup
+Keputusan SPM dan permohonan UPU	Keputusan S P M dan permohonan U P U
 Lihat www.example.com/page/2/3	Lihat w w w dot example dot com slash page slash dua slash tiga
 Kos USD50 dan EUR30	Kos lima puluh dollar dan tiga puluh euro
 No. 12, Jalan SS2/72, Petaling Jaya	nombor dua belas, Jalan S S dua slash tujuh dua, Petaling Jaya
